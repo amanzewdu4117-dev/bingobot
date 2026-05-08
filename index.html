@@ -3,33 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VamosBingo Pro Fix</title>
+    <title>VamosBingo - Auto Reset on Win</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        /* Profile & Stats */
         .profile-bar { background: #162133; border-radius: 15px; padding: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; border: 1px solid #2a3a52; }
         .avatar { width: 40px; height: 40px; background: #00ffcc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0b111b; }
         .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
         .stat-box { background: #162133; border: 1px solid #2a3a52; border-radius: 10px; padding: 5px; text-align: center; }
         .stat-label { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
         .stat-value { font-size: 14px; font-weight: bold; color: #00ffcc; }
+
+        /* Slot Grid Section */
         .slot-section { background: #162133; border-radius: 20px; padding: 15px; border: 1px solid #2a3a52; display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .scroll-area { overflow-y: auto; flex: 1; padding-right: 5px; }
         .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
         .slot-item { background: #1c283d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 11px; font-weight: bold; color: #a0b0c0; cursor: pointer; border: 1px solid transparent; }
         .slot-item.selected { border-color: #ff9800; color: white; background: #ff980033; }
         .slot-item.called { background: #2ecc71 !important; color: white !important; box-shadow: 0 0 10px #2ecc71; }
+
+        /* Card Preview */
         .footer-cards { display: flex; gap: 10px; height: 160px; margin-top: 10px; }
         .mini-card { background: #1c283d; border: 1px solid #2a3a52; border-radius: 15px; flex: 1; padding: 8px; display: flex; flex-direction: column; position: relative; }
         .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1; }
         .m-cell { background: #24344d; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 9px; font-weight: bold; }
         .m-cell.hit { background: #ff9800 !important; color: black !important; }
-        #bingo-msg { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2ecc71; padding: 20px 40px; border-radius: 15px; font-size: 40px; font-weight: bold; display: none; z-index: 1000; }
+
+        /* Win Overlay */
+        #bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(46, 204, 113, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: white; font-size: 40px; font-weight: bold; }
+        .win-sub { font-size: 16px; margin-top: 10px; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-    <div id="bingo-msg">BINGO!</div>
+    <div id="bingo-overlay">
+        <div>BINGO! 🎉</div>
+        <div class="win-sub">አዲስ ጨዋታ በቅርቡ ይጀምራል...</div>
+    </div>
 
     <div class="profile-bar">
         <div class="avatar">@</div>
@@ -78,15 +90,20 @@
                 div.className = 'slot-item'; div.id = `slot-${i}`; div.textContent = i;
                 div.onclick = () => {
                     if(isPlaying) return;
-                    if(selected.includes(i)) { selected = selected.filter(n => n !== i); div.classList.remove('selected'); }
-                    else if(selected.length < 2) { selected.push(i); div.classList.add('selected'); }
-                    updateCards();
+                    if(selected.includes(i)) {
+                        selected = selected.filter(n => n !== i);
+                        div.classList.remove('selected');
+                    } else if(selected.length < 2) {
+                        selected.push(i);
+                        div.classList.add('selected');
+                    }
+                    updateUI();
                 };
                 grid.appendChild(div);
             }
         }
 
-        function updateCards() {
+        function updateUI() {
             document.getElementById('cartela-label').textContent = selected.join(', ') || '--';
             const footer = document.getElementById('footer-cards');
             footer.innerHTML = "";
@@ -100,7 +117,7 @@
                     for(let c=0; c<5; c++) {
                         const cell = document.createElement('div'); cell.className = 'm-cell';
                         if(r===2 && c===2) { cell.innerHTML = "★"; cell.style.color="#2ecc71"; }
-                        else { let val = card[c][r]; cell.textContent = val; cell.id = `c-${id}-v-${val}`; }
+                        else { let val = card[c][r]; cell.textContent = val; cell.id = `c-${id}-r${r}-c${c}`; }
                         g.appendChild(cell);
                     }
                 }
@@ -109,31 +126,68 @@
 
         function startTimer() {
             timerInt = setInterval(() => {
+                if(timeLeft <= 0) {
+                    clearInterval(timerInt);
+                    if(selected.length > 0) {
+                        startRound();
+                    } else {
+                        tg.showAlert("ጨዋታው ለመጀመር ቢያንስ አንድ ቁጥር መምረጥ አለብዎት!");
+                        timeLeft = 15; // ካልመረጠ ተጨማሪ ጊዜ መስጠት
+                        startTimer();
+                    }
+                    return;
+                }
                 timeLeft--;
                 document.getElementById('timer').textContent = `00:${timeLeft < 10 ? '0'+timeLeft : timeLeft}`;
-                if(timeLeft <= 0) { clearInterval(timerInt); startRound(); }
             }, 1000);
         }
 
         function startRound() {
-            if(selected.length === 0) { // ካልመረጡ በራንደም 2 ይምረጥ
-                while(selected.length < 2) {
-                    let r = Math.floor(Math.random() * 500) + 1;
-                    if(!selected.includes(r)) { selected.push(r); document.getElementById(`slot-${r}`).classList.add('selected'); }
-                }
-                updateCards();
-            }
             isPlaying = true;
             drawInt = setInterval(() => {
-                if(called.size >= 75) { clearInterval(drawInt); return; }
+                if(called.size >= 75) { clearInterval(drawInt); location.reload(); return; }
                 let draw; do { draw = Math.floor(Math.random() * 75) + 1; } while(called.has(draw));
                 called.add(draw);
                 document.getElementById(`slot-${draw}`)?.classList.add('called');
+                
                 selected.forEach(id => {
-                    document.getElementById(`c-${id}-v-${draw}`)?.classList.add('hit');
+                    const card = allCards[id-1];
+                    for(let r=0; r<5; r++){
+                        for(let c=0; c<5; c++){
+                            if(card[c][r] === draw) document.getElementById(`c-${id}-r${r}-c${c}`).classList.add('hit');
+                        }
+                    }
                 });
-                // እዚህ ጋር የቢንጎ ቼክ መጨመር ይቻላል
+                checkWinner();
             }, 1000);
+        }
+
+        function checkWinner() {
+            // All winning patterns
+            const lines = [
+                [[0,0],[0,1],[0,2],[0,3],[0,4]], [[1,0],[1,1],[1,2],[1,3],[1,4]], [[2,0],[2,1],[2,2],[2,3],[2,4]], [[3,0],[3,1],[3,2],[3,3],[3,4]], [[4,0],[4,1],[4,2],[4,3],[4,4]],
+                [[0,0],[1,0],[2,0],[3,0],[4,0]], [[0,1],[1,1],[2,1],[3,1],[4,1]], [[0,2],[1,2],[2,2],[3,2],[4,2]], [[0,3],[1,3],[2,3],[3,3],[4,3]], [[0,4],[1,4],[2,4],[3,4],[4,4]],
+                [[0,0],[1,1],[2,2],[3,3],[4,4]], [[0,4],[1,3],[2,2],[3,1],[4,0]]
+            ];
+
+            selected.forEach(id => {
+                lines.forEach(line => {
+                    let win = line.every(pos => {
+                        if(pos[0] === 2 && pos[1] === 2) return true; // Star
+                        return document.getElementById(`c-${id}-r${pos[0]}-c${pos[1]}`).classList.contains('hit');
+                    });
+                    if(win) {
+                        clearInterval(drawInt); // እጣ ማውጣቱን አቁም
+                        document.getElementById('bingo-overlay').style.display = 'flex';
+                        tg.HapticFeedback.notificationOccurred('success');
+                        
+                        // ከ 5 ሰከንድ በኋላ አዲስ ጨዋታ በራሱ ይጀምራል (Refresh)
+                        setTimeout(() => {
+                            location.reload();
+                        }, 5000);
+                    }
+                });
+            });
         }
 
         initData();
