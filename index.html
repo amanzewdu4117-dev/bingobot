@@ -1,196 +1,108 @@
 <!DOCTYPE html>
-<html lang="am">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Job Bingo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Game</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #0d1117; color: white; margin: 0; padding: 10px; box-sizing: border-box; user-select: none; }
-        .header { display: flex; align-items: center; justify-content: space-between; padding: 10px; background-color: #161b22; border-radius: 10px; margin-bottom: 15px; }
-        .user-info { display: flex; align-items: center; gap: 10px; }
-        .avatar { width: 40px; height: 40px; background-color: #00bcd4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .round-info { color: #8b949e; font-size: 12px; }
-        .stats-bar { display: flex; justify-content: space-around; background-color: #161b22; padding: 10px; border-radius: 10px; margin-bottom: 15px; text-align: center; }
-        .stat-box { flex: 1; }
-        .stat-label { color: #00e676; font-size: 11px; text-transform: uppercase; font-weight: bold; }
-        .stat-value { font-size: 20px; font-weight: bold; margin-top: 5px; }
-        #timer { color: #ff5252; }
-        #cartela-count { color: #00bcd4; }
-        #wallet-balance { color: #00e676; }
-        .network-info { color: #8b949e; font-size: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; }
-        .grid-container { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; background-color: #161b22; padding: 10px; border-radius: 10px; }
-        .grid-item { background-color: #21262d; border-radius: 5px; padding: 10px 0; text-align: center; font-weight: bold; font-size: 14px; cursor: pointer; transition: background-color 0.2s; border: 1px solid transparent; }
-        .grid-item:active { background-color: #30363d; }
-        .grid-item.selected { background-color: #ff9800; color: white; border-color: #ff9800; box-shadow: 0 0 5px #ff9800; }
-        .grid-item.disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+        body { font-family: sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-around; background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        .stat { color: #4caf50; font-weight: bold; }
+        .timer { color: #f44336; font-size: 24px; }
+        .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; max-width: 400px; margin: auto; background: #1e1e1e; padding: 10px; border-radius: 10px; }
+        .grid-item { background: #2c2c2c; padding: 10px 0; border-radius: 5px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .grid-item.selected { background: #ff9800; color: black; font-weight: bold; }
+        .grid-item.star { color: #ff9800; font-size: 20px; cursor: default; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="user-info">
-            <div class="avatar" id="user-avatar">?</div>
-            <div>
-                <div id="user-name">ተጫዋች</div>
-                <div class="round-info">ROUND #22161</div>
-            </div>
-        </div>
-        <div style="font-size: 20px;">⋮</div>
+        <div>CLOSES IN<br><span id="timer" class="timer">02:00</span></div>
+        <div>CARTELA<br><span id="cartela-count" class="stat">0</span></div>
+        <div>WALLET<br><span id="wallet" class="stat">40 ETB</span></div>
     </div>
 
-    <div class="stats-bar">
-        <div class="stat-box">
-            <div class="stat-label">Closes In</div>
-            <div class="stat-value" id="timer">02:00</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-label">Cartela</div>
-            <div class="stat-value" id="cartela-count">0</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-label">Wallet</div>
-            <div class="stat-value" id="wallet-balance">40 ETB</div>
-        </div>
-    </div>
-
-    <div class="network-info">
-        <div>• Slot Network</div>
-        <div>Total Active: 41 Players</div>
-    </div>
-
-    <div class="grid-container" id="bingo-grid"></div>
+    <div class="grid" id="bingo-grid"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // ሚኒ አፑን ሙሉ ስክሪን ማድረግ
+        tg.expand();
 
-        const PRICE_PER_CARTELA = 10; // የአንድ ቁጥር ዋጋ (ETB)
-        let balance = 40; // መጀመሪያ ያለው ብር
+        const PRICE_PER_CARTELA = 10;
+        let balance = 40;
         let selectedNumbers = new Set();
-        let timeLeft = 120; // ጨዋታው 120 ሰከንድ (2 ደቂቃ)
+        let timeLeft = 120;
         let isGameClosed = false;
-        let timerInterval;
 
         const grid = document.getElementById('bingo-grid');
-        const cartelaCountEl = document.getElementById('cartela-count');
-        const walletBalanceEl = document.getElementById('wallet-balance');
         const timerEl = document.getElementById('timer');
-        const userNameEl = document.getElementById('user-name');
-        const userAvatarEl = document.getElementById('user-avatar');
+        const cartelaEl = document.getElementById('cartela-count');
+        const walletEl = document.getElementById('wallet');
 
-        // የተጫዋች መረጃ ከቴሌግራም መውሰድ
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const user = tg.initDataUnsafe.user;
-            userNameEl.textContent = user.username ? '@' + user.username : user.first_name;
-            userAvatarEl.textContent = user.first_name.charAt(0).toUpperCase();
-        }
-
-        // የቢንጎ ግሪድ መፍጠር (ከ 1 እስከ 72)
-        for (let i = 1; i <= 72; i++) {
+        // ግሪዱን መፍጠር (ከነ መሃል ኮከብ)
+        for (let i = 1; i <= 73; i++) {
             const item = document.createElement('div');
             item.classList.add('grid-item');
-            item.textContent = i;
-            item.onclick = () => selectNumber(i, item);
+
+            if (i === 37) {
+                item.innerHTML = "⭐";
+                item.classList.add('star');
+            } else {
+                let displayNum = i < 37 ? i : i - 1;
+                item.textContent = displayNum;
+                item.onclick = () => selectNumber(displayNum, item);
+            }
             grid.appendChild(item);
         }
 
-        // ቁጥር ሲመረጥ የሚሆን ነገር
-        // መስመር 99 አካባቢ
-function selectNumber(num, element) {
-    if (isGameClosed) return; 
+        function selectNumber(num, element) {
+            if (isGameClosed) return;
 
-    if (selectedNumbers.has(num)) {
-        selectedNumbers.delete(num);
-        element.classList.remove('selected');
-        balance += PRICE_PER_CARTELA; 
-    } else {
-        // አዲሱ ገደብ እዚህ ጋር ነው
-        if (selectedNumbers.size >= 2) {
-            tg.showAlert("⚠️ በአንድ ጊዜ መምረጥ የሚችሉት 2 ቁጥር ብቻ ነው!");
-            return;
-        }
-
-        if (balance >= PRICE_PER_CARTELA) {
-            selectedNumbers.add(num);
-            element.classList.add('selected');
-            balance -= PRICE_PER_CARTELA; 
-            tg.HapticFeedback.impactOccurred('light');
-        } else {
-            tg.showAlert("⚠️ ይቅርታ፣ በቂ ባላንስ የሎትም።");
-            return;
-        }
-    }
-    updateUI();
-}
-// ከዚህ በታች ያለው የድሮ ኮድህ (updateUI) እንዳለ ይቀጥላል...
-                    tg.showAlert("⚠️ ይቅርታ፣ በቂ ባላንስ የሎትም።");
+            if (selectedNumbers.has(num)) {
+                selectedNumbers.delete(num);
+                element.classList.remove('selected');
+                balance += PRICE_PER_CARTELA;
+            } else {
+                if (selectedNumbers.size >= 2) {
+                    tg.showAlert("⚠️ በአንድ ጊዜ መምረጥ የሚችሉት 2 ቁጥር ብቻ ነው!");
                     return;
+                }
+                if (balance >= PRICE_PER_CARTELA) {
+                    selectedNumbers.add(num);
+                    element.classList.add('selected');
+                    balance -= PRICE_PER_CARTELA;
+                    tg.HapticFeedback.impactOccurred('light');
+                } else {
+                    tg.showAlert("⚠️ በቂ ባላንስ የሎትም!");
                 }
             }
             updateUI();
         }
 
-        // UI ማደስ (ባላንስ እና የተመረጠ ቁጥር ብዛት)
         function updateUI() {
-            cartelaCountEl.textContent = selectedNumbers.size;
-            walletBalanceEl.textContent = balance + " ETB";
+            cartelaEl.textContent = selectedNumbers.size;
+            walletEl.textContent = balance + " ETB";
         }
 
-        // የሰዓት ቆጣሪ ፈንክሽን
-        function startTimer() {
-            timerInterval = setInterval(() => {
-                let minutes = Math.floor(timeLeft / 60);
-                let seconds = timeLeft % 60;
+        // Timer
+        const countdown = setInterval(() => {
+            timeLeft--;
+            let mins = Math.floor(timeLeft / 60);
+            let secs = timeLeft % 60;
+            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
-                minutes = minutes < 10 ? '0' + minutes : minutes;
-                seconds = seconds < 10 ? '0' + seconds : seconds;
-
-                timerEl.textContent = minutes + ':' + seconds;
-
-                if (timeLeft <= 10) {
-                    timerEl.style.color = '#ff5252'; // የመጨረሻ 10 ሰከንድ ሲሆን ቀይ ማድረግ
-                }
-
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    closeGame();
-                } else {
-                    timeLeft--;
-                }
-            }, 1000);
-        }
-
-        // ጨዋታውን መቆለፍ እና መረጃውን ለቦቱ መላክ
-        function closeGame() {
-            isGameClosed = true;
-            timerEl.textContent = "00:00";
-            
-            // የነካቸውን ቁጥሮች ወደ ቴሌግራም መላክ (Array አድርጎ)
-            const chosenNumbers = Array.from(selectedNumbers);
-            
-            const dataToSend = {
-                action: "game_submitted",
-                numbers: chosenNumbers,
-                final_balance: balance
-            };
-
-            // ሁሉንም ግሪድ መቆለፍ
-            const items = document.querySelectorAll('.grid-item');
-            items.forEach(item => item.classList.add('disabled'));
-
-            if (chosenNumbers.length > 0) {
-                tg.showAlert("✅ ጊዜው አልቋል! የመረጧቸው ቁጥሮች ተመዝግበዋል። እባክዎ ለዕጣው ወደ ቦቱ ይመለሱ።");
-                tg.sendData(JSON.stringify(dataToSend)); // ለቦቱ መረጃ መላክ
-            } else {
-                tg.showAlert("⚠️ ምንም ቁጥር ሳይመርጡ ጊዜው አልቋል። በዛሬው ዕጣ አይሳተፉም።");
-                tg.close(); // መረጃ ከሌለ መዝጋት
+            if (timeLeft <= 0) {
+                clearInterval(countdown);
+                isGameClosed = true;
+                tg.sendData(JSON.stringify({
+                    numbers: Array.from(selectedNumbers),
+                    final_balance: balance
+                }));
+                tg.close();
             }
-        }
-
-        // ሰዓቱን ማስጀመር
-        startTimer();
-
+        }, 1000);
     </script>
 </body>
 </html>
