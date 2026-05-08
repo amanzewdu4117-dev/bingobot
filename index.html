@@ -1,49 +1,87 @@
-<div id="app">
-    <div id="selection-screen" class="screen">
-        <div class="user-header">
-            <div class="user-avatar">@</div>
-            <div class="user-details">
-                <span class="user-name">@Amanuuu1</span>
-                <span class="round-id">ROUND #22161</span>
-            </div>
-        </div>
-        <div class="stats-grid">
-            <div class="stat-box timer"><label>CLOSES IN</label><div id="lobby-timer">00:48</div></div>
-            <div class="stat-box cartela"><label>CARTELA</label><div>41</div></div>
-            <div class="stat-box wallet"><label>WALLET</label><div>40 ETB</div></div>
-        </div>
-        <div class="scroll-container">
-            <div class="slot-grid" id="lobby-grid"></div>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vamos Bingo</title>
+    <style>
+        /* CSS - ዲዛይኑ እዚህ ይጀምራል */
+        :root { --bg: #050c0e; --card: #0d1618; --neon: #00ffcc; --orange: #ff6600; --text-gray: #8b9a9c; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 10px; }
+        
+        .user-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .user-avatar { width: 40px; height: 40px; background: #00bcd4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 0 10px rgba(0,188,212,0.3); }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat-box { background: var(--card); border: 1px solid #1a2e30; border-radius: 10px; padding: 10px; text-align: center; }
+        .stat-box label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-box div { font-size: 18px; font-weight: bold; color: var(--neon); }
+        .timer div { color: #ff4d4d !important; }
+
+        .slot-label { font-size: 11px; margin-bottom: 10px; display: flex; justify-content: space-between; color: var(--text-gray); text-transform: uppercase; }
+
+        .scroll-container { height: 450px; overflow-y: auto; background: var(--card); border-radius: 15px; padding: 10px; border: 1px solid #1a2e30; }
+        .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+        .slot-item { background: #1a2628; border: 1px solid #2a3a3c; border-radius: 6px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; cursor: pointer; }
+        
+        /* ስክሮልባሩን ለማሳመር */
+        .scroll-container::-webkit-scrollbar { width: 4px; }
+        .scroll-container::-webkit-scrollbar-thumb { background: #ffcc00; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="user-header">
+        <div class="user-avatar">@</div>
+        <div>
+            <span style="display:block; font-weight:bold;">@Amanuuu1</span>
+            <small style="color:var(--text-gray); font-size:10px;">ROUND #22161 • ID: 384408623</small>
         </div>
     </div>
 
-    <div id="game-screen" class="screen hidden">
-        <div class="game-header-stats">
-            <div class="mini-stat">CARTELA<br><span>232</span></div>
-            <div class="mini-stat">CALLED<br><span id="called-count">0</span></div>
-            <div class="mini-stat">WALLET<br><span>20</span></div>
-            <div class="mini-stat">DERASH<br><span class="neon-text">1,856</span></div>
+    <div class="stats-grid">
+        <div class="stat-box timer">
+            <label>Closes In</label>
+            <div id="countdown">00:48</div>
         </div>
-        <div class="game-layout">
-            <div class="called-numbers-list" id="full-bingo-board"></div>
-            <div class="my-cartelas" id="my-active-cards">
-                </div>
+        <div class="stat-box">
+            <label>Cartela</label>
+            <div>41</div>
+        </div>
+        <div class="stat-box">
+            <label>Wallet</label>
+            <div style="font-size: 15px;">40 <small style="font-size:10px">ETB</small></div>
         </div>
     </div>
 
-    <div id="winner-screen" class="screen hidden">
-        <div class="winner-content">
-            <div class="trophy">🏆</div>
-            <h1>WINNER DECLARED</h1>
-            <p>TOTAL POOL: <span class="gold-text">1,856 ETB</span></p>
-            <div class="winner-card">
-                <div class="user-row">
-                    <div class="orange-box">@</div>
-                    <div>@Chala<br><small>NODE: 226717</small></div>
-                </div>
-                <div class="payout">PAYOUT: 928 ETB</div>
-            </div>
-            <button onclick="resetGame()">NEXT ROUND IN 4S</button>
-        </div>
+    <div class="slot-label">
+        <span>● Slot Network</span>
+        <span>Total Active: 41 Players</span>
     </div>
-</div>
+
+    <div class="scroll-container">
+        <div class="slot-grid" id="main-grid">
+            </div>
+    </div>
+
+    <script>
+        // JavaScript - 500 ቁጥሮችን መፍጠር
+        const grid = document.getElementById('main-grid');
+        for (let i = 1; i <= 500; i++) {
+            let div = document.createElement('div');
+            div.className = 'slot-item';
+            div.innerText = i;
+            grid.appendChild(div);
+        }
+
+        // ሰዓት ቆጣሪ
+        let seconds = 48;
+        setInterval(() => {
+            if(seconds > 0) {
+                seconds--;
+                document.getElementById('countdown').innerText = `00:${seconds < 10 ? '0'+seconds : seconds}`;
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
