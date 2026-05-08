@@ -3,215 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo 500 Cards - Auto Loop</title>
+    <title>VamosBingo Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 5px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        .top-bar { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 5px; }
-        .info-box { background: #162133; flex: 1; padding: 5px; border-radius: 8px; border: 1px solid #2a3a52; text-align: center; }
-        .label { color: #4cafaf; font-size: 8px; text-transform: uppercase; }
-        .value { color: #00ffcc; font-weight: bold; font-size: 12px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .main-layout { display: flex; gap: 8px; flex: 1; overflow: hidden; }
-        
-        .left-panel { flex: 1; background: #162133; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; }
-        .card-selector-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; overflow-y: auto; flex: 1; }
-        .selector-item { background: #24344d; padding: 12px 5px; border-radius: 6px; text-align: center; font-size: 11px; cursor: pointer; border: 1px solid transparent; }
-        .selector-item.selected { border-color: #ff9800; background: #3d2b12; color: #ff9800; }
-        
-        .right-panel { flex: 1.2; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; position: relative; }
-        .big-number-display { background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%); border: 2px solid #00ffcc; border-radius: 15px; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #current-call { font-size: 45px; font-weight: bold; color: white; line-height: 1; }
-        
-        .my-cards-container { display: flex; flex-direction: column; gap: 10px; }
-        .player-card { background: #162133; border: 1px solid #ff9800; border-radius: 10px; padding: 5px; position: relative; }
-        .card-header { font-size: 9px; color: #ff9800; text-align: center; margin-bottom: 3px; }
-        .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
-        .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 11px; font-weight: bold; }
-        .p-item.matched { background: #ff9800 !important; color: black !important; }
-        .p-item.star { color: #ff9800; font-size: 15px; }
+        /* Top Profile Section */
+        .profile-bar { background: #162133; border-radius: 15px; padding: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; border: 1px solid #2a3a52; }
+        .avatar { width: 40px; height: 40px; background: #00ffcc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0b111b; }
+        .user-info { flex: 1; }
+        .user-name { font-size: 14px; font-weight: bold; }
+        .round-id { font-size: 8px; color: #4cafaf; }
 
-        #bingo-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(46, 204, 113, 0.9); display: none; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; z-index: 100; border-radius: 12px; }
-        #selection-msg { text-align: center; color: #ff9800; font-weight: bold; padding: 20px; border: 1px dashed #ff9800; border-radius: 10px; font-size: 14px; }
+        /* Stats Bar */
+        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .stat-box { background: #162133; border: 1px solid #2a3a52; border-radius: 10px; padding: 5px; text-align: center; }
+        .stat-label { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #00ffcc; }
+
+        /* Slot Network (Scrollable Grid) */
+        .slot-section { background: #162133; border-radius: 20px; padding: 15px; border: 1px solid #2a3a52; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .slot-header { display: flex; justify-content: space-between; font-size: 10px; color: #4cafaf; margin-bottom: 10px; }
+        .scroll-area { overflow-y: auto; flex: 1; padding-right: 5px; }
+        .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+        .slot-item { background: #1c283d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 11px; font-weight: bold; color: #a0b0c0; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
+        .slot-item.selected { border-color: #ff9800; color: white; background: #ff980033; box-shadow: 0 0 10px #ff980055; }
+        .slot-item.called { background: #2ecc71 !important; color: white !important; }
+
+        /* Selection Footer */
+        .selection-title { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; font-size: 12px; font-weight: bold; color: #a0b0c0; }
+        .sel-count { background: #ff9800; color: black; padding: 2px 10px; border-radius: 10px; font-size: 10px; }
+        
+        .footer-cards { display: flex; gap: 10px; height: 160px; margin-bottom: 10px; }
+        .mini-card { background: #1c283d; border: 1px solid #2a3a52; border-radius: 15px; flex: 1; padding: 8px; display: flex; flex-direction: column; }
+        .mini-card-header { display: flex; justify-content: space-between; font-size: 8px; color: #ff9800; margin-bottom: 5px; }
+        .bingo-letters { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-size: 9px; font-weight: bold; color: #4cafaf; margin-bottom: 4px; }
+        .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1; }
+        .m-cell { background: #24344d; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 9px; font-weight: bold; }
+        .m-cell.hit { background: #ff9800 !important; color: black !important; }
+        .m-cell.star { color: #2ecc71; font-size: 12px; }
+
+        /* Scrollbar Style */
+        .scroll-area::-webkit-scrollbar { width: 4px; }
+        .scroll-area::-webkit-scrollbar-thumb { background: #ff9800; border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="info-box"><div class="label">Wallet</div><div class="value">40 ETB</div></div>
-        <div class="info-box"><div class="label">Next Game</div><div id="timer" class="value">01:00</div></div>
-        <div class="info-box"><div class="label">Matched</div><div id="match-count" class="value">0</div></div>
+    <div class="profile-bar">
+        <div class="avatar">@</div>
+        <div class="user-info">
+            <div class="user-name">@Amanuuu1</div>
+            <div class="round-id">ROUND #22164 • ID: 384408623</div>
+        </div>
     </div>
 
-    <div class="main-layout">
-        <div class="left-panel">
-            <div style="font-size: 10px; margin-bottom: 5px; color: #4cafaf; text-align: center;">500 ካርቴላዎች (2 ይምረጡ)</div>
-            <div class="card-selector-grid" id="card-selector"></div>
-        </div>
+    <div class="stats-bar">
+        <div class="stat-box"><div class="stat-label">Closes In</div><div id="timer" class="stat-value">00:45</div></div>
+        <div class="stat-box"><div class="stat-label">Cartela</div><div id="cartela-label" class="stat-value">--</div></div>
+        <div class="stat-box"><div class="stat-label">Wallet</div><div class="stat-value">40 ETB</div></div>
+    </div>
 
-        <div class="right-panel">
-            <div id="bingo-overlay">BINGO!</div>
-            <div class="big-number-display">
-                <div id="current-call">--</div>
-                <div style="font-size: 7px; color: #00ffcc;">CURRENT CALL</div>
-            </div>
-            
-            <div id="selection-msg">እባክዎ ካርቴላ ይምረጡ...</div>
-            <div id="active-cards-area" class="my-cards-container"></div>
+    <div class="slot-section">
+        <div class="slot-header">
+            <span>🟠 SLOT NETWORK</span>
+            <span>TOTAL ACTIVE: 500</span>
         </div>
+        <div class="scroll-area">
+            <div class="grid-500" id="slot-grid"></div>
+        </div>
+    </div>
+
+    <div class="selection-title">
+        <span>SELECTION</span>
+        <span class="sel-count" id="sel-badge">0/2</span>
+    </div>
+
+    <div class="footer-cards" id="footer-cards">
+        <!-- 2 Selected Cards show here -->
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let timeLeft = 60, isGameStarted = false, selectedCardsIdx = [], all500Cards = [], calledNumbers = new Set();
-        let drawInterval, timerInterval;
+        let selected = [], allCards = [], isPlaying = false, called = new Set();
 
-        function generate500Cards() {
-            all500Cards = [];
-            for (let c = 0; c < 500; c++) {
-                let nums = [];
-                while(nums.length < 24) {
-                    let r = Math.floor(Math.random() * 75) + 1;
-                    if(!nums.includes(r)) nums.push(r);
+        // 500 ካርቴላዎችን ማመንጫ (B-I-N-G-O ፎርማት)
+        function initData() {
+            for(let i=1; i<=500; i++) {
+                let card = [];
+                let ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
+                for(let col=0; col<5; col++) {
+                    let colNums = [];
+                    while(colNums.length < 5) {
+                        let r = Math.floor(Math.random() * (ranges[col][1] - ranges[col][0] + 1)) + ranges[col][0];
+                        if(!colNums.includes(r)) colNums.push(r);
+                    }
+                    card.push(colNums);
                 }
-                nums.splice(12, 0, "⭐");
-                all500Cards.push(nums);
+                allCards.push(card);
             }
         }
 
-        function displaySelectors() {
-            const container = document.getElementById('card-selector');
-            container.innerHTML = "";
-            for (let i = 0; i < 500; i++) {
+        function createGrid() {
+            const grid = document.getElementById('slot-grid');
+            for(let i=1; i<=500; i++) {
                 const div = document.createElement('div');
-                div.className = 'selector-item';
-                div.textContent = "#" + (i + 1);
+                div.className = 'slot-item';
+                div.textContent = i;
                 div.onclick = () => {
-                    if (isGameStarted) return;
-                    if (selectedCardsIdx.includes(i)) {
-                        selectedCardsIdx = selectedCardsIdx.filter(id => id !== i);
+                    if(isPlaying) return;
+                    if(selected.includes(i)) {
+                        selected = selected.filter(n => n !== i);
                         div.classList.remove('selected');
-                    } else if (selectedCardsIdx.length < 2) {
-                        selectedCardsIdx.push(i);
+                    } else if(selected.length < 2) {
+                        selected.push(i);
                         div.classList.add('selected');
                     }
+                    updateUI();
                 };
-                container.appendChild(div);
+                grid.appendChild(div);
             }
         }
 
-        function startGame() {
-            if (selectedCardsIdx.length === 0) {
-                // ምንም ካልተመረጠ በራንደም 2 ይምረጥ
-                while(selectedCardsIdx.length < 2) {
-                    let r = Math.floor(Math.random() * 500);
-                    if(!selectedCardsIdx.includes(r)) selectedCardsIdx.push(r);
-                }
-            }
-            isGameStarted = true;
-            document.getElementById('selection-msg').style.display = 'none';
-            const area = document.getElementById('active-cards-area');
-            area.innerHTML = "";
-
-            selectedCardsIdx.forEach((cardIdx, order) => {
+        function updateUI() {
+            document.getElementById('sel-badge').textContent = selected.length + "/2";
+            document.getElementById('cartela-label').textContent = selected.length > 0 ? selected.join(', ') : '--';
+            
+            const footer = document.getElementById('footer-cards');
+            footer.innerHTML = "";
+            selected.forEach(id => {
+                const card = allCards[id-1];
                 const cardDiv = document.createElement('div');
-                cardDiv.className = 'player-card';
-                cardDiv.innerHTML = `<div class="card-header">ካርቴላ #${cardIdx + 1}</div>`;
-                const grid = document.createElement('div');
-                grid.className = 'player-grid';
-                
-                all500Cards[cardIdx].forEach((num, i) => {
-                    const item = document.createElement('div');
-                    item.className = 'p-item' + (num === "⭐" ? " star" : "");
-                    item.id = `card-${order}-cell-${i}`; // ID based on position
-                    item.textContent = num;
-                    grid.appendChild(item);
-                });
-                cardDiv.appendChild(grid);
-                area.appendChild(cardDiv);
-            });
-            startDrawing();
-        }
-
-        function startDrawing() {
-            drawInterval = setInterval(() => {
-                if (calledNumbers.size >= 75) { stopAndReset(); return; }
-                
-                let draw;
-                do { draw = Math.floor(Math.random() * 75) + 1; } while (calledNumbers.has(draw));
-                calledNumbers.add(draw);
-                document.getElementById('current-call').textContent = draw;
-
-                selectedCardsIdx.forEach((cardIdx, order) => {
-                    all500Cards[cardIdx].forEach((num, i) => {
-                        if (num === draw) {
-                            document.getElementById(`card-${order}-cell-${i}`).classList.add('matched');
+                cardDiv.className = 'mini-card';
+                cardDiv.innerHTML = `
+                    <div class="mini-card-header"><span>Cartela ${id}</span><span style="background:#2ecc7133; padding:10px 4px; border-radius:3px; color:#2ecc71; font-size:7px;">WINNER</span></div>
+                    <div class="bingo-letters"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+                    <div class="mini-grid" id="grid-${id}"></div>
+                `;
+                footer.appendChild(cardDiv);
+                const g = document.getElementById(`grid-${id}`);
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'm-cell';
+                        if(r===2 && c===2) { cell.innerHTML = "★"; cell.classList.add('star'); }
+                        else { 
+                            let val = card[c][r];
+                            cell.textContent = val;
+                            cell.id = `card-${id}-val-${val}`;
                         }
-                    });
-                });
-
-                checkBingo();
-            }, 1000);
-        }
-
-        function checkBingo() {
-            const winLines = [
-                [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24], // Horizontal
-                [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24], // Vertical
-                [0,6,12,18,24],[4,8,12,16,20] // Diagonal
-            ];
-
-            for (let order = 0; order < selectedCardsIdx.length; order++) {
-                for (let line of winLines) {
-                    if (line.every(idx => {
-                        const cell = document.getElementById(`card-${order}-cell-${idx}`);
-                        return cell.classList.contains('matched') || cell.classList.contains('star');
-                    })) {
-                        announceBingo();
-                        return;
+                        g.appendChild(cell);
                     }
                 }
-            }
+            });
         }
 
-        function announceBingo() {
-            clearInterval(drawInterval);
-            document.getElementById('bingo-overlay').style.display = 'flex';
-            tg.HapticFeedback.notificationOccurred('success');
-            setTimeout(stopAndReset, 5000); // 5 ሰከንድ አሳይቶ አዲስ ዙር ይጀምራል
-        }
-
-        function stopAndReset() {
-            clearInterval(drawInterval);
-            isGameStarted = false;
-            selectedCardsIdx = [];
-            calledNumbers.clear();
-            timeLeft = 60;
-            document.getElementById('bingo-overlay').style.display = 'none';
-            document.getElementById('active-cards-area').innerHTML = "";
-            document.getElementById('selection-msg').style.display = 'block';
-            document.getElementById('current-call').textContent = "--";
-            displaySelectors();
-            startTimer();
-        }
-
-        function startTimer() {
-            if(timerInterval) clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('timer').textContent = `0:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    startGame();
-                }
-            }, 1000);
-        }
-
-        generate500Cards();
-        displaySelectors();
-        startTimer();
+        initData();
+        createGrid();
     </script>
 </body>
 </html>
