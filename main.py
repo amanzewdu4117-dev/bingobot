@@ -8,7 +8,7 @@ bot = telebot.TeleBot(TOKEN)
 def start(message):
     markup = types.InlineKeyboardMarkup()
     # url የሚለው ቦታ ላይ በኋላ Netlify ላይ የምናገኘውን ሊንክ እናስገባለን
-    web_info = types.WebAppInfo(url="https://your-app-link.netlify.app")
+    web_info = types.WebAppInfo(url="https://amanzewdu4117-dev.github.io/bingobot/")
     button = types.InlineKeyboardButton(text="ቢንጎ ተጫወት 🎮", web_app=web_info)
     markup.add(button)
     
