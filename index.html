@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Loop Pro</title>
+    <title>Bingo Pro Loop</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -18,36 +18,35 @@
         .grid-item.selected { background: #ff9800 !important; color: black !important; font-weight: bold; }
         .grid-item.called { background: #2ecc71 !important; color: white !important; }
         .right-panel { flex: 1.5; display: flex; flex-direction: column; gap: 8px; }
-        .big-number-display { background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%); border: 2px solid #00ffcc; border-radius: 15px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        #current-call { font-size: 50px; font-weight: bold; color: white; }
-        #player-card-section { display: none; background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; flex-direction: column; }
+        .big-number-display { background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%); border: 2px solid #00ffcc; border-radius: 15px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        #current-call { font-size: 45px; font-weight: bold; color: white; }
+        #player-card-section { display: none; background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; flex-direction: column; position: relative; }
         .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 5px; }
-        .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; }
-        .p-item.matched { background: #ff9800 !important; color: black !important; }
+        .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; position: relative; }
+        .p-item.matched { background: #ff9800 !important; color: black !important; border: 1px solid white; }
         .p-item.star { color: #ff9800; font-size: 18px; }
         #selection-msg { background: #162133; border-radius: 12px; padding: 20px; border: 1px solid #2a3a52; flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; color: #ff9800; font-weight: bold; }
+        
+        /* Bingo Overlay */
+        #bingo-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(46, 204, 113, 0.8); display: none; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white; z-index: 100; border-radius: 12px; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <div class="info-box"><div class="label">Wallet</div><div id="wallet" class="value">40 ETB</div></div>
-        <div class="info-box"><div class="label">Next Game</div><div id="timer" class="value">01:00</div></div>
+        <div class="info-box"><div class="label">Wallet</div><div class="value">40 ETB</div></div>
+        <div class="info-box"><div class="label">Time</div><div id="timer" class="value">01:00</div></div>
         <div class="info-box"><div class="label">Matched</div><div id="match-count" class="value">0</div></div>
     </div>
 
     <div class="main-layout">
-        <div class="left-panel">
-            <div class="grid" id="main-grid"></div>
-        </div>
+        <div class="left-panel"><div class="grid" id="main-grid"></div></div>
         <div class="right-panel">
-            <div class="big-number-display">
-                <div id="current-call">--</div>
-                <div style="font-size: 8px; color: #00ffcc;">CURRENT CALL</div>
-            </div>
+            <div class="big-number-display"><div id="current-call">--</div><div style="font-size: 8px; color: #00ffcc;">CURRENT CALL</div></div>
             <div id="selection-msg">2 ቁጥር ይምረጡ...</div>
             <div id="player-card-section">
-                <div style="font-size: 10px; color: #ff9800; text-align: center;">የእርስዎ ካርቴላ</div>
+                <div id="bingo-overlay">BINGO!</div>
+                <div style="font-size: 10px; color: #ff9800; text-align: center; margin-bottom: 5px;">የእርስዎ ካርቴላ</div>
                 <div class="player-grid" id="player-grid"></div>
             </div>
         </div>
@@ -57,35 +56,16 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let timeLeft = 60; // ወደ 1 ደቂቃ ተቀይሯል
-        let isSelectionOver = false;
-        let selectedNumbers = new Set();
-        let calledNumbers = new Set();
-        let drawInterval;
-        let timerInterval;
+        let timeLeft = 60, isSelectionOver = false, selectedNumbers = new Set(), calledNumbers = new Set();
+        let drawInterval, timerInterval, cardNumbers = [];
 
         function createMainGrid() {
-            const mainGrid = document.getElementById('main-grid');
-            mainGrid.innerHTML = "";
+            const grid = document.getElementById('main-grid'); grid.innerHTML = "";
             for (let i = 1; i <= 75; i++) {
                 const div = document.createElement('div');
-                div.className = 'grid-item';
-                div.id = 'main-' + i;
-                div.textContent = i;
-                div.onclick = () => selectNumber(i, div);
-                mainGrid.appendChild(div);
-            }
-        }
-
-        function selectNumber(num, el) {
-            if (isSelectionOver) return;
-            if (selectedNumbers.has(num)) {
-                selectedNumbers.delete(num);
-                el.classList.remove('selected');
-            } else {
-                if (selectedNumbers.size >= 2) return;
-                selectedNumbers.add(num);
-                el.classList.add('selected');
+                div.className = 'grid-item'; div.id = 'main-' + i; div.textContent = i;
+                div.onclick = () => { if(!isSelectionOver) { if(selectedNumbers.has(i)) { selectedNumbers.delete(i); div.classList.remove('selected'); } else if(selectedNumbers.size < 2) { selectedNumbers.add(i); div.classList.add('selected'); } } };
+                grid.appendChild(div);
             }
         }
 
@@ -94,80 +74,85 @@
             document.getElementById('selection-msg').style.display = 'none';
             document.getElementById('player-card-section').style.display = 'flex';
             
-            const playerGrid = document.getElementById('player-grid');
-            playerGrid.innerHTML = "";
-            let myNums = Array.from(selectedNumbers);
-            while(myNums.length < 24) {
-                let r = Math.floor(Math.random() * 75) + 1;
-                if(!myNums.includes(r)) myNums.push(r);
-            }
-            myNums.sort(() => Math.random() - 0.5);
+            const playerGrid = document.getElementById('player-grid'); playerGrid.innerHTML = "";
+            
+            // የተመረጡትን 2 ቁጥሮች መጀመሪያ ማካተት
+            let myBaseNums = Array.from(selectedNumbers);
+            let pool = [];
+            for(let i=1; i<=75; i++) if(!myBaseNums.includes(i)) pool.push(i);
+            pool.sort(() => Math.random() - 0.5);
+            
+            cardNumbers = [...myBaseNums, ...pool.slice(0, 22)]; // 2 + 22 = 24 ቁጥሮች
+            cardNumbers.sort(() => Math.random() - 0.5);
+            cardNumbers.splice(12, 0, "⭐"); // መሃል ላይ ስታር
 
-            let count = 0;
-            for (let i = 0; i < 25; i++) {
+            cardNumbers.forEach((n, i) => {
                 const div = document.createElement('div');
-                div.className = 'p-item';
-                if (i === 12) {
-                    div.innerHTML = "⭐"; div.classList.add('star');
-                } else {
-                    let n = myNums[count++];
-                    div.textContent = n; div.id = 'p-num-' + n;
-                }
+                div.className = 'p-item' + (n === "⭐" ? " star" : "");
+                div.id = 'p-' + i; div.textContent = n; 
                 playerGrid.appendChild(div);
-            }
+            });
             startDrawing();
         }
 
         function startDrawing() {
             drawInterval = setInterval(() => {
-                if (calledNumbers.size >= 15) { 
-                    clearInterval(drawInterval);
-                    setTimeout(resetGame, 5000); // እጣው አልቆ ከ5 ሰከንድ በኋላ Reset ያደርጋል
-                    return; 
-                }
+                if (calledNumbers.size >= 75) { clearInterval(drawInterval); setTimeout(resetGame, 5000); return; }
+                
                 let draw = Math.floor(Math.random() * 75) + 1;
                 if (!calledNumbers.has(draw)) {
                     calledNumbers.add(draw);
                     document.getElementById('main-' + draw).classList.add('called');
                     document.getElementById('current-call').textContent = draw;
-                    const pItem = document.getElementById('p-num-' + draw);
-                    if (pItem) {
-                        pItem.classList.add('matched');
-                        tg.HapticFeedback.notificationOccurred('success');
-                    }
+                    
+                    cardNumbers.forEach((n, i) => {
+                        if(n === draw) {
+                            document.getElementById('p-' + i).classList.add('matched');
+                            checkBingo();
+                        }
+                    });
                 }
-            }, 2000);
+            }, 1000); // በየ 1 ሰከንዱ ይጠራል
+        }
+
+        function checkBingo() {
+            const gridStatus = cardNumbers.map((n, i) => document.getElementById('p-' + i).classList.contains('matched') || n === "⭐");
+            const winLines = [
+                [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24], // አግድም
+                [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24], // ቁመት
+                [0,6,12,18,24],[4,8,12,16,20] // ሰያፍ
+            ];
+
+            for (let line of winLines) {
+                if (line.every(idx => gridStatus[idx])) {
+                    document.getElementById('bingo-overlay').style.display = 'flex';
+                    tg.HapticFeedback.notificationOccurred('success');
+                    clearInterval(drawInterval);
+                    setTimeout(resetGame, 7000); // 7 ሰከንድ ቆይቶ እንደ አዲስ ይጀምራል
+                    return;
+                }
+            }
         }
 
         function resetGame() {
-            // ሁሉንም ዳታ አጽዳ
-            isSelectionOver = false;
-            selectedNumbers.clear();
-            calledNumbers.clear();
-            timeLeft = 60;
+            isSelectionOver = false; selectedNumbers.clear(); calledNumbers.clear(); timeLeft = 60;
             document.getElementById('current-call').textContent = "--";
-            document.getElementById('match-count').textContent = "0";
             document.getElementById('selection-msg').style.display = 'flex';
             document.getElementById('player-card-section').style.display = 'none';
-            createMainGrid();
-            startTimer();
+            document.getElementById('bingo-overlay').style.display = 'none';
+            createMainGrid(); startTimer();
         }
 
         function startTimer() {
             if(timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(() => {
                 timeLeft--;
-                let m = Math.floor(timeLeft/60), s = timeLeft%60;
-                document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    initGame();
-                }
+                document.getElementById('timer').textContent = `0:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
+                if (timeLeft <= 0) { clearInterval(timerInterval); initGame(); }
             }, 1000);
         }
 
-        createMainGrid();
-        startTimer();
+        createMainGrid(); startTimer();
     </script>
 </body>
 </html>
