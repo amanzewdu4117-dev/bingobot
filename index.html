@@ -3,44 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Pro</title>
+    <title>Bingo Loop Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        
         .top-bar { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px; }
         .info-box { background: #162133; flex: 1; padding: 5px; border-radius: 8px; border: 1px solid #2a3a52; text-align: center; }
         .label { color: #4cafaf; font-size: 9px; text-transform: uppercase; }
         .value { color: #00ffcc; font-weight: bold; font-size: 14px; }
-
         .main-layout { display: flex; gap: 10px; flex: 1; overflow: hidden; }
-
-        /* ግራ ጎን */
         .left-panel { flex: 1.2; background: #162133; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; }
         .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; }
-        .grid-item { background: #24344d; padding: 8px 0; border-radius: 4px; font-size: 11px; text-align: center; color: #a0b0c0; border: 1px solid transparent; }
-        .grid-item.selected { background: #ff9800 !important; color: black !important; font-weight: bold; border-color: white; }
+        .grid-item { background: #24344d; padding: 8px 0; border-radius: 4px; font-size: 11px; text-align: center; color: #a0b0c0; }
+        .grid-item.selected { background: #ff9800 !important; color: black !important; font-weight: bold; }
         .grid-item.called { background: #2ecc71 !important; color: white !important; }
-
-        /* ቀኝ ጎን */
         .right-panel { flex: 1.5; display: flex; flex-direction: column; gap: 8px; }
-        
-        .big-number-display { 
-            background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%);
-            border: 2px solid #00ffcc; border-radius: 15px;
-            height: 90px; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-        }
+        .big-number-display { background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%); border: 2px solid #00ffcc; border-radius: 15px; height: 90px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         #current-call { font-size: 50px; font-weight: bold; color: white; }
-
-        /* የተጫዋች ካርቴላ (መጀመሪያ ተደብቆ ይቆያል) */
         #player-card-section { display: none; background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; flex-direction: column; }
         .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 5px; }
         .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .p-item.matched { background: #ff9800 !important; color: black !important; }
         .p-item.star { color: #ff9800; font-size: 18px; }
-
-        /* መጀመሪያ የሚታየው መመሪያ */
         #selection-msg { background: #162133; border-radius: 12px; padding: 20px; border: 1px solid #2a3a52; flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; color: #ff9800; font-weight: bold; }
     </style>
 </head>
@@ -48,7 +32,7 @@
 
     <div class="top-bar">
         <div class="info-box"><div class="label">Wallet</div><div id="wallet" class="value">40 ETB</div></div>
-        <div class="info-box"><div class="label">Time Left</div><div id="timer" class="value">01:00</div></div>
+        <div class="info-box"><div class="label">Next Game</div><div id="timer" class="value">01:00</div></div>
         <div class="info-box"><div class="label">Matched</div><div id="match-count" class="value">0</div></div>
     </div>
 
@@ -56,19 +40,12 @@
         <div class="left-panel">
             <div class="grid" id="main-grid"></div>
         </div>
-
         <div class="right-panel">
             <div class="big-number-display">
                 <div id="current-call">--</div>
                 <div style="font-size: 8px; color: #00ffcc;">CURRENT CALL</div>
             </div>
-
-            <!-- መጀመሪያ የሚታይ -->
-            <div id="selection-msg">
-                ጨዋታው ከመጀመሩ በፊት <br> 2 ቁጥር ይምረጡ...
-            </div>
-
-            <!-- ጨዋታው ሲጀምር የሚታይ -->
+            <div id="selection-msg">2 ቁጥር ይምረጡ...</div>
             <div id="player-card-section">
                 <div style="font-size: 10px; color: #ff9800; text-align: center;">የእርስዎ ካርቴላ</div>
                 <div class="player-grid" id="player-grid"></div>
@@ -80,20 +57,24 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let timeLeft = 30; // ለሙከራ 30 ሰከንድ
+        let timeLeft = 60; // ወደ 1 ደቂቃ ተቀይሯል
         let isSelectionOver = false;
         let selectedNumbers = new Set();
         let calledNumbers = new Set();
+        let drawInterval;
+        let timerInterval;
 
-        // 1. ዋናውን ግሪድ መፍጠር
-        const mainGrid = document.getElementById('main-grid');
-        for (let i = 1; i <= 75; i++) {
-            const div = document.createElement('div');
-            div.className = 'grid-item';
-            div.id = 'main-' + i;
-            div.textContent = i;
-            div.onclick = () => selectNumber(i, div);
-            mainGrid.appendChild(div);
+        function createMainGrid() {
+            const mainGrid = document.getElementById('main-grid');
+            mainGrid.innerHTML = "";
+            for (let i = 1; i <= 75; i++) {
+                const div = document.createElement('div');
+                div.className = 'grid-item';
+                div.id = 'main-' + i;
+                div.textContent = i;
+                div.onclick = () => selectNumber(i, div);
+                mainGrid.appendChild(div);
+            }
         }
 
         function selectNumber(num, el) {
@@ -108,32 +89,29 @@
             }
         }
 
-        // 2. ጨዋታው ሲጀምር ካርቴላውን መፍጠር
         function initGame() {
             isSelectionOver = true;
             document.getElementById('selection-msg').style.display = 'none';
             document.getElementById('player-card-section').style.display = 'flex';
             
             const playerGrid = document.getElementById('player-grid');
+            playerGrid.innerHTML = "";
             let myNums = Array.from(selectedNumbers);
-            // 2ቱ የተመረጡ ቁጥሮች + 22 ራንደም ቁጥሮች
             while(myNums.length < 24) {
                 let r = Math.floor(Math.random() * 75) + 1;
                 if(!myNums.includes(r)) myNums.push(r);
             }
-            myNums.sort(() => Math.random() - 0.5); // ቁጥሮቹን መደባለቅ
+            myNums.sort(() => Math.random() - 0.5);
 
             let count = 0;
             for (let i = 0; i < 25; i++) {
                 const div = document.createElement('div');
                 div.className = 'p-item';
                 if (i === 12) {
-                    div.innerHTML = "⭐";
-                    div.classList.add('star');
+                    div.innerHTML = "⭐"; div.classList.add('star');
                 } else {
                     let n = myNums[count++];
-                    div.textContent = n;
-                    div.id = 'p-num-' + n;
+                    div.textContent = n; div.id = 'p-num-' + n;
                 }
                 playerGrid.appendChild(div);
             }
@@ -141,32 +119,55 @@
         }
 
         function startDrawing() {
-            const interval = setInterval(() => {
-                if (calledNumbers.size >= 10) { clearInterval(interval); return; }
+            drawInterval = setInterval(() => {
+                if (calledNumbers.size >= 15) { 
+                    clearInterval(drawInterval);
+                    setTimeout(resetGame, 5000); // እጣው አልቆ ከ5 ሰከንድ በኋላ Reset ያደርጋል
+                    return; 
+                }
                 let draw = Math.floor(Math.random() * 75) + 1;
                 if (!calledNumbers.has(draw)) {
                     calledNumbers.add(draw);
                     document.getElementById('main-' + draw).classList.add('called');
                     document.getElementById('current-call').textContent = draw;
-                    
                     const pItem = document.getElementById('p-num-' + draw);
                     if (pItem) {
                         pItem.classList.add('matched');
                         tg.HapticFeedback.notificationOccurred('success');
                     }
                 }
-            }, 3000);
+            }, 2000);
         }
 
-        const timer = setInterval(() => {
-            timeLeft--;
-            document.getElementById('timer').textContent = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                initGame();
-            }
-        }, 1000);
+        function resetGame() {
+            // ሁሉንም ዳታ አጽዳ
+            isSelectionOver = false;
+            selectedNumbers.clear();
+            calledNumbers.clear();
+            timeLeft = 60;
+            document.getElementById('current-call').textContent = "--";
+            document.getElementById('match-count').textContent = "0";
+            document.getElementById('selection-msg').style.display = 'flex';
+            document.getElementById('player-card-section').style.display = 'none';
+            createMainGrid();
+            startTimer();
+        }
 
+        function startTimer() {
+            if(timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                let m = Math.floor(timeLeft/60), s = timeLeft%60;
+                document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    initGame();
+                }
+            }, 1000);
+        }
+
+        createMainGrid();
+        startTimer();
     </script>
 </body>
 </html>
