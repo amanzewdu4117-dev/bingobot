@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Pro Max</title>
+    <title>Bingo Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -15,16 +15,16 @@
 
         .main-layout { display: flex; gap: 10px; flex: 1; overflow: hidden; }
 
-        /* ግራ ጎን - ዋናው የእጣ ግሪድ */
+        /* ግራ ጎን */
         .left-panel { flex: 1.2; background: #162133; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; }
         .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; }
-        .grid-item { background: #24344d; padding: 8px 0; border-radius: 4px; font-size: 10px; text-align: center; color: #a0b0c0; }
-        .grid-item.called { background: #2ecc71 !important; color: white !important; font-weight: bold; }
+        .grid-item { background: #24344d; padding: 8px 0; border-radius: 4px; font-size: 11px; text-align: center; color: #a0b0c0; border: 1px solid transparent; }
+        .grid-item.selected { background: #ff9800 !important; color: black !important; font-weight: bold; border-color: white; }
+        .grid-item.called { background: #2ecc71 !important; color: white !important; }
 
         /* ቀኝ ጎን */
         .right-panel { flex: 1.5; display: flex; flex-direction: column; gap: 8px; }
         
-        /* የእጣ ማሳያ */
         .big-number-display { 
             background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%);
             border: 2px solid #00ffcc; border-radius: 15px;
@@ -33,40 +33,44 @@
         }
         #current-call { font-size: 50px; font-weight: bold; color: white; }
 
-        /* የተጫዋች ካርቴላ (5x5) */
-        .player-card-box { background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; display: flex; flex-direction: column; }
+        /* የተጫዋች ካርቴላ (መጀመሪያ ተደብቆ ይቆያል) */
+        #player-card-section { display: none; background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; flex-direction: column; }
         .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-top: 5px; }
-        .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; transition: 0.3s; position: relative; }
-        .p-item.matched { background: #ff9800 !important; color: black !important; transform: scale(1.05); }
-        .p-item.star { color: #ff9800; font-size: 18px; background: #1a2a40; }
+        .p-item { background: #24344d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .p-item.matched { background: #ff9800 !important; color: black !important; }
+        .p-item.star { color: #ff9800; font-size: 18px; }
 
-        .bingo-txt { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; text-align: center; font-weight: bold; color: #ff9800; font-size: 10px; }
+        /* መጀመሪያ የሚታየው መመሪያ */
+        #selection-msg { background: #162133; border-radius: 12px; padding: 20px; border: 1px solid #2a3a52; flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; color: #ff9800; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <div class="info-box"><div class="label">Wallet</div><div id="wallet" class="value">40 ETB</div></div>
-        <div class="info-box"><div class="label">Time</div><div id="timer" class="value">01:00</div></div>
+        <div class="info-box"><div class="label">Time Left</div><div id="timer" class="value">01:00</div></div>
         <div class="info-box"><div class="label">Matched</div><div id="match-count" class="value">0</div></div>
     </div>
 
     <div class="main-layout">
-        <!-- ግራ ጎን - ዋናው ግሪድ -->
         <div class="left-panel">
             <div class="grid" id="main-grid"></div>
         </div>
 
-        <!-- የቀኝ ጎን - እጣ እና የተጫዋች ካርቴላ -->
         <div class="right-panel">
             <div class="big-number-display">
                 <div id="current-call">--</div>
                 <div style="font-size: 8px; color: #00ffcc;">CURRENT CALL</div>
             </div>
 
-            <div class="player-card-box">
-                <div style="font-size: 10px; color: #ff9800; text-align: center; margin-bottom: 5px;">የእርስዎ ካርቴላ</div>
-                <div class="bingo-txt"><div>B</div><div>I</div><div>N</div><div>G</div><div>O</div></div>
+            <!-- መጀመሪያ የሚታይ -->
+            <div id="selection-msg">
+                ጨዋታው ከመጀመሩ በፊት <br> 2 ቁጥር ይምረጡ...
+            </div>
+
+            <!-- ጨዋታው ሲጀምር የሚታይ -->
+            <div id="player-card-section">
+                <div style="font-size: 10px; color: #ff9800; text-align: center;">የእርስዎ ካርቴላ</div>
                 <div class="player-grid" id="player-grid"></div>
             </div>
         </div>
@@ -76,10 +80,10 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let timeLeft = 60;
+        let timeLeft = 30; // ለሙከራ 30 ሰከንድ
+        let isSelectionOver = false;
+        let selectedNumbers = new Set();
         let calledNumbers = new Set();
-        let myNumbers = [];
-        let matchedCount = 0;
 
         // 1. ዋናውን ግሪድ መፍጠር
         const mainGrid = document.getElementById('main-grid');
@@ -88,80 +92,81 @@
             div.className = 'grid-item';
             div.id = 'main-' + i;
             div.textContent = i;
+            div.onclick = () => selectNumber(i, div);
             mainGrid.appendChild(div);
         }
 
-        // 2. የተጫዋች ካርቴላ መፍጠር (ራንደም 24 ቁጥሮች + መሃል ስታር)
-        function createPlayerCard() {
-            const playerGrid = document.getElementById('player-grid');
-            let nums = [];
-            while(nums.length < 24) {
-                let r = Math.floor(Math.random() * 75) + 1;
-                if(!nums.includes(r)) nums.push(r);
+        function selectNumber(num, el) {
+            if (isSelectionOver) return;
+            if (selectedNumbers.has(num)) {
+                selectedNumbers.delete(num);
+                el.classList.remove('selected');
+            } else {
+                if (selectedNumbers.size >= 2) return;
+                selectedNumbers.add(num);
+                el.classList.add('selected');
             }
+        }
+
+        // 2. ጨዋታው ሲጀምር ካርቴላውን መፍጠር
+        function initGame() {
+            isSelectionOver = true;
+            document.getElementById('selection-msg').style.display = 'none';
+            document.getElementById('player-card-section').style.display = 'flex';
             
+            const playerGrid = document.getElementById('player-grid');
+            let myNums = Array.from(selectedNumbers);
+            // 2ቱ የተመረጡ ቁጥሮች + 22 ራንደም ቁጥሮች
+            while(myNums.length < 24) {
+                let r = Math.floor(Math.random() * 75) + 1;
+                if(!myNums.includes(r)) myNums.push(r);
+            }
+            myNums.sort(() => Math.random() - 0.5); // ቁጥሮቹን መደባለቅ
+
             let count = 0;
             for (let i = 0; i < 25; i++) {
                 const div = document.createElement('div');
                 div.className = 'p-item';
-                if (i === 12) { // መሃል ላይ ነጻ ስታር
+                if (i === 12) {
                     div.innerHTML = "⭐";
                     div.classList.add('star');
                 } else {
-                    let n = nums[count++];
+                    let n = myNums[count++];
                     div.textContent = n;
                     div.id = 'p-num-' + n;
-                    myNumbers.push(n);
                 }
                 playerGrid.appendChild(div);
             }
+            startDrawing();
         }
 
-        // 3. እጣ ማውጣት እና Auto-mark
         function startDrawing() {
             const interval = setInterval(() => {
-                if (calledNumbers.size >= 15) { // 15 ቁጥር አውጥቶ ይቁም
-                    clearInterval(interval);
-                    return;
-                }
+                if (calledNumbers.size >= 10) { clearInterval(interval); return; }
                 let draw = Math.floor(Math.random() * 75) + 1;
                 if (!calledNumbers.has(draw)) {
                     calledNumbers.add(draw);
-                    
-                    // ግራ ጎን ላይ ማርክ አድርግ
                     document.getElementById('main-' + draw).classList.add('called');
-                    // ትልቁ ማሳያ ላይ አሳይ
                     document.getElementById('current-call').textContent = draw;
                     
-                    // ተጫዋች ካርቴላ ላይ ካለ Auto-mark አድርግ
                     const pItem = document.getElementById('p-num-' + draw);
                     if (pItem) {
                         pItem.classList.add('matched');
-                        matchedCount++;
-                        document.getElementById('match-count').textContent = matchedCount;
                         tg.HapticFeedback.notificationOccurred('success');
                     }
                 }
             }, 3000);
         }
 
-        // Timer
         const timer = setInterval(() => {
             timeLeft--;
-            let m = Math.floor(timeLeft/60), s = timeLeft%60;
-            document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
+            document.getElementById('timer').textContent = `00:${timeLeft < 10 ? '0' : ''}${timeLeft}`;
             if (timeLeft <= 0) {
                 clearInterval(timer);
-                startDrawing();
+                initGame();
             }
         }, 1000);
 
-        createPlayerCard();
-        updateUI();
-
-        function updateUI() {
-            document.getElementById('wallet').textContent = "40 ETB";
-        }
     </script>
 </body>
 </html>
