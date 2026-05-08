@@ -3,221 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VamosBingo - Pro Layout</title>
+    <title>VamosBingo - Auto Reset on Win</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --bg: #050a10; --card-bg: #121a26; --accent: #00ffcc; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; height: 100vh; overflow: hidden; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* Top Stats Bar */
-        .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 10px; }
-        .stat-item { background: var(--card-bg); padding: 5px; border-radius: 8px; text-align: center; border: 1px solid #232d3d; }
-        .stat-lbl { font-size: 7px; color: #4cafaf; text-transform: uppercase; }
-        .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
+        /* Profile & Stats */
+        .profile-bar { background: #162133; border-radius: 15px; padding: 10px; display: flex; align-items: center; gap: 10px; margin-bottom: 10px; border: 1px solid #2a3a52; }
+        .avatar { width: 40px; height: 40px; background: #00ffcc; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #0b111b; }
+        .stats-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px; }
+        .stat-box { background: #162133; border: 1px solid #2a3a52; border-radius: 10px; padding: 5px; text-align: center; }
+        .stat-label { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #00ffcc; }
 
-        /* Main Game Layout (Hidden initially) */
-        #game-view { display: none; grid-template-columns: 1fr 1.2fr; gap: 10px; height: 85vh; }
-        
-        /* Left: Bingo Ball Tracker */
-        .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; }
-        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-weight: bold; margin-bottom: 5px; }
-        .b-h { background: #1e88e5; border-radius: 4px; margin: 1px; padding: 2px; font-size: 10px;}
-        .i-h { background: #8e24aa; border-radius: 4px; margin: 1px; padding: 2px; font-size: 10px;}
-        .n-h { background: #d81b60; border-radius: 4px; margin: 1px; padding: 2px; font-size: 10px;}
-        .g-h { background: #00897b; border-radius: 4px; margin: 1px; padding: 2px; font-size: 10px;}
-        .o-h { background: #fb8c00; border-radius: 4px; margin: 1px; padding: 2px; font-size: 10px;}
-        .track-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; }
-        .t-num { background: #1c283d; text-align: center; font-size: 10px; padding: 4px 0; border-radius: 4px; color: #6d7d92; }
-        .t-num.on { background: var(--accent); color: #000; font-weight: bold; box-shadow: 0 0 8px var(--accent); }
+        /* Slot Grid Section */
+        .slot-section { background: #162133; border-radius: 20px; padding: 15px; border: 1px solid #2a3a52; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        .scroll-area { overflow-y: auto; flex: 1; padding-right: 5px; }
+        .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+        .slot-item { background: #1c283d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 11px; font-weight: bold; color: #a0b0c0; cursor: pointer; border: 1px solid transparent; }
+        .slot-item.selected { border-color: #ff9800; color: white; background: #ff980033; }
+        .slot-item.called { background: #2ecc71 !important; color: white !important; box-shadow: 0 0 10px #2ecc71; }
 
-        /* Right: Current Ball & Cards */
-        .game-right { display: flex; flex-direction: column; gap: 10px; }
-        .big-ball-box { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .big-num { font-size: 60px; font-weight: 900; line-height: 1; }
-        .last-call { background: #fb8c00; color: #000; padding: 2px 12px; border-radius: 10px; font-size: 12px; font-weight: bold; margin-top: 5px; }
-        
-        .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px; }
-        .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; }
-        .card-title { font-size: 10px; color: #fb8c00; margin-bottom: 5px; display: flex; justify-content: space-between; }
-        .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
-        .p-cell { background: #1c283d; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 10px; font-weight: bold; }
-        .p-cell.hit { background: var(--accent) !important; color: #000; }
+        /* Card Preview */
+        .footer-cards { display: flex; gap: 10px; height: 160px; margin-top: 10px; }
+        .mini-card { background: #1c283d; border: 1px solid #2a3a52; border-radius: 15px; flex: 1; padding: 8px; display: flex; flex-direction: column; position: relative; }
+        .mini-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; flex: 1; }
+        .m-cell { background: #24344d; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 9px; font-weight: bold; }
+        .m-cell.hit { background: #ff9800 !important; color: black !important; }
 
-        /* Selection View */
-        #selection-view { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; overflow-y: auto; flex: 1; padding: 10px; }
-        .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 11px; border: 1px solid #232d3d; }
-        .slot.active { border-color: #fb8c00; background: #fb8c0033; }
-        .start-btn { background: var(--accent); color: #000; border: none; padding: 15px; font-weight: bold; border-radius: 10px; margin-top: 10px; cursor: pointer; }
-
-        #win-overlay { position: fixed; inset: 0; background: rgba(0, 255, 204, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; color: #000; font-size: 50px; font-weight: bold; }
+        /* Win Overlay */
+        #bingo-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(46, 204, 113, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; color: white; font-size: 40px; font-weight: bold; }
+        .win-sub { font-size: 16px; margin-top: 10px; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-<div id="win-overlay">BINGO! 🏆</div>
-
-<div class="top-bar">
-    <div class="stat-item"><div class="stat-lbl">Cartela</div><div id="sel-count" class="stat-val">0</div></div>
-    <div class="stat-item"><div class="stat-lbl">Called</div><div id="called-count" class="stat-val">0</div></div>
-    <div class="stat-item"><div class="stat-lbl">Wallet</div><div class="stat-val">40</div></div>
-    <div class="stat-item"><div class="stat-lbl">Derash</div><div class="stat-val">2,184</div></div>
-</div>
-
-<!-- Selection Screen -->
-<div id="selection-view">
-    <div style="text-align: center; color: #4cafaf; font-size: 12px; padding: 5px;">እባክዎ እስከ 2 ካርቴላ ይምረጡ</div>
-    <div class="grid-500" id="slot-grid"></div>
-    <button class="start-btn" onclick="manualStart()">Play Game</button>
-</div>
-
-<!-- Main Game Screen (Pic Layout) -->
-<div id="game-view">
-    <div class="ball-tracker">
-        <div class="bingo-header">
-            <div class="b-h">B</div><div class="i-h">I</div><div class="n-h">N</div><div class="g-h">G</div><div class="o-h">O</div>
-        </div>
-        <div class="track-grid" id="track-grid"></div>
+    <div id="bingo-overlay">
+        <div>BINGO! 🎉</div>
+        <div class="win-sub">አዲስ ጨዋታ በቅርቡ ይጀምራል...</div>
     </div>
 
-    <div class="game-right">
-        <div class="big-ball-box">
-            <div id="big-num" class="big-num">--</div>
-            <div id="last-num" class="last-call">READY</div>
-        </div>
-        <div class="active-cards" id="active-cards"></div>
+    <div class="profile-bar">
+        <div class="avatar">@</div>
+        <div class="user-info"><b>@Amanuuu1</b><br><small style="font-size: 8px; color: #4cafaf;">ROUND #22164</small></div>
     </div>
-</div>
 
-<script>
-    let selected = [], allCards = [], called = new Set(), isPlaying = false;
-    let drawInt;
+    <div class="stats-bar">
+        <div class="stat-box"><div class="stat-label">Closes In</div><div id="timer" class="stat-value">00:45</div></div>
+        <div class="stat-box"><div class="stat-label">Cartela</div><div id="cartela-label" class="stat-value">--</div></div>
+        <div class="stat-box"><div class="stat-label">Wallet</div><div class="stat-value">40 ETB</div></div>
+    </div>
 
-    // Initialize 500 Cards
-    function init() {
-        for(let i=0; i<500; i++) {
-            let card = [];
-            let ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
-            for(let col=0; col<5; col++) {
-                let colNums = [];
-                while(colNums.length < 5) {
-                    let r = Math.floor(Math.random() * (ranges[col][1] - ranges[col][0] + 1)) + ranges[col][0];
-                    if(!colNums.includes(r)) colNums.push(r);
+    <div class="slot-section">
+        <div class="scroll-area"><div class="grid-500" id="slot-grid"></div></div>
+    </div>
+
+    <div class="footer-cards" id="footer-cards"></div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        let selected = [], allCards = [], isPlaying = false, called = new Set(), timeLeft = 45;
+        let timerInt, drawInt;
+
+        function initData() {
+            for(let i=0; i<500; i++) {
+                let card = [];
+                let ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
+                for(let col=0; col<5; col++) {
+                    let colNums = [];
+                    while(colNums.length < 5) {
+                        let r = Math.floor(Math.random() * (ranges[col][1] - ranges[col][0] + 1)) + ranges[col][0];
+                        if(!colNums.includes(r)) colNums.push(r);
+                    }
+                    card.push(colNums);
                 }
-                card.push(colNums);
-            }
-            allCards.push(card);
-        }
-
-        // Fill Tracker Grid (Left Side)
-        const track = document.getElementById('track-grid');
-        for(let r=0; r<15; r++) {
-            for(let c=0; c<5; c++) {
-                let val = (c * 15) + (r + 1);
-                let d = document.createElement('div');
-                d.className = 't-num'; d.id = `track-${val}`; d.textContent = val;
-                track.appendChild(d);
+                allCards.push(card);
             }
         }
 
-        // Fill 500 Selection Grid
-        const grid = document.getElementById('slot-grid');
-        for(let i=1; i<=500; i++) {
-            let s = document.createElement('div');
-            s.className = 'slot'; s.textContent = i;
-            s.onclick = () => {
-                if(selected.includes(i)) {
-                    selected = selected.filter(n => n !== i);
-                    s.classList.remove('active');
-                } else if(selected.length < 2) {
-                    selected.push(i);
-                    s.classList.add('active');
-                }
-                document.getElementById('sel-count').textContent = selected.length;
-            };
-            grid.appendChild(s);
-        }
-    }
-
-    function manualStart() {
-        if(selected.length === 0) {
-            alert("እባክዎ ቢያንስ 1 ካርቴላ ይምረጡ!");
-            return;
-        }
-        document.getElementById('selection-view').style.display = 'none';
-        document.getElementById('game-view').style.display = 'grid';
-        renderActiveCards();
-        startGame();
-    }
-
-    function renderActiveCards() {
-        const container = document.getElementById('active-cards');
-        selected.forEach(id => {
-            let card = allCards[id-1];
-            let html = `<div class="play-card">
-                <div class="card-title">Cartela ${id} <span style="color:#00ffcc">WINNER</span></div>
-                <div class="card-grid">`;
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    if(r===2 && c===2) html += `<div class="p-cell hit" style="color:#000">★</div>`;
-                    else html += `<div class="p-cell" id="p-${id}-v-${card[c][r]}">${card[c][r]}</div>`;
-                }
+        function createGrid() {
+            const grid = document.getElementById('slot-grid');
+            for(let i=1; i<=500; i++) {
+                const div = document.createElement('div');
+                div.className = 'slot-item'; div.id = `slot-${i}`; div.textContent = i;
+                div.onclick = () => {
+                    if(isPlaying) return;
+                    if(selected.includes(i)) {
+                        selected = selected.filter(n => n !== i);
+                        div.classList.remove('selected');
+                    } else if(selected.length < 2) {
+                        selected.push(i);
+                        div.classList.add('selected');
+                    }
+                    updateUI();
+                };
+                grid.appendChild(div);
             }
-            html += `</div></div>`;
-            container.innerHTML += html;
-        });
-    }
+        }
 
-    function startGame() {
-        isPlaying = true;
-        drawInt = setInterval(() => {
-            if(called.size >= 75) { clearInterval(drawInt); return; }
-            
-            let draw;
-            do { draw = Math.floor(Math.random() * 75) + 1; } while(called.has(draw));
-            called.add(draw);
-
-            // Update UI
-            document.getElementById('big-num').textContent = draw;
-            document.getElementById('last-num').textContent = Array.from(called).slice(-2, -1)[0] || 'START';
-            document.getElementById('called-count').textContent = called.size;
-            document.getElementById(`track-${draw}`).classList.add('on');
-
-            // Mark Cards
+        function updateUI() {
+            document.getElementById('cartela-label').textContent = selected.join(', ') || '--';
+            const footer = document.getElementById('footer-cards');
+            footer.innerHTML = "";
             selected.forEach(id => {
-                let el = document.getElementById(`p-${id}-v-${draw}`);
-                if(el) el.classList.add('hit');
-            });
-
-            checkBingo();
-        }, 2000); // በየ 2 ሰከንዱ እጣ ይወጣል
-    }
-
-    function checkBingo() {
-        const patterns = [
-            [[0,0],[0,1],[0,2],[0,3],[0,4]], [[1,0],[1,1],[1,2],[1,3],[1,4]], [[2,0],[2,1],[2,2],[2,3],[2,4]], [[3,0],[3,1],[3,2],[3,3],[3,4]], [[4,0],[4,1],[4,2],[4,3],[4,4]], // Rows
-            [[0,0],[1,0],[2,0],[3,0],[4,0]], [[0,1],[1,1],[2,1],[3,1],[4,1]], [[0,2],[1,2],[2,2],[3,2],[4,2]], [[0,3],[1,3],[2,3],[3,3],[4,3]], [[0,4],[1,4],[2,4],[3,4],[4,4]], // Cols
-            [[0,0],[1,1],[2,2],[3,3],[4,4]], [[0,4],[1,3],[2,2],[3,1],[4,0]] // Diagonals
-        ];
-
-        selected.forEach(id => {
-            let card = allCards[id-1];
-            patterns.forEach(p => {
-                let isWin = p.every(pos => {
-                    if(pos[0]===2 && pos[1]===2) return true;
-                    let val = card[pos[1]][pos[0]];
-                    return called.has(val);
-                });
-                if(isWin) {
-                    clearInterval(drawInt);
-                    document.getElementById('win-overlay').style.display = 'flex';
-                    setTimeout(() => location.reload(), 6000);
+                const card = allCards[id-1];
+                const cardDiv = document.createElement('div'); cardDiv.className = 'mini-card';
+                cardDiv.innerHTML = `<div style="font-size:8px; color:#ff9800; margin-bottom:5px;">Cartela ${id}</div><div class="mini-grid" id="grid-${id}"></div>`;
+                footer.appendChild(cardDiv);
+                const g = document.getElementById(`grid-${id}`);
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const cell = document.createElement('div'); cell.className = 'm-cell';
+                        if(r===2 && c===2) { cell.innerHTML = "★"; cell.style.color="#2ecc71"; }
+                        else { let val = card[c][r]; cell.textContent = val; cell.id = `c-${id}-r${r}-c${c}`; }
+                        g.appendChild(cell);
+                    }
                 }
             });
-        });
-    }
+        }
 
-    init();
-</script>
+        function startTimer() {
+            timerInt = setInterval(() => {
+                if(timeLeft <= 0) {
+                    clearInterval(timerInt);
+                    if(selected.length > 0) {
+                        startRound();
+                    } else {
+                        tg.showAlert("ጨዋታው ለመጀመር ቢያንስ አንድ ቁጥር መምረጥ አለብዎት!");
+                        timeLeft = 15; // ካልመረጠ ተጨማሪ ጊዜ መስጠት
+                        startTimer();
+                    }
+                    return;
+                }
+                timeLeft--;
+                document.getElementById('timer').textContent = `00:${timeLeft < 10 ? '0'+timeLeft : timeLeft}`;
+            }, 1000);
+        }
+
+        function startRound() {
+            isPlaying = true;
+            drawInt = setInterval(() => {
+                if(called.size >= 75) { clearInterval(drawInt); location.reload(); return; }
+                let draw; do { draw = Math.floor(Math.random() * 75) + 1; } while(called.has(draw));
+                called.add(draw);
+                document.getElementById(`slot-${draw}`)?.classList.add('called');
+                
+                selected.forEach(id => {
+                    const card = allCards[id-1];
+                    for(let r=0; r<5; r++){
+                        for(let c=0; c<5; c++){
+                            if(card[c][r] === draw) document.getElementById(`c-${id}-r${r}-c${c}`).classList.add('hit');
+                        }
+                    }
+                });
+                checkWinner();
+            }, 1000);
+        }
+
+        function checkWinner() {
+            // All winning patterns
+            const lines = [
+                [[0,0],[0,1],[0,2],[0,3],[0,4]], [[1,0],[1,1],[1,2],[1,3],[1,4]], [[2,0],[2,1],[2,2],[2,3],[2,4]], [[3,0],[3,1],[3,2],[3,3],[3,4]], [[4,0],[4,1],[4,2],[4,3],[4,4]],
+                [[0,0],[1,0],[2,0],[3,0],[4,0]], [[0,1],[1,1],[2,1],[3,1],[4,1]], [[0,2],[1,2],[2,2],[3,2],[4,2]], [[0,3],[1,3],[2,3],[3,3],[4,3]], [[0,4],[1,4],[2,4],[3,4],[4,4]],
+                [[0,0],[1,1],[2,2],[3,3],[4,4]], [[0,4],[1,3],[2,2],[3,1],[4,0]]
+            ];
+
+            selected.forEach(id => {
+                lines.forEach(line => {
+                    let win = line.every(pos => {
+                        if(pos[0] === 2 && pos[1] === 2) return true; // Star
+                        return document.getElementById(`c-${id}-r${pos[0]}-c${pos[1]}`).classList.contains('hit');
+                    });
+                    if(win) {
+                        clearInterval(drawInt); // እጣ ማውጣቱን አቁም
+                        document.getElementById('bingo-overlay').style.display = 'flex';
+                        tg.HapticFeedback.notificationOccurred('success');
+                        
+                        // ከ 5 ሰከንድ በኋላ አዲስ ጨዋታ በራሱ ይጀምራል (Refresh)
+                        setTimeout(() => {
+                            location.reload();
+                        }, 5000);
+                    }
+                });
+            });
+        }
+
+        initData();
+        createGrid();
+        startTimer();
+    </script>
 </body>
 </html>
