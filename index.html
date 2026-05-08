@@ -6,25 +6,48 @@
     <title>Bingo Game</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 20px; }
-        .header { display: flex; justify-content: space-around; background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-        .stat { color: #4caf50; font-weight: bold; }
-        .timer { color: #f44336; font-size: 24px; }
-        .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; max-width: 400px; margin: auto; background: #1e1e1e; padding: 10px; border-radius: 10px; }
-        .grid-item { background: #2c2c2c; padding: 10px 0; border-radius: 5px; cursor: pointer; font-size: 14px; transition: 0.3s; }
-        .grid-item.selected { background: #ff9800; color: black; font-weight: bold; }
-        .grid-item.star { color: #ff9800; font-size: 20px; cursor: default; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: white; text-align: center; margin: 0; padding: 15px; }
+        .header { display: flex; justify-content: space-around; background: #1e1e1e; padding: 15px; border-radius: 12px; margin-bottom: 15px; border: 1px solid #333; }
+        .stat { color: #4caf50; font-weight: bold; font-size: 18px; }
+        .timer { color: #f44336; font-size: 22px; font-weight: bold; }
+        
+        /* ዋናው ኮንቴይነር */
+        .game-container { display: flex; flex-direction: column; gap: 15px; max-width: 500px; margin: auto; }
+
+        /* የእጣ ማውጫው ግሪድ */
+        .grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; background: #1e1e1e; padding: 12px; border-radius: 12px; border: 1px solid #333; }
+        .grid-item { background: #2c2c2c; padding: 12px 0; border-radius: 6px; cursor: pointer; font-size: 13px; transition: 0.2s; border: 1px solid transparent; }
+        .grid-item.selected { background: #ff9800; color: black; font-weight: bold; border-color: #fff; }
+        .grid-item.star { color: #ff9800; font-size: 20px; cursor: default; background: #252525; }
+
+        /* አዲሱ የተጫዋች ካርቴላ (የጎን ዝርዝር) */
+        .player-card { background: #1e1e1e; padding: 15px; border-radius: 12px; border: 1px solid #ff9800; }
+        .player-card h3 { margin: 0 0 10px 0; font-size: 16px; color: #ff9800; text-transform: uppercase; }
+        .selected-list { display: flex; justify-content: center; gap: 10px; min-height: 40px; }
+        .selected-num { background: #ff9800; color: black; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 18px; animation: pop 0.3s ease; }
+        
+        @keyframes pop { 0% { transform: scale(0.5); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div>CLOSES IN<br><span id="timer" class="timer">02:00</span></div>
-        <div>CARTELA<br><span id="cartela-count" class="stat">0</span></div>
-        <div>WALLET<br><span id="wallet" class="stat">40 ETB</span></div>
-    </div>
+    <div class="game-container">
+        <div class="header">
+            <div>ጊዜ<br><span id="timer" class="timer">02:00</span></div>
+            <div>Wallet<br><span id="wallet" class="stat">40 ETB</span></div>
+        </div>
 
-    <div class="grid" id="bingo-grid"></div>
+        <!-- አዲሱ የተጫዋች ካርቴላ ክፍል -->
+        <div class="player-card">
+            <h3>የእርስዎ ካርቴላ (የተመረጡ)</h3>
+            <div id="selected-list" class="selected-list">
+                <span style="color: #666;">ቁጥር ይምረጡ...</span>
+            </div>
+        </div>
+
+        <!-- የእጣ ቁጥሮች ግሪድ -->
+        <div class="grid" id="bingo-grid"></div>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
@@ -38,14 +61,13 @@
 
         const grid = document.getElementById('bingo-grid');
         const timerEl = document.getElementById('timer');
-        const cartelaEl = document.getElementById('cartela-count');
         const walletEl = document.getElementById('wallet');
+        const selectedListEl = document.getElementById('selected-list');
 
-        // ግሪዱን መፍጠር (ከነ መሃል ኮከብ)
+        // ግሪዱን መፍጠር
         for (let i = 1; i <= 73; i++) {
             const item = document.createElement('div');
             item.classList.add('grid-item');
-
             if (i === 37) {
                 item.innerHTML = "⭐";
                 item.classList.add('star');
@@ -66,7 +88,7 @@
                 balance += PRICE_PER_CARTELA;
             } else {
                 if (selectedNumbers.size >= 2) {
-                    tg.showAlert("⚠️ በአንድ ጊዜ መምረጥ የሚችሉት 2 ቁጥር ብቻ ነው!");
+                    tg.showAlert("⚠️ መምረጥ የሚችሉት 2 ቁጥር ብቻ ነው!");
                     return;
                 }
                 if (balance >= PRICE_PER_CARTELA) {
@@ -75,18 +97,29 @@
                     balance -= PRICE_PER_CARTELA;
                     tg.HapticFeedback.impactOccurred('light');
                 } else {
-                    tg.showAlert("⚠️ በቂ ባላንስ የሎትም!");
+                    tg.showAlert("⚠️ ባላንስ የሎትም!");
                 }
             }
             updateUI();
         }
 
         function updateUI() {
-            cartelaEl.textContent = selectedNumbers.size;
             walletEl.textContent = balance + " ETB";
+            
+            // የጎን ካርቴላውን ማዘመን
+            selectedListEl.innerHTML = "";
+            if (selectedNumbers.size === 0) {
+                selectedListEl.innerHTML = '<span style="color: #666;">ቁጥር ይምረጡ...</span>';
+            } else {
+                selectedNumbers.forEach(num => {
+                    const span = document.createElement('span');
+                    span.classList.add('selected-num');
+                    span.textContent = num;
+                    selectedListEl.appendChild(span);
+                });
+            }
         }
 
-        // Timer
         const countdown = setInterval(() => {
             timeLeft--;
             let mins = Math.floor(timeLeft / 60);
