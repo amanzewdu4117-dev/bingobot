@@ -1,18 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Mini App</title>
+    <title>Jobe Bingo</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div id="game-container">
-        <h1>Bingo!</h1>
-        <div id="board"></div>
-        <button id="reset-btn" onclick="location.reload()">አዲስ ጨዋታ</button>
+
+    <div class="header-stats">
+        <div class="stat-box">
+            <div class="stat-label">🏆 ድርሻ</div>
+            <div class="stat-value">120 ብር</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">💰 መደብ</div>
+            <div class="stat-value">5 ብር</div>
+        </div>
     </div>
+
+    <div class="bingo-card">
+        <div class="bingo-header">
+            <span>B</span><span>I</span><span>N</span><span>G</span><span>O</span>
+        </div>
+        <div id="bingo-grid" class="grid"></div>
+    </div>
+
+    <button class="bingo-btn" onclick="checkBingo()">BINGO</button>
+
     <script src="script.js"></script>
 </body>
 </html>
