@@ -3,50 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bingo Game</title>
+    <title>Bingo Pro</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0b111b; color: white; margin: 0; padding: 10px; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        /* የላይኛው መረጃ */
-        .top-bar { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 15px; }
-        .info-box { background: #162133; flex: 1; padding: 8px; border-radius: 8px; border: 1px solid #2a3a52; text-align: center; }
-        .label { color: #4cafaf; font-size: 10px; text-transform: uppercase; margin-bottom: 4px; }
-        .value { color: #00ffcc; font-weight: bold; font-size: 16px; }
+        .top-bar { display: flex; justify-content: space-between; gap: 5px; margin-bottom: 10px; }
+        .info-box { background: #162133; flex: 1; padding: 5px; border-radius: 8px; border: 1px solid #2a3a52; text-align: center; }
+        .label { color: #4cafaf; font-size: 9px; text-transform: uppercase; }
+        .value { color: #00ffcc; font-weight: bold; font-size: 14px; }
 
-        /* ዋናው የጨዋታ ቦታ (ግራ እና ቀኝ) */
         .main-layout { display: flex; gap: 10px; flex: 1; overflow: hidden; }
 
-        /* የግራ ጎን - BINGO Grid */
-        .left-panel { flex: 1.5; background: #162133; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; }
+        /* ግራ ጎን */
+        .left-panel { flex: 1.4; background: #162133; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; }
         .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 5px; }
-        .b-letter { background: #1a5fb4; padding: 5px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 12px; }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; }
-        .grid-item { background: #24344d; padding: 12px 0; border-radius: 4px; cursor: pointer; font-size: 12px; text-align: center; border: 1px solid transparent; }
-        .grid-item.selected { background: #ff9800; color: black; font-weight: bold; border-color: white; }
-        .grid-item.star { color: #ff9800; font-size: 18px; }
-
-        /* የቀኝ ጎን - መቆጣጠሪያ */
-        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-        .status-card { background: #162133; border-radius: 12px; padding: 15px; border: 1px solid #2a3a52; text-align: center; flex: 1; }
-        .timer { font-size: 24px; color: #ff4d4d; font-weight: bold; margin-top: 10px; }
+        .b-letter { padding: 4px; border-radius: 4px; font-weight: bold; text-align: center; font-size: 12px; color: white; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; padding-right: 2px; }
+        .grid-item { background: #24344d; padding: 10px 0; border-radius: 4px; font-size: 11px; text-align: center; color: #a0b0c0; transition: 0.3s; }
         
-        .selected-box { background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; min-height: 100px; }
-        .selected-box h4 { margin: 0 0 10px 0; font-size: 12px; color: #ff9800; }
-        .sel-list { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
-        .sel-num { background: #ff9800; color: black; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+        /* ቅለማት */
+        .grid-item.selected { background: #ff9800 !important; color: black !important; font-weight: bold; }
+        .grid-item.called { background: #2ecc71 !important; color: white !important; font-weight: bold; transform: scale(1.05); }
+        .grid-item.star { color: #ff9800; font-size: 16px; }
+
+        /* ቀኝ ጎን */
+        .right-panel { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* በትልቁ የሚታየው ቁጥር */
+        .big-number-display { 
+            background: radial-gradient(circle, #1a2a40 0%, #0d1520 100%);
+            border: 2px solid #00ffcc; border-radius: 20px;
+            height: 120px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative;
+        }
+        #current-call { font-size: 60px; font-weight: bold; color: white; line-height: 1; }
+        .call-label { font-size: 10px; color: #00ffcc; margin-top: 5px; }
+
+        .status-card { background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #2a3a52; text-align: center; }
+        .timer { font-size: 20px; color: #ff4d4d; font-weight: bold; }
+
+        .selected-box { background: #162133; border-radius: 12px; padding: 10px; border: 1px solid #ff9800; flex: 1; }
+        .sel-list { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 10px; }
+        .sel-num { background: #ff9800; color: black; padding: 5px 8px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
         <div class="info-box"><div class="label">Wallet</div><div id="wallet" class="value">40 ETB</div></div>
-        <div class="info-box"><div class="label">Price</div><div class="value">10 ETB</div></div>
+        <div class="info-box"><div class="label">Called</div><div id="called-count" class="value">0</div></div>
         <div class="info-box"><div class="label">Cartela</div><div id="cartela-count" class="value">0</div></div>
     </div>
 
     <div class="main-layout">
-        <!-- የግራ ጎን -->
         <div class="left-panel">
             <div class="bingo-header">
                 <div class="b-letter" style="background: #0088cc;">B</div>
@@ -58,14 +68,20 @@
             <div class="grid" id="bingo-grid"></div>
         </div>
 
-        <!-- የቀኝ ጎን -->
         <div class="right-panel">
-            <div class="status-card">
-                <div class="label">Closes In</div>
-                <div id="timer" class="timer">02:00</div>
+            <!-- በትልቁ የሚታይ የእጣ ቁጥር -->
+            <div class="big-number-display">
+                <div id="current-call">--</div>
+                <div class="call-label">CALLED NUMBER</div>
             </div>
+
+            <div class="status-card">
+                <div class="label">Time Left</div>
+                <div id="timer" class="timer">01:00</div>
+            </div>
+
             <div class="selected-box">
-                <h4>የእርስዎ ቁጥሮች</h4>
+                <div class="label" style="color:#ff9800">የእርስዎ ቁጥሮች</div>
                 <div id="selected-list" class="sel-list"></div>
             </div>
         </div>
@@ -75,23 +91,22 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const PRICE_PER_CARTELA = 10;
         let balance = 40;
         let selectedNumbers = new Set();
-        let timeLeft = 120;
+        let calledNumbers = [];
+        let timeLeft = 60; 
         let isGameClosed = false;
 
         const grid = document.getElementById('bingo-grid');
-        const timerEl = document.getElementById('timer');
-        const walletEl = document.getElementById('wallet');
-        const cartelaEl = document.getElementById('cartela-count');
-        const selectedListEl = document.getElementById('selected-list');
+        const currentCallEl = document.getElementById('current-call');
+        const calledCountEl = document.getElementById('called-count');
 
-        // ግሪዱን መፍጠር (75 ቁጥሮች ለቢንጎ እንዲመች በ 5 Column)
+        // ግሪዱን መፍጠር
         for (let i = 1; i <= 75; i++) {
             const item = document.createElement('div');
             item.classList.add('grid-item');
-            if (i === 38) { // መሃል ላይ ኮከብ
+            item.id = "num-" + i;
+            if (i === 38) {
                 item.innerHTML = "⭐";
                 item.classList.add('star');
             } else {
@@ -106,47 +121,75 @@
             if (selectedNumbers.has(num)) {
                 selectedNumbers.delete(num);
                 element.classList.remove('selected');
-                balance += PRICE_PER_CARTELA;
             } else {
-                if (selectedNumbers.size >= 2) {
-                    tg.showAlert("⚠️ 2 ቁጥር ብቻ ነው የሚቻለው!");
-                    return;
-                }
-                if (balance >= PRICE_PER_CARTELA) {
-                    selectedNumbers.add(num);
-                    element.classList.add('selected');
-                    balance -= PRICE_PER_CARTELA;
-                } else {
-                    tg.showAlert("⚠️ ባላንስ የሎትም!");
-                }
+                if (selectedNumbers.size >= 2) return;
+                selectedNumbers.add(num);
+                element.classList.add('selected');
             }
             updateUI();
         }
 
+        // እጣ ሲወጣ በራሱ ምልክት የሚያደርግ (Auto-Mark)
+        function markCalledNumber(num) {
+            const el = document.getElementById("num-" + num);
+            if (el) {
+                el.classList.add('called');
+                currentCallEl.textContent = num;
+                calledNumbers.push(num);
+                calledCountEl.textContent = calledNumbers.length;
+                tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
         function updateUI() {
-            walletEl.textContent = balance + " ETB";
-            cartelaEl.textContent = selectedNumbers.size;
-            selectedListEl.innerHTML = "";
-            selectedNumbers.forEach(num => {
-                const span = document.createElement('span');
-                span.classList.add('sel-num');
-                span.textContent = num;
-                selectedListEl.appendChild(span);
+            document.getElementById('wallet').textContent = balance + " ETB";
+            document.getElementById('cartela-count').textContent = selectedNumbers.size;
+            const list = document.getElementById('selected-list');
+            list.innerHTML = "";
+            selectedNumbers.forEach(n => {
+                const s = document.createElement('span');
+                s.className = 'sel-num'; s.textContent = n;
+                list.appendChild(s);
             });
         }
 
-        const countdown = setInterval(() => {
+        // ጨዋታው ሲያልቅ እጣ ማውጣት ይጀምራል
+        function startDrawing() {
+            isGameClosed = true;
+            let drawCount = 0;
+            const drawInterval = setInterval(() => {
+                if (drawCount >= 5) { // 5 ቁጥር አውጥቶ ይቁም (ለሙከራ)
+                    clearInterval(drawInterval);
+                    checkWinner();
+                    return;
+                }
+                let randomNum = Math.floor(Math.random() * 75) + 1;
+                if (!calledNumbers.includes(randomNum)) {
+                    markCalledNumber(randomNum);
+                    drawCount++;
+                }
+            }, 3000); // በየ 3 ሰከንዱ እጣ ይወጣል
+        }
+
+        function checkWinner() {
+            let matches = [...selectedNumbers].filter(n => calledNumbers.includes(n));
+            if (matches.length > 0) {
+                tg.showAlert("እንኳን ደስ አለዎት! ቁጥሮችዎ ወጥተዋል: " + matches.join(", "));
+            } else {
+                tg.showAlert("ለዚህ ዙር አልወጣልዎትም፣ ደግመው ይሞክሩ!");
+            }
+        }
+
+        const timer = setInterval(() => {
             timeLeft--;
-            let mins = Math.floor(timeLeft / 60);
-            let secs = timeLeft % 60;
-            timerEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            let m = Math.floor(timeLeft/60), s = timeLeft%60;
+            document.getElementById('timer').textContent = `${m}:${s<10?'0':''}${s}`;
             if (timeLeft <= 0) {
-                clearInterval(countdown);
-                isGameClosed = true;
-                tg.sendData(JSON.stringify({numbers: Array.from(selectedNumbers), final_balance: balance}));
-                tg.close();
+                clearInterval(timer);
+                startDrawing();
             }
         }, 1000);
+
     </script>
 </body>
 </html>
