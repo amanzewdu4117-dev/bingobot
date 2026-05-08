@@ -3,28 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vamos Bingo</title>
+    <title>Vamos Bingo Pro</title>
     <style>
-        /* CSS - ዲዛይኑ እዚህ ይጀምራል */
         :root { --bg: #050c0e; --card: #0d1618; --neon: #00ffcc; --orange: #ff6600; --text-gray: #8b9a9c; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 10px; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 10px; overflow: hidden; }
         
+        /* Header */
         .user-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .user-avatar { width: 40px; height: 40px; background: #00bcd4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; box-shadow: 0 0 10px rgba(0,188,212,0.3); }
+        .user-avatar { width: 40px; height: 40px; background: #00bcd4; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
         
+        /* Stats */
         .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
         .stat-box { background: var(--card); border: 1px solid #1a2e30; border-radius: 10px; padding: 10px; text-align: center; }
         .stat-box label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 5px; text-transform: uppercase; }
         .stat-box div { font-size: 18px; font-weight: bold; color: var(--neon); }
         .timer div { color: #ff4d4d !important; }
 
-        .slot-label { font-size: 11px; margin-bottom: 10px; display: flex; justify-content: space-between; color: var(--text-gray); text-transform: uppercase; }
-
-        .scroll-container { height: 450px; overflow-y: auto; background: var(--card); border-radius: 15px; padding: 10px; border: 1px solid #1a2e30; }
+        /* Slot Area */
+        .slot-label { font-size: 11px; margin-bottom: 10px; display: flex; justify-content: space-between; color: var(--text-gray); }
+        .scroll-container { height: 60vh; overflow-y: auto; background: var(--card); border-radius: 15px; padding: 10px; border: 1px solid #1a2e30; }
         .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-        .slot-item { background: #1a2628; border: 1px solid #2a3a3c; border-radius: 6px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; cursor: pointer; }
         
-        /* ስክሮልባሩን ለማሳመር */
+        .slot-item { 
+            background: #1a2628; border: 1px solid #2a3a3c; border-radius: 6px; 
+            height: 40px; display: flex; align-items: center; justify-content: center; 
+            font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+
+        /* ቁጥር ሲመረጥ የሚሆን ከለር */
+        .slot-item.selected {
+            background: var(--orange);
+            border-color: #ffcc00;
+            color: white;
+            box-shadow: 0 0 10px rgba(255, 102, 0, 0.5);
+        }
+
         .scroll-container::-webkit-scrollbar { width: 4px; }
         .scroll-container::-webkit-scrollbar-thumb { background: #ffcc00; border-radius: 10px; }
     </style>
@@ -35,23 +48,14 @@
         <div class="user-avatar">@</div>
         <div>
             <span style="display:block; font-weight:bold;">@Amanuuu1</span>
-            <small style="color:var(--text-gray); font-size:10px;">ROUND #22161 • ID: 384408623</small>
+            <small style="color:var(--text-gray); font-size:10px;">ROUND #22161</small>
         </div>
     </div>
 
     <div class="stats-grid">
-        <div class="stat-box timer">
-            <label>Closes In</label>
-            <div id="countdown">00:48</div>
-        </div>
-        <div class="stat-box">
-            <label>Cartela</label>
-            <div>41</div>
-        </div>
-        <div class="stat-box">
-            <label>Wallet</label>
-            <div style="font-size: 15px;">40 <small style="font-size:10px">ETB</small></div>
-        </div>
+        <div class="stat-box timer"><label>Closes In</label><div id="countdown">00:48</div></div>
+        <div class="stat-box"><label>Cartela</label><div id="cartela-display">0</div></div>
+        <div class="stat-box"><label>Wallet</label><div style="font-size: 15px;">40 <small>ETB</small></div></div>
     </div>
 
     <div class="slot-label">
@@ -60,18 +64,55 @@
     </div>
 
     <div class="scroll-container">
-        <div class="slot-grid" id="main-grid">
-            </div>
+        <div class="slot-grid" id="main-grid"></div>
     </div>
 
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        // JavaScript - 500 ቁጥሮችን መፍጠር
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // ሚኒ አፑ ሙሉ ስክሪን እንዲሆን
+
         const grid = document.getElementById('main-grid');
+        const cartelaDisplay = document.getElementById('cartela-display');
+        let selectedSlots = [];
+
+        // 500 ቁጥሮችን መፍጠር
         for (let i = 1; i <= 500; i++) {
             let div = document.createElement('div');
             div.className = 'slot-item';
             div.innerText = i;
+
+            // ቁጥሩ ሲነካ (Click/Touch)
+            div.onclick = function() {
+                if (this.classList.contains('selected')) {
+                    // ከተመረጠ መልሰህ አጥፋው
+                    this.classList.remove('selected');
+                    selectedSlots = selectedSlots.filter(item => item !== i);
+                } else {
+                    // ካልተመረጠ ምረጥ
+                    this.classList.add('selected');
+                    selectedSlots.push(i);
+                    // ለቦቱ ዳታ ለመላክ ዝግጁ ነን
+                    sendToBot(i); 
+                }
+                cartelaDisplay.innerText = selectedSlots.length;
+            };
             grid.appendChild(div);
+        }
+
+        // ዳታ ወደ ቴሌግራም ቦት መላኪያ ተግባር
+        function sendToBot(number) {
+            const data = {
+                action: "select_number",
+                selected_number: number,
+                total_selected: selectedSlots.length
+            };
+            // ዳታውን ወደ ቦቱ በ haptic feedback (ንዝረት) ይልካል
+            tg.HapticFeedback.impactOccurred('medium');
+            console.log("ወደ ቦት እየተላከ ነው:", data);
+            
+            // ማሳሰቢያ፡ እውነተኛ የገንዘብ ክፍያ እንዲፈጸም ከፈለግክ 
+            // ቦትህ ላይ ያለውን የ Python ኮድ ማስተካከል ይኖርብሃል።
         }
 
         // ሰዓት ቆጣሪ
