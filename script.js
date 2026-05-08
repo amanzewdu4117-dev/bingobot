@@ -1,12 +1,15 @@
-const board = document.getElementById('board');
-const numbers = Array.from({length: 25}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
-
-numbers.forEach(num => {
-    const cell = document.createElement('div');
-    cell.className = 'cell';
-    cell.textContent = num;
-    cell.onclick = () => {
-        cell.classList.toggle('selected');
-    };
-    board.appendChild(cell);
+document.addEventListener('DOMContentLoaded', () => {
+    const grid = document.getElementById('bingo-grid');
+    
+    // 25 የቢንጎ ቁጥሮችን ለመፍጠር
+    for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        cell.textContent = Math.floor(Math.random() * 75) + 1;
+        grid.appendChild(cell);
+    }
 });
+
+function checkBingo() {
+    alert("ቢንጎ ቼክ እየተደረገ ነው...");
+}
