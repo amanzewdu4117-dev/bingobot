@@ -1,91 +1,93 @@
+/* አጠቃላይ የገጹ አቀማመጥ */
 body {
-    background-color: #0d1117;
-    color: white;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0f172a; /* ጥቁር ሰማያዊ ዳራ */
+    color: white;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+.container {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* የላይኛው መረጃ መቀመጫ (Header Stats) */
-.header-stats {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 15px;
-    width: 90%;
+/* የድል እና የመደብ ሳጥኖች (ጎን ለጎን እንዲሆኑ) */
+.stats-container {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 15px;
+    margin-bottom: 30px;
 }
 
 .stat-box {
-    background: #161b22;
-    border-radius: 12px;
-    padding: 10px;
+    flex: 1;
+    background-color: #1e293b;
+    padding: 15px;
+    border-radius: 15px;
     text-align: center;
-    border: 1px solid #30363d;
+    border: 1px solid #334155;
 }
 
-.stat-label { font-size: 12px; color: #8b949e; }
-.stat-value { font-size: 16px; font-weight: bold; color: #e6edf3; }
+.stat-label {
+    font-size: 14px;
+    color: #94a3b8;
+    margin-bottom: 5px;
+}
 
-/* የቢንጎ ካርድ ዲዛይን */
+.stat-value {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* የቢንጎ ካርድ ክፍል */
 .bingo-card {
-    background: #161b22;
-    padding: 15px;
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    margin: 20px 0;
-    border: 1px solid #30363d;
+    background-color: #1e293b;
+    padding: 20px;
+    border-radius: 25px;
+    width: 90%;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
 .bingo-header {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    text-align: center;
+    display: flex;
+    justify-content: space-around;
+    font-size: 24px;
     font-weight: bold;
-    color: #58a6ff;
-    margin-bottom: 10px;
+    color: #3b82f6; /* ሰማያዊ ቀለም */
+    margin-bottom: 15px;
 }
 
+/* ቁጥሮቹ የሚቀመጡበት ግሪድ */
 .grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     gap: 8px;
 }
 
-.cell {
-    width: 50px;
-    height: 50px;
-    background: #21262d;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: 0.3s;
-    border: 1px solid #30363d;
-}
-
-.cell.selected {
-    background: #238636; /* አረንጓዴ */
-    color: white;
-    transform: scale(1.1);
-    box-shadow: 0 0 15px #238636;
-}
-
-/* አረንጓዴው BINGO በተን */
+/* የቢንጎ ቁልፍ (አረንጓዴው) */
 .bingo-btn {
-    background: linear-gradient(135deg, #2ea44f, #238636);
+    background: linear-gradient(135deg, #22c55e, #16a34a);
     color: white;
     border: none;
-    padding: 15px 50px;
-    border-radius: 30px;
-    font-size: 18px;
+    padding: 15px 60px;
+    font-size: 22px;
     font-weight: bold;
-    margin-top: 20px;
+    border-radius: 50px;
     cursor: pointer;
-    box-shadow: 0 5px 15px rgba(35, 134, 54, 0.4);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+    transition: transform 0.2s;
 }
 
-.bingo-btn:active { transform: scale(0.95); }
+.bingo-btn:active {
+    transform: scale(0.95);
+}
