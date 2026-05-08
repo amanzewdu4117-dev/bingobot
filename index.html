@@ -96,23 +96,34 @@
         }
 
         // ቁጥር ሲመረጥ የሚሆን ነገር
-        function selectNumber(num, element) {
-            if (isGameClosed) return; // ጨዋታው ካለቀ ምንም አያድርግ
+        // መስመር 99 አካባቢ
+function selectNumber(num, element) {
+    if (isGameClosed) return; 
 
-            if (selectedNumbers.has(num)) {
-                // ቁጥሩን ማጥፋት (Deselect)
-                selectedNumbers.delete(num);
-                element.classList.remove('selected');
-                balance += PRICE_PER_CARTELA; // ብሩን መለስ ማድረግ
-            } else {
-                // ቁጥሩን መምረጥ (Select)
-                // ባላንስ ማረጋገጥ
-                if (balance >= PRICE_PER_CARTELA) {
-                    selectedNumbers.add(num);
-                    element.classList.add('selected');
-                    balance -= PRICE_PER_CARTELA; // ብሩን መቀነስ
-                    tg.HapticFeedback.impactOccurred('light');
-                } else {
+    if (selectedNumbers.has(num)) {
+        selectedNumbers.delete(num);
+        element.classList.remove('selected');
+        balance += PRICE_PER_CARTELA; 
+    } else {
+        // አዲሱ ገደብ እዚህ ጋር ነው
+        if (selectedNumbers.size >= 2) {
+            tg.showAlert("⚠️ በአንድ ጊዜ መምረጥ የሚችሉት 2 ቁጥር ብቻ ነው!");
+            return;
+        }
+
+        if (balance >= PRICE_PER_CARTELA) {
+            selectedNumbers.add(num);
+            element.classList.add('selected');
+            balance -= PRICE_PER_CARTELA; 
+            tg.HapticFeedback.impactOccurred('light');
+        } else {
+            tg.showAlert("⚠️ ይቅርታ፣ በቂ ባላንስ የሎትም።");
+            return;
+        }
+    }
+    updateUI();
+}
+// ከዚህ በታች ያለው የድሮ ኮድህ (updateUI) እንዳለ ይቀጥላል...
                     tg.showAlert("⚠️ ይቅርታ፣ በቂ ባላንስ የሎትም።");
                     return;
                 }
