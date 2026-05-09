@@ -3,66 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - PRO OWNER VERSION</title>
+    <title>JOBE BINGO - PERSISTENT SYSTEM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <style>
-        :root { --bg: #0b1421; --panel: #162130; --neon: #00ffcc; --orange: #ff7e21; --red: #ff4444; --text: #ffffff; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); padding: 10px; height: 100vh; overflow: hidden; }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        /* Stats Header */
+        const firebaseConfig = {
+            apiKey: "AIzaSy...", // የራስህን ቁጥር እዚህ ተካ
+            authDomain: "my-app-project-1e0bb.firebaseapp.com",
+            projectId: "my-app-project-1e0bb",
+            appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ዳታ ወደ Firebase ለመላክ
+        window.saveGameState = async (ball, history, status) => {
+            await setDoc(doc(db, "live_bingo", "current"), { 
+                ball, history, status, lastUpdate: Date.now() 
+            }, { merge: true });
+        };
+
+        // ዳታ ከ Firebase ለማዳመጥ
+        window.listenToGame = (callback) => {
+            onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
+                if(snap.exists()) callback(snap.data());
+            });
+        };
+    </script>
+
+    <style>
+        :root { --bg: #0b1421; --panel: #162130; --neon: #00ffcc; --orange: #ff7e21; --text: #ffffff; }
+        * { box-sizing: border-box; font-family: sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); padding: 10px; height: 100vh; overflow: hidden; }
+        
         .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
-        .stat-box { background: var(--panel); border: 1px solid #253341; border-radius: 10px; padding: 8px; text-align: center; cursor: pointer; }
-        .stat-box label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 4px; font-weight: bold; }
+        .stat-box { background: var(--panel); border: 1px solid #253341; border-radius: 10px; padding: 8px; text-align: center; }
+        .stat-box label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 4px; }
         .stat-box span { font-size: 13px; font-weight: 800; }
 
-        /* Layout */
         .main-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; height: calc(100vh - 120px); }
-
-        /* Full Board */
-        .board-container { background: var(--panel); border-radius: 15px; padding: 5px; display: flex; flex-direction: column; border: 1px solid #1c2b3a; }
+        .board-container { background: var(--panel); border-radius: 15px; padding: 5px; border: 1px solid #1c2b3a; display: flex; flex-direction: column; }
         .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 5px; }
-        .letter { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: 900; font-size: 10px; color: white; }
+        .letter { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: 900; font-size: 10px; }
         .B { background: #1a99d5; } .I { background: #9c27b0; } .N { background: #e91e63; } .G { background: #009688; } .O { background: #ff9800; }
-        .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; overflow-y: auto; flex: 1; }
+        .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; overflow-y: auto; }
         .num { background: #1d2938; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-size: 9px; border-radius: 3px; color: #5c7894; }
         .num.active { background: var(--orange); color: white; }
 
-        /* Ball & Card */
         .right-side { display: flex; flex-direction: column; gap: 10px; }
-        .ball-display { background: #000; border: 1px solid #1c2b3a; border-radius: 15px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 110px; }
-        .ball-num { font-size: 55px; font-weight: 900; color: white; }
-        .ball-letter-tag { background: #00bcd4; padding: 2px 15px; border-radius: 10px; font-size: 12px; margin-top: 5px; font-weight: bold; }
-
-        .personal-card { background: var(--panel); border-radius: 15px; padding: 8px; border: 1px dashed #253341; flex: 1; position: relative; }
-        .card-header-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 4px; }
-        .card-let { font-size: 12px; font-weight: 900; text-align: center; color: var(--neon); }
-        .personal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .ball-display { background: #000; border: 1px solid #1c2b3a; border-radius: 15px; padding: 15px; text-align: center; }
+        .ball-num { font-size: 50px; font-weight: 900; }
+        .personal-card { background: var(--panel); border-radius: 15px; padding: 10px; border: 1px dashed #253341; flex: 1; }
+        .p-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .p-cell { aspect-ratio: 1; background: #0d161d; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #788da1; border: 1px solid #1c2b3a; }
-        .p-cell.marked { background: var(--neon); color: black; font-weight: 900; }
+        .p-cell.marked { background: var(--neon); color: black; }
 
-        /* Winner Overlay */
-        #winner-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .win-title { color: var(--neon); font-size: 40px; font-weight: 900; margin-bottom: 10px; text-shadow: 0 0 20px var(--neon); }
-        .countdown { font-size: 20px; color: var(--orange); margin-top: 20px; }
+        #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 </head>
 <body>
 
-    <!-- Winner View -->
-    <div id="winner-overlay">
-        <div class="win-title">BINGO!</div>
-        <p>አሸናፊ ተገኝቷል!</p>
-        <div id="next-game-msg" class="countdown">አዲስ ጨዋታ ለመጀመር: <span id="timer">5</span></div>
+    <div id="win-overlay">
+        <h1 style="color:var(--neon); font-size:50px;">BINGO!</h1>
+        <p>አዲስ ጨዋታ በ <span id="reset-timer">5</span> ሰከንድ ይጀምራል...</p>
     </div>
 
     <div class="stats-row">
         <div class="stat-box"><label>CARTELA</label><span>227</span></div>
         <div class="stat-box"><label>CALLED</label><span id="ui-called">0</span></div>
-        <!-- Owner Money Control (Clickable) -->
-        <div class="stat-box" onclick="addMoney()"><label>WALLET</label><span id="ui-wallet">0</span> ETB</div>
-        <div class="stat-box"><label>DERASH</label><span id="ui-derash">1,816</span></div>
+        <div class="stat-box"><label>WALLET</label><span id="ui-wallet">0</span></div>
+        <div class="stat-box"><label>DERASH</label><span>1,816</span></div>
     </div>
 
     <div class="main-layout">
@@ -76,140 +90,92 @@
         <div class="right-side">
             <div class="ball-display">
                 <div id="ball-val" class="ball-num">--</div>
-                <div id="ball-let" class="ball-letter-tag">STARTING</div>
+                <div id="ball-let" style="color:var(--neon)">READY</div>
             </div>
-
-            <div class="personal-card" id="card-area">
-                <div class="card-header-bingo">
-                    <div class="card-let">B</div><div class="card-let">I</div><div class="card-let">N</div><div class="card-let">G</div><div class="card-let">O</div>
-                </div>
-                <div id="personal-grid" class="personal-grid"></div>
+            <div class="personal-card">
+                <div id="personal-grid" class="p-grid"></div>
             </div>
         </div>
     </div>
 
     <script>
-        let drawnNumbers = [];
-        let walletBalance = 0;
-        let gameInterval;
-        let cardData = [];
+        let drawnHistory = [];
+        let isOwner = true; // ባለቤት ከሆንክ እጣው እንዲወጣ ያደርጋል
 
-        // 1. Owner: ገንዘብ መጨመር
-        function addMoney() {
-            let amount = prompt("የሚጨምሩትን የገንዘብ መጠን ያስገቡ (ETB):", "500");
-            if(amount != null && !isNaN(amount)) {
-                walletBalance += parseInt(amount);
-                document.getElementById('ui-wallet').textContent = walletBalance;
-            }
-        }
-
-        function initGame() {
-            // Reset UI
-            drawnNumbers = [];
-            document.getElementById('full-board').innerHTML = '';
-            document.getElementById('personal-grid').innerHTML = '';
-            document.getElementById('ui-called').textContent = '0';
-            document.getElementById('winner-overlay').style.display = 'none';
-
-            // Setup Board
+        function setup() {
+            // ቦርድ መፍጠር
+            const fb = document.getElementById('full-board');
             for(let i=1; i<=75; i++) {
-                const d = document.createElement('div');
-                d.className = 'num'; d.id = `n-${i}`; d.textContent = i;
-                document.getElementById('full-board').appendChild(d);
+                fb.innerHTML += `<div class="num" id="n-${i}">${i}</div>`;
             }
 
-            // Setup Card (5x5)
-            let ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
-            cardData = [];
-            for(let col=0; col<5; col++){
-                let colNums = [];
-                while(colNums.length < 5){
-                    let r = Math.floor(Math.random()*(ranges[col][1]-ranges[col][0]+1))+ranges[col][0];
-                    if(!colNums.includes(r)) colNums.push(r);
-                }
-                cardData.push(colNums);
-            }
+            // የራስህ ካርቴላ መፍጠር (Local Storage በመጠቀም ስትመለስ እንዳይጠፋ)
+            let savedCard = localStorage.getItem('myBingoCard');
+            let myNums = savedCard ? JSON.parse(savedCard) : generateRandomCard();
+            localStorage.setItem('myBingoCard', JSON.stringify(myNums));
 
-            for(let row=0; row<5; row++){
-                for(let col=0; col<5; col++){
-                    const cell = document.createElement('div');
-                    cell.className = 'p-cell';
-                    if(row === 2 && col === 2) {
-                        cell.innerHTML = "★"; cell.classList.add('marked');
-                        cell.dataset.marked = "true";
-                    } else {
-                        let val = cardData[col][row];
-                        cell.textContent = val;
-                        cell.id = `p-num-${val}`;
-                    }
-                    document.getElementById('personal-grid').appendChild(cell);
+            const pg = document.getElementById('personal-grid');
+            myNums.forEach((n, i) => {
+                let cell = `<div class="p-cell ${i==12?'marked':''}" id="p-${n}">${i==12?'★':n}</div>`;
+                pg.innerHTML += cell;
+            });
+
+            // Firebase ማዳመጥ (ወጥተህ ስትገባ ዳታውን የሚስበው እዚህ ጋር ነው)
+            window.listenToGame((data) => {
+                if(data.status === "RESET") {
+                    location.reload(); // ጨዋታው ካለቀ አፑን ማደስ
+                    return;
                 }
-            }
-            startDrawing();
+                drawnHistory = data.history || [];
+                updateUI(data.ball);
+            });
+
+            if(isOwner) startEngine();
         }
 
-        function startDrawing() {
-            let pool = Array.from({length: 75}, (_, i) => i + 1);
-            gameInterval = setInterval(() => {
-                if(pool.length === 0) { clearInterval(gameInterval); return; }
-
-                let idx = Math.floor(Math.random() * pool.length);
-                let ball = pool.splice(idx, 1)[0];
-                drawnNumbers.push(ball);
-
-                // Update UI
-                document.getElementById('ball-val').textContent = ball;
-                document.getElementById('ui-called').textContent = drawnNumbers.length;
-                
-                let l = "O";
-                if(ball <= 15) l="B"; else if(ball <= 30) l="I"; else if(ball <= 45) l="N"; else if(ball <= 60) l="G";
-                document.getElementById('ball-let').textContent = l;
-
-                document.getElementById(`n-${ball}`).classList.add('active');
-                const pEl = document.getElementById(`p-num-${ball}`);
-                if(pEl) {
-                    pEl.classList.add('marked');
-                    pEl.dataset.marked = "true";
-                    checkWinner(); // እያንዳንዱ እጣ ሲወጣ አሸናፊ መኖሩን ያያል
-                }
-            }, 3000); 
+        function generateRandomCard() {
+            let nums = [];
+            while(nums.length < 25) {
+                let r = Math.floor(Math.random() * 75) + 1;
+                if(!nums.includes(r)) nums.push(r);
+            }
+            return nums;
         }
 
-        function checkWinner() {
-            const cells = document.querySelectorAll('.p-cell');
-            const isMarked = (idx) => cells[idx].dataset.marked === "true";
-
-            // ቢንጎ ለመሆን 5 መስመሮች (አግዳሚ) መሞላት አለባቸው (ቀለል እንዲል)
-            // እዚህ ጋር በፈለከው ህግ መቀየር ትችላለህ
-            let win = false;
-            for(let i=0; i<5; i++) {
-                if([0,1,2,3,4].every(c => isMarked(i*5 + c))) win = true; // Horizontal
-                if([0,1,2,3,4].every(r => isMarked(r*5 + i))) win = true; // Vertical
-            }
-
-            if(win) {
-                clearInterval(gameInterval);
-                showWinner();
-            }
-        }
-
-        function showWinner() {
-            const overlay = document.getElementById('winner-overlay');
-            overlay.style.display = 'flex';
+        function updateUI(currentBall) {
+            document.getElementById('ball-val').textContent = currentBall;
+            document.getElementById('ui-called').textContent = drawnHistory.length;
             
-            let count = 5;
-            const timerEl = document.getElementById('timer');
-            const cd = setInterval(() => {
-                count--;
-                timerEl.textContent = count;
-                if(count <= 0) {
-                    clearInterval(cd);
-                    initGame(); // አዲስ ጨዋታ ይጀምራል
-                }
-            }, 1000);
+            // ሁሉንም የወጡ ቁጥሮች ማብራት
+            drawnHistory.forEach(num => {
+                if(document.getElementById(`n-${num}`)) document.getElementById(`n-${num}`).classList.add('active');
+                if(document.getElementById(`p-${num}`)) document.getElementById(`p-${num}`).classList.add('marked');
+            });
+
+            checkWin();
         }
 
-        initGame();
+        function startEngine() {
+            let pool = Array.from({length: 75}, (_, i) => i + 1);
+            setInterval(async () => {
+                // የቆዩ እጣዎችን ከ pool ውስጥ መቀነስ (ወጥተህ ስትገባ ከቀጠለበት እንዲቀጥል)
+                let remaining = pool.filter(n => !drawnHistory.includes(n));
+                if(remaining.length === 0) return;
+
+                let nextBall = remaining[Math.floor(Math.random() * remaining.length)];
+                drawnHistory.push(nextBall);
+                
+                // ዳታውን ወደ Firebase መላክ (ወጥተህ ስትገባ የሚጠብቅህ ይሄ ነው)
+                window.saveGameState(nextBall, drawnHistory, "LIVE");
+            }, 4000);
+        }
+
+        function checkWin() {
+            // የአሸናፊነት ቼክ እዚህ ይገባል
+            // አሸናፊ ካለ window.saveGameState(0, [], "RESET") መጥራት
+        }
+
+        setup();
     </script>
 </body>
 </html>
