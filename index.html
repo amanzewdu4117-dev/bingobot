@@ -3,12 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VAMOS BINGO - SCROLLABLE SYSTEM</title>
+    <title>JOBE BINGO - PRO SYSTEM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
+        // Firebase Config (እዚህ ጋር የራስህን ዝርዝር አስገባ)
         const firebaseConfig = {
             apiKey: "AIzaSyD2l0Q4JOn6S0Xf1YmB1Z0m-Z0m-Z0m", 
             authDomain: "my-app-project-1e0bb.firebaseapp.com",
@@ -19,13 +21,13 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.updateGame = async (ball, history) => {
+        window.pushGameState = async (ball, history) => {
             await setDoc(doc(db, "game_state", "live"), {
                 lastBall: ball, history: history, status: "active", time: Date.now()
             });
         };
 
-        window.syncGame = (callback) => {
+        window.syncWithCloud = (callback) => {
             onSnapshot(doc(db, "game_state", "live"), (snap) => {
                 if(snap.exists()) callback(snap.data());
             });
@@ -34,178 +36,150 @@
 
     <style>
         :root {
-            --neon: #00ffcc; --bg: #050a10; --panel: #0d141f;
+            --neon: #00ffcc; --bg: #050a10; --card: #0d141f;
             --b: #00bcd4; --i: #9c27b0; --n: #f44336; --g: #4caf50; --o: #ff9800;
         }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: white; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; }
-        body { background: var(--bg); color: white; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        /* Top Header */
+        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px; background: #081018; }
+        .stat { background: #111a24; border: 1px solid #1c2a38; border-radius: 8px; padding: 6px; text-align: center; }
+        .stat-label { font-size: 8px; color: #5b7a8c; font-weight: bold; }
+        .stat-val { font-size: 14px; font-weight: 900; }
 
-        /* Header */
-        .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; background: #081018; }
-        .stat { background: #111a24; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #1c2a38; }
-        .stat label { font-size: 8px; color: #5b7a8c; display: block; margin-bottom: 2px; }
-        .stat span { font-size: 14px; font-weight: 900; }
-
-        /* Scrollable Cartela Selector */
-        .selector-wrap { background: #081018; padding: 5px 0; border-bottom: 1px solid #1c2a38; }
-        .scroll-list { 
-            display: flex; gap: 10px; overflow-x: auto; padding: 5px 15px; 
-            scrollbar-width: none; -ms-overflow-style: none;
-        }
-        .scroll-list::-webkit-scrollbar { display: none; }
-        .card-btn { 
-            min-width: 55px; height: 35px; background: #111a24; border: 1px solid #1c2a38;
+        /* Scrollable Selection */
+        .selector-box { background: #081018; padding: 8px 0; border-bottom: 1px solid #1c2a38; }
+        .scroll-container { display: flex; gap: 8px; overflow-x: auto; padding: 0 15px; scrollbar-width: none; }
+        .scroll-container::-webkit-scrollbar { display: none; }
+        .card-tab { 
+            min-width: 50px; height: 35px; background: #111a24; border: 1px solid #1c2a38;
             border-radius: 6px; display: flex; align-items: center; justify-content: center;
-            font-weight: 900; color: #5b7a8c; cursor: pointer; transition: 0.3s;
+            font-weight: 900; color: #5b7a8c; cursor: pointer; 
         }
-        .card-btn.active { background: var(--neon); color: black; border-color: var(--neon); transform: scale(1.1); }
+        .card-tab.active { background: var(--neon); color: black; border-color: var(--neon); }
 
-        /* Main Game Area */
-        .game-content { display: flex; flex: 1; padding: 10px; gap: 10px; min-height: 0; }
+        /* Main View */
+        .main-game { display: flex; flex: 1; padding: 10px; gap: 10px; min-height: 0; }
 
-        /* 1-75 Main Board (Left) */
-        .main-board { 
-            flex: 1.2; background: var(--panel); border-radius: 15px; border: 1px solid #1c2a38;
-            display: flex; flex-direction: column; padding: 8px;
-        }
-        .board-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 5px; }
-        .letter-h { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 900; font-size: 12px; }
-        .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; }
-        .board-cell { 
-            background: #050a10; height: 28px; border-radius: 4px; display: flex; 
-            align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #2d3e50;
-            border: 1px solid #1a2a3a;
-        }
-        .board-cell.called { background: rgba(255,255,255,0.1); color: white; border-color: #3e566b; }
-        .board-cell.active-ball { background: var(--neon); color: black; border-color: white; transform: scale(1.1); z-index: 5; }
+        /* Left: 1-75 Board */
+        .bingo-board { flex: 1.2; background: var(--card); border-radius: 15px; padding: 8px; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
+        .letters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 6px; }
+        .l-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 900; font-size: 14px; }
+        .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; flex: 1; overflow-y: auto; }
+        .num-cell { background: #050a10; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: #1c2a38; border: 1px solid #111a24; }
+        .num-cell.drawn { color: white; border-color: #3e566b; background: rgba(255,255,255,0.05); }
+        .num-cell.current { background: var(--neon); color: black; transform: scale(1.1); z-index: 2; }
 
-        /* Selected Player Card (Right) */
-        .player-card-side { 
-            flex: 0.8; display: flex; flex-direction: column; gap: 10px;
-        }
-        .selected-card-box { 
-            flex: 1.5; background: #081018; border-radius: 15px; border: 1px solid var(--neon);
-            padding: 8px; display: flex; flex-direction: column;
-        }
+        /* Right: Selected Card */
+        .right-side { flex: 0.8; display: flex; flex-direction: column; gap: 10px; }
+        .selected-card { flex: 1.5; background: #081018; border-radius: 15px; border: 1px solid var(--neon); padding: 8px; display: flex; flex-direction: column; }
         .player-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; }
-        .p-cell { 
-            background: #0d141f; border-radius: 5px; border: 1px solid #1c2a38;
-            display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #32475c;
-        }
+        .p-cell { background: #0d141f; border-radius: 5px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #32475c; }
         .p-cell.marked { color: white; border-color: white; transform: scale(1.05); }
 
-        .ball-view { 
-            flex: 0.7; background: #081018; border-radius: 15px; border: 2px solid var(--neon);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .ball-num { font-size: 45px; font-weight: 900; line-height: 1; }
+        .draw-status { flex: 0.7; background: #081018; border-radius: 15px; border: 2px solid var(--neon); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .big-ball { font-size: 48px; font-weight: 900; line-height: 1; }
 
-        .footer { padding: 10px; background: var(--bg); }
-        .btn-start { 
-            width: 100%; padding: 15px; border-radius: 12px; border: none; 
-            background: var(--neon); color: black; font-size: 16px; font-weight: 900;
-        }
+        .footer { padding: 10px; }
+        .start-btn { width: 100%; padding: 16px; border-radius: 12px; border: none; background: var(--neon); color: black; font-size: 18px; font-weight: 900; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="stat"><label>CARD #</label><span id="id-label" style="color:var(--neon)">1</span></div>
-        <div class="stat"><label>CALLED</label><span id="count-label">0</span></div>
-        <div class="stat"><label>WALLET</label><span>0</span></div>
-        <div class="stat"><label>PRIZE</label><span style="color:var(--neon)">1,880</span></div>
+    <div class="header">
+        <div class="stat"><div class="stat-label">CARD #</div><div id="active-id" class="stat-val" style="color:var(--neon)">1</div></div>
+        <div class="stat"><div class="stat-label">CALLED</div><div id="count-label" class="stat-val">0</div></div>
+        <div class="stat"><div class="stat-label">WALLET</div><div class="stat-val">0</div></div>
+        <div class="stat"><div class="stat-label">PRIZE</div><div class="stat-val" style="color:var(--neon)">1,880</div></div>
     </div>
 
-    <div class="selector-wrap">
-        <div id="scroll-list" class="scroll-list"></div>
+    <!-- Scrollable Card Selection -->
+    <div class="selector-box">
+        <div id="card-scroll" class="scroll-container"></div>
     </div>
 
-    <div class="game-content">
-        <div class="main-board">
-            <div class="board-header">
-                <div class="letter-h" style="background:var(--b)">B</div>
-                <div class="letter-h" style="background:var(--i)">I</div>
-                <div class="letter-h" style="background:var(--n)">N</div>
-                <div class="letter-h" style="background:var(--g)">G</div>
-                <div class="letter-h" style="background:var(--o)">O</div>
+    <div class="main-game">
+        <div class="bingo-board">
+            <div class="letters">
+                <div class="l-box" style="background:var(--b)">B</div>
+                <div class="l-box" style="background:var(--i)">I</div>
+                <div class="l-box" style="background:var(--n)">N</div>
+                <div class="l-box" style="background:var(--g)">G</div>
+                <div class="l-box" style="background:var(--o)">O</div>
             </div>
-            <div id="board-grid" class="board-grid"></div>
+            <div id="main-grid" class="numbers-grid"></div>
         </div>
 
-        <div class="player-card-side">
-            <div class="selected-card-box">
-                <div style="font-size: 9px; color: var(--neon); text-align: center; margin-bottom: 5px; font-weight: bold;">SELECTED CARD</div>
+        <div class="right-side">
+            <div class="selected-card">
+                <div style="font-size: 9px; color: var(--neon); text-align: center; margin-bottom: 5px;">SELECTED CARD</div>
                 <div id="player-grid" class="player-grid"></div>
             </div>
-            <div class="ball-view">
-                <div id="big-num" class="ball-num">--</div>
-                <div id="big-tag" style="font-size: 10px; font-weight: bold; margin-top: 5px; color: #5b7a8c;">READY</div>
+            <div class="draw-status">
+                <div id="display-ball" class="big-ball">--</div>
+                <div style="font-size: 10px; color: #5b7a8c; font-weight: bold;">READY</div>
             </div>
         </div>
     </div>
 
     <div class="footer">
-        <button id="draw-btn" class="btn-start" onclick="startDraw()">START LIVE DRAW</button>
+        <button id="draw-trigger" class="start-btn" onclick="startDrawing()">START LIVE DRAW</button>
     </div>
 
     <script>
         let gameHistory = [];
-        let selectedCardId = 1;
+        let activeCard = 1;
 
         function init() {
-            // 1. 500 Scrollable buttons
-            const list = document.getElementById('scroll-list');
+            // 1. Fill 500 Scrollable Tabs
+            const scroll = document.getElementById('card-scroll');
             for(let i=1; i<=500; i++) {
-                let b = document.createElement('div');
-                b.className = i === 1 ? 'card-btn active' : 'card-btn';
-                b.id = `btn-${i}`;
-                b.textContent = i;
-                b.onclick = () => selectCard(i);
-                list.appendChild(b);
+                let tab = document.createElement('div');
+                tab.className = i === 1 ? 'card-tab active' : 'card-tab';
+                tab.id = `tab-${i}`;
+                tab.textContent = i;
+                tab.onclick = () => selectCard(i);
+                scroll.appendChild(tab);
             }
 
-            // 2. 1-75 Board cells
-            const board = document.getElementById('board-grid');
+            // 2. Fill 1-75 Main Board
+            const grid = document.getElementById('main-grid');
             for(let i=1; i<=75; i++) {
                 let c = document.createElement('div');
-                c.className = 'board-cell';
+                c.className = 'num-cell';
                 c.id = `board-${i}`;
                 c.textContent = i;
-                board.appendChild(c);
+                grid.appendChild(c);
             }
 
-            updatePlayerCard();
+            renderCard();
 
-            // Sync from Firebase
-            window.syncGame((data) => {
+            // Cloud Sync
+            window.syncWithCloud((data) => {
                 if(data.status === "active") {
                     gameHistory = data.history;
-                    renderGame(data.lastBall);
+                    updateUI(data.lastBall);
                 }
             });
         }
 
         function selectCard(id) {
-            document.querySelectorAll('.card-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`btn-${id}`).classList.add('active');
-            selectedCardId = id;
-            document.getElementById('id-label').textContent = id;
-            updatePlayerCard();
-            
-            // Scroll selected button into view
-            document.getElementById(`btn-${id}`).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            document.querySelectorAll('.card-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${id}`).classList.add('active');
+            activeCard = id;
+            document.getElementById('active-id').textContent = id;
+            renderCard();
         }
 
-        function updatePlayerCard() {
+        function renderCard() {
             const grid = document.getElementById('player-grid');
             grid.innerHTML = '';
             const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
-            
             for(let row=0; row<5; row++) {
                 for(let col=0; col<5; col++) {
                     let start = ranges[col][0];
-                    let n = start + ((selectedCardId * (row + 9) + col) % 15);
+                    let n = start + ((activeCard * (row + 17) + col) % 15);
                     let cell = document.createElement('div');
                     cell.className = 'p-cell';
                     cell.id = `p-${n}`;
@@ -213,47 +187,47 @@
                     grid.appendChild(cell);
                 }
             }
-            autoFillMark();
+            autoCheck();
         }
 
-        function renderGame(last) {
-            document.getElementById('big-num').textContent = last;
+        function updateUI(last) {
+            document.getElementById('display-ball').textContent = last;
             document.getElementById('count-label').textContent = gameHistory.length;
             
             // Mark Main Board
-            document.querySelectorAll('.board-cell').forEach(c => c.classList.remove('active-ball'));
+            document.querySelectorAll('.num-cell').forEach(c => c.classList.remove('current'));
             gameHistory.forEach(n => {
-                let c = document.getElementById(`board-${n}`);
-                if(c) c.classList.add('called');
+                document.getElementById(`board-${n}`).classList.add('drawn');
             });
-            document.getElementById(`board-${last}`).classList.add('active-ball');
+            document.getElementById(`board-${last}`).classList.add('current');
 
-            autoFillMark();
+            autoCheck();
         }
 
-        function autoFillMark() {
+        function autoCheck() {
             gameHistory.forEach(n => {
                 let cell = document.getElementById(`p-${n}`);
                 if(cell) {
-                    let col = n <= 15 ? 'b' : n <= 30 ? 'i' : n <= 45 ? 'n' : n <= 60 ? 'g' : 'o';
-                    cell.style.background = `var(--${col})`;
+                    let cat = n <= 15 ? 'b' : n <= 30 ? 'i' : n <= 45 ? 'n' : n <= 60 ? 'g' : 'o';
+                    cell.style.background = `var(--${cat})`;
                     cell.classList.add('marked');
                 }
             });
         }
 
-        function startDraw() {
-            document.getElementById('draw-btn').disabled = true;
+        function startDrawing() {
+            document.getElementById('draw-trigger').disabled = true;
             let pool = [];
             const loop = setInterval(() => {
                 if(pool.length >= 75) { clearInterval(loop); return; }
                 let n; do { n = Math.floor(Math.random()*75)+1; } while(pool.includes(n));
                 pool.push(n);
-                window.updateGame(n, pool);
+                window.pushGameState(n, pool);
             }, 3000);
         }
 
         init();
+        window.Telegram.WebApp.ready();
     </script>
 </body>
 </html>
