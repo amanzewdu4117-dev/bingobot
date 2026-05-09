@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - PRO</title>
+    <title>JOBE BINGO PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Firebase Config (በ Screenshot_20260509-204719.jpg መሰረት)
+        // 🔥 ያንተ የ Firebase መረጃ እዚህ ተካቷል
         const firebaseConfig = {
             apiKey: "AIzaSyD2lOQ4J...", 
             authDomain: "my-app-pro-38440.firebaseapp.com",
             projectId: "my-app-pro-38440",
             storageBucket: "my-app-pro-38440.appspot.com",
             messagingSenderId: "280130045202",
-            appId: "1:280130045202:web:your_web_id" 
+            appId: "1:280130045202:web:your_web_id" // በምስሉ መሰረት ተስተካክሏል
         };
 
         const app = initializeApp(firebaseConfig);
@@ -25,10 +25,8 @@
 
         window.syncGame = async (ball, history, status) => {
             try {
-                await setDoc(doc(db, "live_bingo", "current"), { 
-                    ball, history, status, time: Date.now() 
-                });
-            } catch (e) { console.error("Sync Error:", e); }
+                await setDoc(doc(db, "live_bingo", "current"), { ball, history, status, time: Date.now() });
+            } catch (e) { console.error("Firebase Sync Error:", e); }
         };
 
         window.listenGame = (callback) => {
@@ -39,64 +37,87 @@
     </script>
 
     <style>
-        :root { --bg: #050a10; --card: #111a24; --neon: #00ffcc; --orange: #ff5722; --text: #5b7a8c; }
+        :root { --bg: #050a10; --card: #111a24; --neon: #00ffcc; --orange: #ff5722; }
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
-        body { background: var(--bg); color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { background: var(--bg); color: white; height: 100vh; overflow: hidden; }
 
-        .header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #081018; border-bottom: 1px solid #1c2a38; }
-        .stat { background: var(--card); border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2a38; }
+        .view { display: none; height: 100vh; flex-direction: column; }
+        .active-view { display: flex; }
+
+        .header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 10px; background: #081018; border-bottom: 1px solid #1c2a38; }
+        .stat { background: var(--card); border-radius: 8px; padding: 5px; text-align: center; border: 1px solid #1c2a38; }
         .stat label { font-size: 8px; color: var(--neon); display: block; }
-        .stat span { font-size: 15px; font-weight: 900; }
+        .stat span { font-size: 14px; font-weight: 900; }
 
-        .main { display: flex; flex: 1; padding: 10px; gap: 10px; overflow: hidden; }
-        .slot-network { flex: 1; background: var(--card); border-radius: 15px; padding: 12px; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
-        .network-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
-        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 6px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
-        .slot.selected { border: 2px solid var(--orange); color: var(--orange); }
-        .slot.hit { background: var(--neon); color: black; }
-        .slot.last { background: var(--orange); color: white; transform: scale(1.1); box-shadow: 0 0 10px var(--orange); }
+        /* Selection View */
+        .selection-main { flex: 1; overflow-y: auto; padding: 10px; }
+        .network-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .slot { aspect-ratio: 1; background: var(--card); border: 1px solid #1c2a38; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .slot.selected { border: 2px solid var(--orange); color: var(--orange); background: #1a1614; }
 
-        .side { flex: 1.2; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-        .call-box { background: #081018; border: 2px solid var(--neon); border-radius: 15px; padding: 15px; text-align: center; position: relative; }
-        .call-num { font-size: 45px; font-weight: 900; }
-        #timer-label { font-size: 10px; color: var(--orange); font-weight: bold; }
+        /* Game View */
+        .game-main { flex: 1; display: flex; gap: 10px; padding: 10px; overflow: hidden; }
+        .left-board { flex: 1; background: var(--card); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; }
+        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px; }
+        .b-letter { background: var(--orange); text-align: center; font-weight: 900; border-radius: 4px; padding: 5px; font-size: 14px; }
+        .bingo-numbers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 1; overflow-y: auto; }
+        .n-cell { background: #0d141f; font-size: 10px; text-align: center; padding: 4px; border-radius: 3px; color: #445b73; }
+        .n-cell.active { background: var(--neon); color: black; font-weight: 900; }
 
-        .active-card { background: var(--card); border: 1px solid var(--orange); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
-        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .cell { aspect-ratio: 1; background: #0d141f; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #32475c; }
-        .cell.marked { background: var(--orange); color: black; }
+        .right-cards { flex: 1; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .bingo-card-ui { background: var(--card); border: 1px solid var(--orange); border-radius: 12px; padding: 10px; }
+        .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+        .c-cell { aspect-ratio: 1; background: #0d141f; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: #3b4d61; }
+        .c-cell.marked { background: var(--orange); color: white; }
 
-        .footer { padding: 12px; }
-        .btn-start { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: 900; font-size: 16px; cursor: pointer; }
-        .btn-start:disabled { background: #1c2a38; color: #5b7a8c; }
+        .call-banner { background: #081018; border: 2px solid var(--neon); border-radius: 12px; padding: 10px; text-align: center; margin-bottom: 10px; }
+        .big-num { font-size: 50px; font-weight: 900; color: white; line-height: 1; }
+
+        .footer { padding: 10px; background: #081018; }
+        .btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: 900; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="stat"><label>WALLET</label><span>40 ETB</span></div>
-        <div class="stat"><label>SELECTED</label><span id="sel-count">0/2</span></div>
-        <div class="stat"><label>STATUS</label><span id="status-text">IDLE</span></div>
-    </div>
-
-    <div class="main">
-        <div class="slot-network">
-            <div style="font-size:10px; margin-bottom:8px;">SLOT NETWORK (500)</div>
+    <!-- ገጽ 1፡ ካርቴላ መምረጫ -->
+    <div id="selection-view" class="view active-view">
+        <div class="header">
+            <div class="stat"><label>WALLET</label><span>40 ETB</span></div>
+            <div class="stat"><label>SELECTED</label><span id="sel-count">0/2</span></div>
+            <div class="stat"><label>MODE</label><span>CHOOSE</span></div>
+        </div>
+        <div class="selection-main">
+            <div style="text-align:center; margin-bottom:15px; color:var(--neon); font-weight:800;">SELECT SLOTS (1-500)</div>
             <div id="network" class="network-grid"></div>
         </div>
-
-        <div class="side">
-            <div class="call-box">
-                <div id="timer-label"></div>
-                <div id="big-ball" class="call-num">--</div>
-                <div id="call-info" style="font-size: 9px; color: var(--neon);">READY</div>
-            </div>
-            <div id="my-cards-area"></div>
+        <div class="footer">
+            <button class="btn" onclick="goToGame()">START GAME</button>
         </div>
     </div>
 
-    <div class="footer">
-        <button id="draw-btn" class="btn-start" onclick="startCountdown()">START GAME</button>
+    <!-- ገጽ 2፡ የጨዋታ ገጽ -->
+    <div id="game-view" class="view">
+        <div class="header">
+            <div class="stat"><label>STATUS</label><span id="status-text">WAITING</span></div>
+            <div class="stat"><label>TIME</label><span id="timer-text">15s</span></div>
+            <div class="stat"><label>BALLS</label><span id="ball-count">0/75</span></div>
+        </div>
+        
+        <div class="game-main">
+            <div class="left-board">
+                <div class="call-banner">
+                    <div id="big-ball" class="big-num">--</div>
+                    <div id="game-info" style="font-size:10px; color:var(--neon);">PREPARING...</div>
+                </div>
+                <div class="bingo-header">
+                    <div class="b-letter">B</div><div class="b-letter">I</div>
+                    <div class="b-letter">N</div><div class="b-letter">G</div>
+                    <div class="b-letter">O</div>
+                </div>
+                <div id="bingo-numbers" class="bingo-numbers"></div>
+            </div>
+            <div id="my-live-cards" class="right-cards"></div>
+        </div>
     </div>
 
     <script>
@@ -111,8 +132,17 @@
                 s.className = 'slot';
                 s.id = `slot-${i}`;
                 s.textContent = i;
-                s.onclick = () => { if(gameStatus === "IDLE" || gameStatus === "WAITING") selectCard(i); };
+                s.onclick = () => selectCard(i);
                 net.appendChild(s);
+            }
+
+            const board = document.getElementById('bingo-numbers');
+            for(let n=1; n<=75; n++) {
+                let cell = document.createElement('div');
+                cell.className = 'n-cell';
+                cell.id = `board-${n}`;
+                cell.textContent = n;
+                board.appendChild(cell);
             }
 
             window.listenGame((data) => {
@@ -120,7 +150,8 @@
                 gameStatus = data.status;
                 document.getElementById('big-ball').textContent = data.ball || "--";
                 document.getElementById('status-text').textContent = data.status;
-                updateVisuals(data.ball);
+                document.getElementById('ball-count').textContent = `${history.length}/75`;
+                updateLiveUI(data.ball);
             });
         }
 
@@ -130,87 +161,75 @@
             } else if(mySelections.length < 2) {
                 mySelections.push(id);
             }
-            updateUI();
-        }
-
-        function updateUI() {
             document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
             mySelections.forEach(id => document.getElementById(`slot-${id}`).classList.add('selected'));
             document.getElementById('sel-count').textContent = `${mySelections.length}/2`;
+        }
+
+        function goToGame() {
+            if(mySelections.length === 0) { alert("ካርቴላ ይምረጡ!"); return; }
+            document.getElementById('selection-view').classList.remove('active-view');
+            document.getElementById('game-view').classList.add('active-view');
             renderMyCards();
+            startLogic();
         }
 
         function renderMyCards() {
-            const area = document.getElementById('my-cards-area');
-            area.innerHTML = '';
-            mySelections.forEach(id => {
-                const card = document.createElement('div');
-                card.className = 'active-card';
-                card.innerHTML = `<div style="color:var(--orange); text-align:center; font-size:9px;">Card #${id}</div>`;
+            const container = document.getElementById('my-live-cards');
+            container.innerHTML = '';
+            mySelections.forEach(cardId => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'bingo-card-ui';
+                cardDiv.innerHTML = `<div style="text-align:center; color:var(--orange); font-size:10px; margin-bottom:5px; font-weight:900;">CARD #${cardId}</div>`;
                 const grid = document.createElement('div');
-                grid.className = 'bingo-grid';
+                grid.className = 'card-grid';
                 const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
                 for(let r=0; r<5; r++) {
                     for(let c=0; c<5; c++) {
                         const cell = document.createElement('div');
-                        cell.className = 'cell';
-                        if(r===2 && c===2) { cell.innerHTML = '★'; cell.style.color = 'var(--orange)'; }
+                        cell.className = 'c-cell';
+                        if(r===2 && c===2) { cell.innerHTML = '★'; cell.classList.add('marked'); }
                         else {
-                            let n = ranges[c][0] + ((id * (r + 7) + c) % 15);
+                            let n = ranges[c][0] + ((cardId * (r + 7) + c) % 15);
                             cell.textContent = n;
-                            if(history.includes(n)) cell.classList.add('marked');
+                            cell.id = `card-${cardId}-num-${n}`;
                         }
                         grid.appendChild(cell);
                     }
                 }
-                card.appendChild(grid);
-                area.appendChild(card);
+                cardDiv.appendChild(grid);
+                container.appendChild(cardDiv);
             });
         }
 
-        function updateVisuals(last) {
-            document.querySelectorAll('.slot').forEach(s => s.classList.remove('last'));
+        function updateLiveUI(lastBall) {
             history.forEach(n => {
-                const el = document.getElementById(`slot-${n}`);
-                if(el) el.classList.add('hit');
+                const boardCell = document.getElementById(`board-${n}`);
+                if(boardCell) boardCell.classList.add('active');
+                mySelections.forEach(cardId => {
+                    const cardNum = document.getElementById(`card-${cardId}-num-${n}`);
+                    if(cardNum) cardNum.classList.add('marked');
+                });
             });
-            const lastEl = document.getElementById(`slot-${last}`);
-            if(lastEl) {
-                lastEl.classList.add('last');
-                lastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-            renderMyCards();
         }
 
-        // --- GAME LOGIC ---
-
-        function startCountdown() {
-            if(mySelections.length === 0) { alert("መጀመሪያ ካርቴላ ይምረጡ!"); return; }
-            
-            let timeLeft = 15;
-            const btn = document.getElementById('draw-btn');
-            const timerLabel = document.getElementById('timer-label');
-            const callInfo = document.getElementById('call-info');
-            
-            btn.disabled = true;
-            gameStatus = "WAITING";
-            callInfo.textContent = "WAITING FOR PLAYERS";
-
-            const countdown = setInterval(() => {
-                timerLabel.textContent = `STARTS IN: ${timeLeft}s`;
-                window.syncGame("--", [], "WAITING"); // Firebase ላይ ሁኔታውን ያሳውቃል
-                
-                if(timeLeft <= 0) {
-                    clearInterval(countdown);
-                    timerLabel.textContent = "";
-                    callInfo.textContent = "LIVE DRAWING";
-                    beginLiveDraw();
+        function startLogic() {
+            let sec = 15;
+            const timer = setInterval(() => {
+                document.getElementById('timer-text').textContent = `${sec}s`;
+                document.getElementById('game-info').textContent = "WAITING...";
+                window.syncGame("--", [], "WAITING");
+                if(sec <= 0) {
+                    clearInterval(timer);
+                    document.getElementById('timer-text').textContent = "LIVE";
+                    document.getElementById('game-info').textContent = "DRAWING...";
+                    runDraw();
                 }
-                timeLeft--;
+                sec--;
             }, 1000);
         }
 
-        async function beginLiveDraw() {
+        async function runDraw() {
             let pool = [];
             const loop = setInterval(async () => {
                 if(pool.length >= 75) { 
