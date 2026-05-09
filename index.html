@@ -3,219 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO PRO</title>
-    
-    <!-- External Scripts (JS) -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>VAMOS BINGO - SLOT NETWORK</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // 🔥 ማሳሰቢያ፡ እዚህ ጋር የራስህን የFirebase መረጃ ግድ ማስገባት አለብህ
         const firebaseConfig = {
-            apiKey: "YOUR_ACTUAL_API_KEY", 
+            apiKey: "YOUR_API_KEY",
             authDomain: "your-app.firebaseapp.com",
             projectId: "your-app-id",
-            appId: "1:your-app-id:web:your-web-id" 
+            appId: "1:your-id:web:your-id"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ዳታ ወደ Cloud ለመላክ
-        window.sendMove = async (ball, history) => {
-            await setDoc(doc(db, "game_session", "active_game"), {
-                ball: ball, history: history, status: "playing", timestamp: Date.now()
-            });
+        window.updateGame = async (ball, history) => {
+            await setDoc(doc(db, "game_session", "slot_live"), { ball, history, timestamp: Date.now() });
         };
 
-        // ከCloud ዳታ ለመቀበል
-        window.listenMove = (callback) => {
-            onSnapshot(doc(db, "game_session", "active_game"), (snap) => {
+        window.listenGame = (callback) => {
+            onSnapshot(doc(db, "game_session", "slot_live"), (snap) => {
                 if(snap.exists()) callback(snap.data());
             });
         };
     </script>
 
     <style>
-        /* CSS - ዲዛይን */
-        :root { --neon: #00ffcc; --bg: #050a10; --b: #00bcd4; --i: #9c27b0; --n: #f44336; --g: #4caf50; --o: #ff9800; }
-        * { box-sizing: border-box; font-family: sans-serif; }
-        body { background: var(--bg); color: white; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        :root { --bg: #050a10; --card-dark: #111a24; --neon-green: #00ffcc; --orange: #ff5722; --text-dim: #5b7a8c; }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: white; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Header */
-        .header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; background: #081018; }
-        .box { background: #111a24; padding: 8px; border-radius: 8px; text-align: center; border: 1px solid #1c2a38; }
-        .box label { font-size: 8px; color: #5b7a8c; display: block; }
-        .box span { font-size: 14px; font-weight: 900; }
+        /* Top Header Section */
+        .profile-header { padding: 15px; display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 50px; height: 50px; background: #00bcd4; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 15px rgba(0,188,212,0.4); }
+        .user-info { flex: 1; }
+        .username { font-weight: 900; font-size: 18px; display: flex; align-items: center; gap: 5px; }
+        .username::before { content: ''; width: 8px; height: 8px; background: #00ffcc; border-radius: 50%; }
+        .meta { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
 
-        /* Scrollable Selector */
-        .scroll-wrap { background: #081018; padding: 10px 0; border-bottom: 1px solid #1c2a38; }
-        .scroll-list { display: flex; gap: 10px; overflow-x: auto; padding: 0 15px; scrollbar-width: none; }
-        .card-btn { min-width: 50px; height: 35px; background: #111a24; border: 1px solid #1c2a38; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #5b7a8c; cursor: pointer; }
-        .card-btn.active { background: var(--neon); color: black; border-color: var(--neon); }
+        .stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; padding: 0 15px; }
+        .stat-box { background: var(--card-dark); padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #1c2a38; }
+        .stat-box label { font-size: 8px; color: var(--neon-green); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+        .stat-box .val { font-size: 18px; font-weight: 900; }
+        .timer { color: #ff4444; }
 
-        /* Game Area */
-        .main { display: flex; flex: 1; padding: 10px; gap: 10px; min-height: 0; }
-        .board { flex: 1.2; background: #0d141f; border-radius: 15px; padding: 10px; border: 1px solid #1c2a38; display: flex; flex-direction: column; }
-        .letters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-bottom: 8px; }
-        .l { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 900; }
+        /* Slot Network Board */
+        .slot-section { margin: 15px; background: var(--card-dark); border-radius: 20px; padding: 15px; flex: 1; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
+        .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .slot-title { font-size: 12px; font-weight: 900; letter-spacing: 2px; color: white; display: flex; align-items: center; gap: 8px; }
+        .slot-title::before { content: ''; width: 6px; height: 15px; background: var(--orange); border-radius: 2px; }
+        .total-players { font-size: 10px; color: var(--text-dim); }
 
-        /* 1-75 Grid */
-        .grid-75 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; }
-        .cell-75 { background: #050a10; height: 30px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #1c2a38; }
-        .cell-75.on { color: white; background: rgba(255,255,255,0.1); }
-        .cell-75.last { background: var(--neon); color: black; }
+        .network-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; overflow-y: auto; flex: 1; padding-right: 5px; }
+        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: white; border: 1px solid #1c2a38; transition: 0.3s; }
+        .slot.hit { background: var(--neon-green); color: black; border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.4); }
+        .slot.latest { background: var(--orange); color: white; border-color: var(--orange); transform: scale(1.1); z-index: 5; }
 
-        /* Right Side - Selected Card */
-        .side { flex: 0.8; display: flex; flex-direction: column; gap: 10px; }
-        .p-card { flex: 1.5; background: #081018; border-radius: 15px; border: 1px solid var(--neon); padding: 8px; }
-        .p-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .p-cell { background: #0d141f; aspect-ratio: 1; border-radius: 4px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: #32475c; }
-        .p-cell.hit { color: white; border-color: white; }
+        /* Selection Area */
+        .selection-area { padding: 10px 20px; }
+        .selection-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; color: var(--text-dim); margin-bottom: 10px; }
+        .sel-badge { background: var(--orange); color: white; padding: 2px 10px; border-radius: 10px; font-size: 10px; }
 
-        .draw-box { flex: 0.7; background: #081018; border: 2px solid var(--neon); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        
-        .footer { padding: 15px; }
-        .btn { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: black; font-size: 18px; font-weight: 900; }
+        .my-card-preview { background: #0d141f; border-radius: 15px; border: 1px solid #1c2a38; padding: 10px; display: flex; gap: 10px; overflow-x: auto; }
+        .mini-card { min-width: 120px; border: 1px solid var(--text-dim); border-radius: 8px; padding: 5px; font-size: 8px; text-align: center; }
+
+        .footer-action { padding: 15px; }
+        .draw-btn { width: 100%; padding: 16px; border-radius: 15px; border: none; background: #1c2a38; color: white; font-weight: 900; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="box"><label>CARD #</label><span id="c-id" style="color:var(--neon)">1</span></div>
-        <div class="box"><label>CALLED</label><span id="c-count">0</span></div>
-        <div class="box"><label>WALLET</label><span>0</span></div>
-        <div class="box"><label>PRIZE</label><span style="color:var(--neon)">1,880</span></div>
-    </div>
-
-    <div class="scroll-wrap">
-        <div id="card-list" class="scroll-list"></div>
-    </div>
-
-    <div class="main">
-        <div class="board">
-            <div class="letters">
-                <div class="l" style="background:var(--b)">B</div>
-                <div class="l" style="background:var(--i)">I</div>
-                <div class="l" style="background:var(--n)">N</div>
-                <div class="l" style="background:var(--g)">G</div>
-                <div class="l" style="background:var(--o)">O</div>
-            </div>
-            <div id="grid-75" class="grid-75"></div>
-        </div>
-
-        <div class="side">
-            <div class="p-card">
-                <div id="p-grid" class="p-grid"></div>
-            </div>
-            <div class="draw-box">
-                <div id="big-ball" style="font-size: 50px; font-weight: 900;">--</div>
-                <div id="big-tag" style="font-size: 10px; font-weight: bold; color: #5b7a8c;">READY</div>
-            </div>
+    <div class="profile-header">
+        <div class="avatar">@</div>
+        <div class="user-info">
+            <div class="username">@Amanuuu1</div>
+            <div class="meta">ROUND #22132 • ID: 384408623</div>
         </div>
     </div>
 
-    <div class="footer">
-        <button id="start-btn" class="btn" onclick="runDraw()">START DRAW</button>
+    <div class="stats-row">
+        <div class="stat-box"><label>Closes In</label><div class="val timer">00:00</div></div>
+        <div class="stat-box"><label>Cartela</label><div id="my-cartela-num" class="val">186</div></div>
+        <div class="stat-box"><label>Wallet</label><div class="val">40 <small style="font-size: 10px;">ETB</small></div></div>
+    </div>
+
+    <div class="slot-section">
+        <div class="slot-header">
+            <div class="slot-title">SLOT NETWORK</div>
+            <div class="total-players">TOTAL ACTIVE: 500 PLAYERS</div>
+        </div>
+        <div id="network-grid" class="network-grid">
+            <!-- 500 Slots will be here -->
+        </div>
+    </div>
+
+    <div class="selection-area">
+        <div class="selection-header">
+            <span>SELECTION</span>
+            <span class="sel-badge">1/2</span>
+        </div>
+        <div id="my-selections" class="my-card-preview">
+            <!-- Selected card mini-view -->
+            <div class="mini-card" style="border-color: var(--orange);">
+                <div style="color:var(--orange); margin-bottom: 4px;">Cartela 37</div>
+                <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:2px;">
+                    <div style="background:#333; padding:2px;">3</div><div style="background:#333; padding:2px;">16</div><div style="background:#333; padding:2px;">31</div><div style="background:#333; padding:2px;">46</div><div style="background:#333; padding:2px;">64</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-action">
+        <button class="draw-btn" onclick="triggerDraw()">START NETWORK DRAW</button>
     </div>
 
     <script>
-        /* SCRIPT - ተግባራት */
-        let history = [];
-        let activeId = 1;
+        let gameHistory = [];
 
-        function start() {
-            // 500 Scrollable Cards
-            const list = document.getElementById('card-list');
+        function init() {
+            const grid = document.getElementById('network-grid');
+            // 500 ካርቴላዎችን መፍጠር
             for(let i=1; i<=500; i++) {
-                let d = document.createElement('div');
-                d.className = i === 1 ? 'card-btn active' : 'card-btn';
-                d.id = `btn-${i}`;
-                d.textContent = i;
-                d.onclick = () => setCard(i);
-                list.appendChild(d);
+                let s = document.createElement('div');
+                s.className = 'slot';
+                s.id = `slot-${i}`;
+                s.textContent = i;
+                grid.appendChild(s);
             }
 
-            // 1-75 Grid
-            const g75 = document.getElementById('grid-75');
-            for(let i=1; i<=75; i++) {
-                let c = document.createElement('div');
-                c.className = 'cell-75';
-                c.id = `b-${i}`;
-                c.textContent = i;
-                g75.appendChild(c);
-            }
-
-            drawPlayerCard();
-
-            // Cloud Sync
-            window.listenMove((data) => {
-                history = data.history;
-                updateView(data.ball);
+            window.listenGame((data) => {
+                gameHistory = data.history;
+                updateNetwork(data.ball);
             });
         }
 
-        function setCard(id) {
-            document.querySelectorAll('.card-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`btn-${id}`).classList.add('active');
-            activeId = id;
-            document.getElementById('c-id').textContent = id;
-            drawPlayerCard();
-        }
-
-        function drawPlayerCard() {
-            const pg = document.getElementById('p-grid');
-            pg.innerHTML = '';
-            const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
-            for(let row=0; row<5; row++) {
-                for(let col=0; col<5; col++) {
-                    let n = ranges[col][0] + ((activeId * (row + 5) + col) % 15);
-                    let c = document.createElement('div');
-                    c.className = 'p-cell';
-                    c.id = `p-${n}`;
-                    c.textContent = n;
-                    pg.appendChild(c);
-                }
-            }
-            autoFill();
-        }
-
-        function updateView(ball) {
-            document.getElementById('big-ball').textContent = ball;
-            document.getElementById('c-count').textContent = history.length;
-            
-            document.querySelectorAll('.cell-75').forEach(c => c.classList.remove('last'));
-            history.forEach(n => document.getElementById(`b-${n}`).classList.add('on'));
-            document.getElementById(`b-${ball}`).classList.add('last');
-
-            autoFill();
-        }
-
-        function autoFill() {
-            history.forEach(n => {
-                let el = document.getElementById(`p-${n}`);
-                if(el) {
-                    let color = n<=15 ? 'var(--b)' : n<=30 ? 'var(--i)' : n<=45 ? 'var(--n)' : n<=60 ? 'var(--g)' : 'var(--o)';
-                    el.style.background = color;
-                    el.classList.add('hit');
-                }
+        function updateNetwork(lastBall) {
+            // ሁሉንም ስሎቶች ማጽዳት
+            document.querySelectorAll('.slot').forEach(s => {
+                s.classList.remove('latest');
             });
+
+            // ያለፉትን እጣዎች ምልክት ማድረግ
+            gameHistory.forEach(n => {
+                const el = document.getElementById(`slot-${n}`);
+                if(el) el.classList.add('hit');
+            });
+
+            // የመጨረሻውን እጣ በብርቱካንማ ማሳየት
+            const latest = document.getElementById(`slot-${lastBall}`);
+            if(latest) {
+                latest.classList.add('latest');
+                latest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
 
-        function runDraw() {
-            document.getElementById('start-btn').disabled = true;
+        function triggerDraw() {
             let pool = [];
-            let i = setInterval(() => {
-                if(pool.length >= 75) clearInterval(i);
+            const timer = setInterval(() => {
+                if(pool.length >= 75) { clearInterval(timer); return; }
                 let n; do { n = Math.floor(Math.random()*75)+1; } while(pool.includes(n));
                 pool.push(n);
-                window.sendMove(n, pool);
-            }, 3000);
+                window.updateGame(n, pool);
+            }, 2500);
         }
 
-        start();
+        init();
     </script>
 </body>
 </html>
