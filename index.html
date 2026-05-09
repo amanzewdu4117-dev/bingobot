@@ -3,170 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VAMOS BINGO - SLOT NETWORK</title>
+    <title>JOBE BINGO - LIVE SYSTEM</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
+        // 🔥 በ Screenshot_20260509-204719.jpg ምስል ላይ ያለው መረጃ እዚህ ተተክቷል
         const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "your-app.firebaseapp.com",
-            projectId: "your-app-id",
-            appId: "1:your-id:web:your-id"
+            apiKey: "AIzaSyD2lOQ4J...", // በምስሉ ላይ ባየሁት መሠረት ተስተካክሏል
+            authDomain: "my-app-pro-38440.firebaseapp.com",
+            projectId: "my-app-pro-38440",
+            storageBucket: "my-app-pro-38440.appspot.com",
+            messagingSenderId: "280130045202",
+            appId: "1:280130045202:web:your_web_id" 
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        window.updateGame = async (ball, history) => {
-            await setDoc(doc(db, "game_session", "slot_live"), { ball, history, timestamp: Date.now() });
+        // ዳታ ወደ Firebase ለመላክ
+        window.syncGame = async (ball, history) => {
+            try {
+                await setDoc(doc(db, "live_bingo", "current"), { ball, history, time: Date.now() });
+            } catch (e) { console.error("Error syncing:", e); }
         };
 
+        // ከ Firebase ዳታ ለመቀበል
         window.listenGame = (callback) => {
-            onSnapshot(doc(db, "game_session", "slot_live"), (snap) => {
+            onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
                 if(snap.exists()) callback(snap.data());
             });
         };
     </script>
 
     <style>
-        :root { --bg: #050a10; --card-dark: #111a24; --neon-green: #00ffcc; --orange: #ff5722; --text-dim: #5b7a8c; }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
-        body { background: var(--bg); color: white; margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        :root { --bg: #050a10; --card: #111a24; --neon: #00ffcc; --orange: #ff5722; --text: #5b7a8c; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); color: white; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Top Header Section */
-        .profile-header { padding: 15px; display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 50px; height: 50px; background: #00bcd4; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 15px rgba(0,188,212,0.4); }
-        .user-info { flex: 1; }
-        .username { font-weight: 900; font-size: 18px; display: flex; align-items: center; gap: 5px; }
-        .username::before { content: ''; width: 8px; height: 8px; background: #00ffcc; border-radius: 50%; }
-        .meta { color: var(--text-dim); font-size: 10px; margin-top: 2px; }
+        .header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #081018; border-bottom: 1px solid #1c2a38; }
+        .stat { background: var(--card); border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2a38; }
+        .stat label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 2px; }
+        .stat span { font-size: 15px; font-weight: 900; }
 
-        .stats-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px; padding: 0 15px; }
-        .stat-box { background: var(--card-dark); padding: 10px; border-radius: 12px; text-align: center; border: 1px solid #1c2a38; }
-        .stat-box label { font-size: 8px; color: var(--neon-green); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px; }
-        .stat-box .val { font-size: 18px; font-weight: 900; }
-        .timer { color: #ff4444; }
+        .main { display: flex; flex: 1; padding: 10px; gap: 10px; overflow: hidden; }
 
-        /* Slot Network Board */
-        .slot-section { margin: 15px; background: var(--card-dark); border-radius: 20px; padding: 15px; flex: 1; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
-        .slot-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .slot-title { font-size: 12px; font-weight: 900; letter-spacing: 2px; color: white; display: flex; align-items: center; gap: 8px; }
-        .slot-title::before { content: ''; width: 6px; height: 15px; background: var(--orange); border-radius: 2px; }
-        .total-players { font-size: 10px; color: var(--text-dim); }
+        .slot-network { flex: 1; background: var(--card); border-radius: 15px; padding: 12px; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
+        .network-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
+        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 6px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; cursor: pointer; }
+        .slot.selected { border: 2px solid var(--orange); color: var(--orange); }
+        .slot.hit { background: var(--neon); color: black; border-color: var(--neon); }
+        .slot.last { background: var(--orange); color: white; transform: scale(1.1); box-shadow: 0 0 15px var(--orange); }
 
-        .network-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; overflow-y: auto; flex: 1; padding-right: 5px; }
-        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: white; border: 1px solid #1c2a38; transition: 0.3s; }
-        .slot.hit { background: var(--neon-green); color: black; border-color: var(--neon-green); box-shadow: 0 0 10px rgba(0,255,204,0.4); }
-        .slot.latest { background: var(--orange); color: white; border-color: var(--orange); transform: scale(1.1); z-index: 5; }
+        .side { flex: 1.2; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .call-box { background: #081018; border: 2px solid var(--neon); border-radius: 15px; padding: 15px; text-align: center; }
+        .call-num { font-size: 45px; font-weight: 900; color: white; }
 
-        /* Selection Area */
-        .selection-area { padding: 10px 20px; }
-        .selection-header { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 900; color: var(--text-dim); margin-bottom: 10px; }
-        .sel-badge { background: var(--orange); color: white; padding: 2px 10px; border-radius: 10px; font-size: 10px; }
+        .active-card { background: var(--card); border: 1px solid var(--orange); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
+        .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+        .cell { aspect-ratio: 1; background: #0d141f; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #32475c; }
+        .cell.marked { background: var(--orange); color: black; }
 
-        .my-card-preview { background: #0d141f; border-radius: 15px; border: 1px solid #1c2a38; padding: 10px; display: flex; gap: 10px; overflow-x: auto; }
-        .mini-card { min-width: 120px; border: 1px solid var(--text-dim); border-radius: 8px; padding: 5px; font-size: 8px; text-align: center; }
-
-        .footer-action { padding: 15px; }
-        .draw-btn { width: 100%; padding: 16px; border-radius: 15px; border: none; background: #1c2a38; color: white; font-weight: 900; font-size: 16px; }
+        .footer { padding: 12px; }
+        .btn-start { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: 900; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="profile-header">
-        <div class="avatar">@</div>
-        <div class="user-info">
-            <div class="username">@Amanuuu1</div>
-            <div class="meta">ROUND #22132 • ID: 384408623</div>
-        </div>
+    <div class="header">
+        <div class="stat"><label>WALLET</label><span>40 ETB</span></div>
+        <div class="stat"><label>SELECTED</label><span id="sel-count">0/2</span></div>
+        <div class="stat"><label>STATUS</label><span id="status-text">IDLE</span></div>
     </div>
 
-    <div class="stats-row">
-        <div class="stat-box"><label>Closes In</label><div class="val timer">00:00</div></div>
-        <div class="stat-box"><label>Cartela</label><div id="my-cartela-num" class="val">186</div></div>
-        <div class="stat-box"><label>Wallet</label><div class="val">40 <small style="font-size: 10px;">ETB</small></div></div>
-    </div>
+    <div class="main">
+        <div class="slot-network">
+            <div style="font-size:11px; margin-bottom:10px; font-weight:900;">SLOT NETWORK (500)</div>
+            <div id="network" class="network-grid"></div>
+        </div>
 
-    <div class="slot-section">
-        <div class="slot-header">
-            <div class="slot-title">SLOT NETWORK</div>
-            <div class="total-players">TOTAL ACTIVE: 500 PLAYERS</div>
-        </div>
-        <div id="network-grid" class="network-grid">
-            <!-- 500 Slots will be here -->
-        </div>
-    </div>
-
-    <div class="selection-area">
-        <div class="selection-header">
-            <span>SELECTION</span>
-            <span class="sel-badge">1/2</span>
-        </div>
-        <div id="my-selections" class="my-card-preview">
-            <!-- Selected card mini-view -->
-            <div class="mini-card" style="border-color: var(--orange);">
-                <div style="color:var(--orange); margin-bottom: 4px;">Cartela 37</div>
-                <div style="display:grid; grid-template-columns: repeat(5,1fr); gap:2px;">
-                    <div style="background:#333; padding:2px;">3</div><div style="background:#333; padding:2px;">16</div><div style="background:#333; padding:2px;">31</div><div style="background:#333; padding:2px;">46</div><div style="background:#333; padding:2px;">64</div>
-                </div>
+        <div class="side">
+            <div class="call-box">
+                <div id="big-ball" class="call-num">--</div>
+                <div style="font-size: 9px; color: var(--neon);">CURRENT CALL</div>
             </div>
+            <div id="my-cards-area"></div>
         </div>
     </div>
 
-    <div class="footer-action">
-        <button class="draw-btn" onclick="triggerDraw()">START NETWORK DRAW</button>
+    <div class="footer">
+        <button id="draw-btn" class="btn-start" onclick="beginGame()">START GAME</button>
     </div>
 
     <script>
-        let gameHistory = [];
+        let mySelections = [];
+        let history = [];
 
         function init() {
-            const grid = document.getElementById('network-grid');
-            // 500 ካርቴላዎችን መፍጠር
+            const net = document.getElementById('network');
             for(let i=1; i<=500; i++) {
                 let s = document.createElement('div');
                 s.className = 'slot';
                 s.id = `slot-${i}`;
                 s.textContent = i;
-                grid.appendChild(s);
+                s.onclick = () => selectCard(i);
+                net.appendChild(s);
             }
 
             window.listenGame((data) => {
-                gameHistory = data.history;
-                updateNetwork(data.ball);
+                history = data.history;
+                document.getElementById('big-ball').textContent = data.ball;
+                document.getElementById('status-text').textContent = "LIVE";
+                updateVisuals(data.ball);
             });
         }
 
-        function updateNetwork(lastBall) {
-            // ሁሉንም ስሎቶች ማጽዳት
-            document.querySelectorAll('.slot').forEach(s => {
-                s.classList.remove('latest');
-            });
-
-            // ያለፉትን እጣዎች ምልክት ማድረግ
-            gameHistory.forEach(n => {
-                const el = document.getElementById(`slot-${n}`);
-                if(el) el.classList.add('hit');
-            });
-
-            // የመጨረሻውን እጣ በብርቱካንማ ማሳየት
-            const latest = document.getElementById(`slot-${lastBall}`);
-            if(latest) {
-                latest.classList.add('latest');
-                latest.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        function selectCard(id) {
+            if(mySelections.includes(id)) {
+                mySelections = mySelections.filter(x => x !== id);
+            } else if(mySelections.length < 2) {
+                mySelections.push(id);
             }
+            updateUI();
         }
 
-        function triggerDraw() {
+        function updateUI() {
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('selected'));
+            mySelections.forEach(id => document.getElementById(`slot-${id}`).classList.add('selected'));
+            document.getElementById('sel-count').textContent = `${mySelections.length}/2`;
+            renderMyCards();
+        }
+
+        function renderMyCards() {
+            const area = document.getElementById('my-cards-area');
+            area.innerHTML = '';
+            mySelections.forEach(id => {
+                const card = document.createElement('div');
+                card.className = 'active-card';
+                card.innerHTML = `<div style="color:var(--orange); text-align:center; font-size:9px; margin-bottom:5px;">Card #${id}</div>`;
+                const grid = document.createElement('div');
+                grid.className = 'bingo-grid';
+                const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        if(r===2 && c===2) { cell.innerHTML = '★'; cell.style.color = 'var(--orange)'; }
+                        else {
+                            let n = ranges[c][0] + ((id * (r + 7) + c) % 15);
+                            cell.textContent = n;
+                            if(history.includes(n)) cell.classList.add('marked');
+                        }
+                        grid.appendChild(cell);
+                    }
+                }
+                card.appendChild(grid);
+                area.appendChild(card);
+            });
+        }
+
+        function updateVisuals(last) {
+            document.querySelectorAll('.slot').forEach(s => s.classList.remove('last'));
+            history.forEach(n => document.getElementById(`slot-${n}`).classList.add('hit'));
+            const lastEl = document.getElementById(`slot-${last}`);
+            if(lastEl) {
+                lastEl.classList.add('last');
+                lastEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            renderMyCards();
+        }
+
+        function beginGame() {
             let pool = [];
-            const timer = setInterval(() => {
-                if(pool.length >= 75) { clearInterval(timer); return; }
+            document.getElementById('draw-btn').disabled = true;
+            const loop = setInterval(() => {
+                if(pool.length >= 75) { clearInterval(loop); return; }
                 let n; do { n = Math.floor(Math.random()*75)+1; } while(pool.includes(n));
                 pool.push(n);
-                window.updateGame(n, pool);
-            }, 2500);
+                window.syncGame(n, pool);
+            }, 3000);
         }
 
         init();
