@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo - Firebase Integrated</title>
+    <title>VamosBingo - Owner Edition</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // *** ጠቃሚ፡ እዚህ ጋር የራስህን Firebase Config መረጃ ተካ ***
+        // *** ጠቃሚ፡ እዚህ ጋር የአንተን Firebase Config መረጃ ተካ ***
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -20,11 +21,9 @@
             appId: "YOUR_APP_ID"
         };
 
-        // Firebase ማስጀመር
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ዳታቤዝ ላይ መረጃ ለመሙላት (ለአለም አቀፍ አገልግሎት እንዲውል window ላይ እናስቀምጠዋለን)
         window.saveWinToFirebase = async (winnerId, prize) => {
             try {
                 await addDoc(collection(db, "winners"), {
@@ -32,10 +31,7 @@
                     amount: prize,
                     timestamp: new Date()
                 });
-                console.log("Winner saved to Firebase!");
-            } catch (e) {
-                console.error("Error saving to Firebase: ", e);
-            }
+            } catch (e) { console.error("Firebase Error:", e); }
         };
     </script>
 
@@ -44,14 +40,13 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Header Stats */
         .header { padding: 10px; flex-shrink: 0; }
         .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
         .stat-item { background: var(--card-bg); padding: 8px 2px; border-radius: 8px; text-align: center; border: 1px solid #232d3d; }
         .stat-lbl { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
         .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
+        #wallet { cursor: pointer; border: 1px solid var(--accent); } /* መሙያ መሆኑን ለማወቅ */
 
-        /* Selection Screen */
         #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; }
         .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-bottom: 120px; }
         .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; border: 1px solid #232d3d; color: #a0b0c0; }
@@ -60,7 +55,6 @@
         .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; border-top: 1px solid #1a2a3a; z-index: 100; }
         .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; cursor: pointer; }
 
-        /* Game Layout */
         #game-view { display: none; padding: 10px; grid-template-columns: 1fr 1.3fr; gap: 10px; height: 100%; overflow: hidden; }
         .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; }
         .track-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
@@ -68,21 +62,15 @@
         .t-num.on { background: var(--accent); color: #000; font-weight: bold; }
 
         .big-ball { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; }
-        
         .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
         .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; }
         .card-header-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 5px; text-align: center; font-weight: 900; font-size: 11px; }
         .card-header-bingo div { border-radius: 3px; color: #fff; padding: 2px 0; }
-        
         .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
         .p-cell { background: #1c283d; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; color: #cbd5e0; }
         .p-cell.hit { background: var(--accent) !important; color: #000; box-shadow: 0 0 8px var(--accent); transition: 0.3s; }
 
-        /* Win Overlay */
-        #win-overlay { 
-            position: fixed; inset: 0; background: rgba(5, 10, 16, 0.98); 
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; 
-        }
+        #win-overlay { position: fixed; inset: 0; background: rgba(5, 10, 16, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; }
         .win-card { border: 2px solid var(--accent); padding: 30px; border-radius: 20px; text-align: center; background: var(--card-bg); max-width: 80%; }
         .prize-text { font-size: 32px; color: #ffd700; margin: 15px 0; font-weight: bold; }
     </style>
@@ -103,7 +91,7 @@
     <div class="top-bar">
         <div class="stat-item"><div class="stat-lbl">ካርቴላ</div><div id="sel-count" class="stat-val">0</div></div>
         <div class="stat-item"><div class="stat-lbl">Called</div><div id="called-count" class="stat-val">0</div></div>
-        <div class="stat-item"><div class="stat-lbl">Wallet</div><div id="wallet" class="stat-val">40</div></div>
+        <div class="stat-item"><div class="stat-lbl">Wallet</div><div id="wallet" class="stat-val" onclick="adminTopUp()">40</div></div>
         <div class="stat-item"><div class="stat-lbl">ደራሽ</div><div id="derash" class="stat-val">2,184</div></div>
     </div>
 </div>
@@ -141,6 +129,21 @@
     
     let selected = [], allCards = [], called = new Set();
     let drawInt;
+
+    // --- የባለቤት (Admin) መሙያ ሲስተም ---
+    function adminTopUp() {
+        let pass = prompt("የባለቤት ይለፍ ቃል ያስገቡ:");
+        if(pass === "2026") { // ይሄን ቁጥር መቀየር ትችላለህ
+            let amount = prompt("የሚሞላውን የብር መጠን ያስገቡ:");
+            if(!isNaN(amount) && amount > 0) {
+                wallet += parseInt(amount);
+                updateUI();
+                tg.showAlert(amount + " ብር በተሳካ ሁኔታ ተሞልቷል!");
+            }
+        } else if(pass !== null) {
+            tg.showAlert("የይለፍ ቃል ተሳስቷል!");
+        }
+    }
 
     function init() {
         const savedWallet = localStorage.getItem('bingo_wallet');
@@ -209,6 +212,7 @@
         document.getElementById('game-view').style.display = 'grid';
         
         const container = document.getElementById('active-cards');
+        container.innerHTML = ""; // Clean before start
         selected.forEach(id => {
             let card = allCards[id-1];
             let html = `<div class="play-card" id="card-${id}">
@@ -235,6 +239,7 @@
     }
 
     function runGame() {
+        called.clear();
         drawInt = setInterval(() => {
             if(called.size >= 75) return clearInterval(drawInt);
             let n;
@@ -275,7 +280,6 @@
         clearInterval(drawInt);
         let winPrize = Math.floor(derash);
         
-        // Firebase ላይ መረጃ መሙላት
         if (window.saveWinToFirebase) {
             await window.saveWinToFirebase(winnerId, winPrize);
         }
