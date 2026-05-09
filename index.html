@@ -3,28 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo Final Fix</title>
+    <title>VamosBingo - Auto Restart</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #050a10; --card-bg: #121a26; --accent: #00ffcc; --text: #ffffff; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Header */
+        /* Header Stats */
         .header { padding: 10px; flex-shrink: 0; }
         .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
         .stat-item { background: var(--card-bg); padding: 8px 2px; border-radius: 8px; text-align: center; border: 1px solid #232d3d; }
         .stat-lbl { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
         .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
 
-        /* Selection */
+        /* Selection Screen */
         #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; -webkit-overflow-scrolling: touch; }
         .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-bottom: 120px; }
         .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; border: 1px solid #232d3d; color: #a0b0c0; }
         .slot.active { border-color: #fb8c00; background: #fb8c0033; color: white; }
 
         .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); padding: 15px; border-top: 1px solid #1a2a3a; z-index: 100; }
-        .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; }
+        .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; cursor: pointer; }
 
         /* Game Layout */
         #game-view { display: none; padding: 10px; grid-template-columns: 1fr 1.3fr; gap: 10px; height: 100%; overflow: hidden; }
@@ -36,7 +36,7 @@
         .big-ball { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; }
         
         .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
-        .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; position: relative; }
+        .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; }
         .card-header-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 5px; text-align: center; font-weight: 900; font-size: 11px; }
         .card-header-bingo div { border-radius: 3px; color: #fff; padding: 2px 0; }
         
@@ -48,15 +48,33 @@
         .mode-btn { flex: 1; border: none; background: none; color: #5d6d82; font-size: 10px; padding: 6px; border-radius: 5px; font-weight: bold; }
         .mode-btn.active { background: var(--accent); color: #000; }
 
-        #win-overlay { position: fixed; inset: 0; background: rgba(0, 255, 204, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: #000; text-align: center; }
+        /* WIN OVERLAY WITH COUNTDOWN */
+        #win-overlay { 
+            position: fixed; inset: 0; 
+            background: rgba(5, 10, 16, 0.95); 
+            display: none; flex-direction: column; 
+            align-items: center; justify-content: center; 
+            z-index: 2000; text-align: center; 
+        }
+        .win-card {
+            background: var(--card-bg); border: 2px solid var(--accent);
+            padding: 30px; border-radius: 20px; box-shadow: 0 0 30px var(--accent);
+        }
+        #countdown-box { margin-top: 20px; font-size: 14px; color: #4cafaf; }
+        #seconds { font-size: 24px; color: var(--accent); font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="win-overlay">
-    <h1 style="font-size: 50px; margin: 0;">BINGO!</h1>
-    <h2 id="winner-text" style="margin: 0;"></h2>
-    <p>እንኳን ደስ ያለህ!</p>
+    <div class="win-card">
+        <h1 style="font-size: 50px; color: var(--accent); margin: 0;">BINGO!</h1>
+        <h2 id="winner-text" style="color: #fff; margin: 10px 0;"></h2>
+        <p style="color: #cbd5e0;">እንኳን ደስ ያለህ!</p>
+        <div id="countdown-box">
+            አዲስ ጨዋታ በ <span id="seconds">5</span> ሰከንድ ይጀምራል...
+        </div>
+    </div>
 </div>
 
 <div class="header">
@@ -204,7 +222,6 @@
             document.getElementById('called-count').textContent = called.size;
             document.getElementById(`track-${n}`).classList.add('on');
 
-            // AUTO MARKING LOGIC
             if(isAuto) {
                 selected.forEach(id => {
                     let cell = document.getElementById(`p-${id}-${n}`);
@@ -225,13 +242,29 @@
             let cells = document.querySelectorAll(`#card-${id} .p-cell`);
             patterns.forEach(p => {
                 if(p.every(idx => cells[idx].classList.contains('hit'))) {
-                    clearInterval(drawInt);
-                    document.getElementById('winner-text').textContent = "CARTELA #" + id;
-                    document.getElementById('win-overlay').style.display = 'flex';
-                    tg.HapticFeedback.notificationOccurred('success');
+                    finishGame(id);
                 }
             });
         });
+    }
+
+    function finishGame(winnerId) {
+        clearInterval(drawInt);
+        document.getElementById('winner-text').textContent = "CARTELA #" + winnerId;
+        document.getElementById('win-overlay').style.display = 'flex';
+        tg.HapticFeedback.notificationOccurred('success');
+
+        // 5 Second Countdown to restart
+        let timeLeft = 5;
+        const timerLabel = document.getElementById('seconds');
+        const countdownInt = setInterval(() => {
+            timeLeft -= 1;
+            timerLabel.textContent = timeLeft;
+            if(timeLeft <= 0) {
+                clearInterval(countdownInt);
+                location.reload(); // Refresh the app for a new game
+            }
+        }, 1000);
     }
 
     init();
