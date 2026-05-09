@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - LIVE SYSTEM</title>
+    <title>JOBE BINGO - PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // 🔥 በ Screenshot_20260509-204719.jpg ምስል ላይ ያለው መረጃ እዚህ ተተክቷል
+        // Firebase Config (በ Screenshot_20260509-204719.jpg መሰረት)
         const firebaseConfig = {
-            apiKey: "AIzaSyD2lOQ4J...", // በምስሉ ላይ ባየሁት መሠረት ተስተካክሏል
+            apiKey: "AIzaSyD2lOQ4J...", 
             authDomain: "my-app-pro-38440.firebaseapp.com",
             projectId: "my-app-pro-38440",
             storageBucket: "my-app-pro-38440.appspot.com",
@@ -23,14 +23,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ዳታ ወደ Firebase ለመላክ
-        window.syncGame = async (ball, history) => {
+        window.syncGame = async (ball, history, status) => {
             try {
-                await setDoc(doc(db, "live_bingo", "current"), { ball, history, time: Date.now() });
-            } catch (e) { console.error("Error syncing:", e); }
+                await setDoc(doc(db, "live_bingo", "current"), { 
+                    ball, history, status, time: Date.now() 
+                });
+            } catch (e) { console.error("Sync Error:", e); }
         };
 
-        // ከ Firebase ዳታ ለመቀበል
         window.listenGame = (callback) => {
             onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
                 if(snap.exists()) callback(snap.data());
@@ -40,34 +40,35 @@
 
     <style>
         :root { --bg: #050a10; --card: #111a24; --neon: #00ffcc; --orange: #ff5722; --text: #5b7a8c; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { background: var(--bg); color: white; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
         .header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #081018; border-bottom: 1px solid #1c2a38; }
         .stat { background: var(--card); border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2a38; }
-        .stat label { font-size: 8px; color: var(--neon); display: block; margin-bottom: 2px; }
+        .stat label { font-size: 8px; color: var(--neon); display: block; }
         .stat span { font-size: 15px; font-weight: 900; }
 
         .main { display: flex; flex: 1; padding: 10px; gap: 10px; overflow: hidden; }
-
         .slot-network { flex: 1; background: var(--card); border-radius: 15px; padding: 12px; display: flex; flex-direction: column; border: 1px solid #1c2a38; }
         .network-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; overflow-y: auto; flex: 1; scroll-behavior: smooth; }
-        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 6px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; cursor: pointer; }
+        .slot { aspect-ratio: 1; background: #0d141f; border-radius: 6px; border: 1px solid #1c2a38; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; }
         .slot.selected { border: 2px solid var(--orange); color: var(--orange); }
-        .slot.hit { background: var(--neon); color: black; border-color: var(--neon); }
-        .slot.last { background: var(--orange); color: white; transform: scale(1.1); box-shadow: 0 0 15px var(--orange); }
+        .slot.hit { background: var(--neon); color: black; }
+        .slot.last { background: var(--orange); color: white; transform: scale(1.1); box-shadow: 0 0 10px var(--orange); }
 
         .side { flex: 1.2; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
-        .call-box { background: #081018; border: 2px solid var(--neon); border-radius: 15px; padding: 15px; text-align: center; }
-        .call-num { font-size: 45px; font-weight: 900; color: white; }
+        .call-box { background: #081018; border: 2px solid var(--neon); border-radius: 15px; padding: 15px; text-align: center; position: relative; }
+        .call-num { font-size: 45px; font-weight: 900; }
+        #timer-label { font-size: 10px; color: var(--orange); font-weight: bold; }
 
         .active-card { background: var(--card); border: 1px solid var(--orange); border-radius: 12px; padding: 8px; margin-bottom: 8px; }
         .bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .cell { aspect-ratio: 1; background: #0d141f; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #32475c; }
+        .cell { aspect-ratio: 1; background: #0d141f; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; color: #32475c; }
         .cell.marked { background: var(--orange); color: black; }
 
         .footer { padding: 12px; }
         .btn-start { width: 100%; padding: 18px; border-radius: 12px; border: none; background: var(--neon); color: black; font-weight: 900; font-size: 16px; cursor: pointer; }
+        .btn-start:disabled { background: #1c2a38; color: #5b7a8c; }
     </style>
 </head>
 <body>
@@ -80,26 +81,28 @@
 
     <div class="main">
         <div class="slot-network">
-            <div style="font-size:11px; margin-bottom:10px; font-weight:900;">SLOT NETWORK (500)</div>
+            <div style="font-size:10px; margin-bottom:8px;">SLOT NETWORK (500)</div>
             <div id="network" class="network-grid"></div>
         </div>
 
         <div class="side">
             <div class="call-box">
+                <div id="timer-label"></div>
                 <div id="big-ball" class="call-num">--</div>
-                <div style="font-size: 9px; color: var(--neon);">CURRENT CALL</div>
+                <div id="call-info" style="font-size: 9px; color: var(--neon);">READY</div>
             </div>
             <div id="my-cards-area"></div>
         </div>
     </div>
 
     <div class="footer">
-        <button id="draw-btn" class="btn-start" onclick="beginGame()">START GAME</button>
+        <button id="draw-btn" class="btn-start" onclick="startCountdown()">START GAME</button>
     </div>
 
     <script>
         let mySelections = [];
         let history = [];
+        let gameStatus = "IDLE";
 
         function init() {
             const net = document.getElementById('network');
@@ -108,14 +111,15 @@
                 s.className = 'slot';
                 s.id = `slot-${i}`;
                 s.textContent = i;
-                s.onclick = () => selectCard(i);
+                s.onclick = () => { if(gameStatus === "IDLE" || gameStatus === "WAITING") selectCard(i); };
                 net.appendChild(s);
             }
 
             window.listenGame((data) => {
-                history = data.history;
-                document.getElementById('big-ball').textContent = data.ball;
-                document.getElementById('status-text').textContent = "LIVE";
+                history = data.history || [];
+                gameStatus = data.status;
+                document.getElementById('big-ball').textContent = data.ball || "--";
+                document.getElementById('status-text').textContent = data.status;
                 updateVisuals(data.ball);
             });
         }
@@ -142,7 +146,7 @@
             mySelections.forEach(id => {
                 const card = document.createElement('div');
                 card.className = 'active-card';
-                card.innerHTML = `<div style="color:var(--orange); text-align:center; font-size:9px; margin-bottom:5px;">Card #${id}</div>`;
+                card.innerHTML = `<div style="color:var(--orange); text-align:center; font-size:9px;">Card #${id}</div>`;
                 const grid = document.createElement('div');
                 grid.className = 'bingo-grid';
                 const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
@@ -166,7 +170,10 @@
 
         function updateVisuals(last) {
             document.querySelectorAll('.slot').forEach(s => s.classList.remove('last'));
-            history.forEach(n => document.getElementById(`slot-${n}`).classList.add('hit'));
+            history.forEach(n => {
+                const el = document.getElementById(`slot-${n}`);
+                if(el) el.classList.add('hit');
+            });
             const lastEl = document.getElementById(`slot-${last}`);
             if(lastEl) {
                 lastEl.classList.add('last');
@@ -175,14 +182,45 @@
             renderMyCards();
         }
 
-        function beginGame() {
+        // --- GAME LOGIC ---
+
+        function startCountdown() {
+            if(mySelections.length === 0) { alert("መጀመሪያ ካርቴላ ይምረጡ!"); return; }
+            
+            let timeLeft = 15;
+            const btn = document.getElementById('draw-btn');
+            const timerLabel = document.getElementById('timer-label');
+            const callInfo = document.getElementById('call-info');
+            
+            btn.disabled = true;
+            gameStatus = "WAITING";
+            callInfo.textContent = "WAITING FOR PLAYERS";
+
+            const countdown = setInterval(() => {
+                timerLabel.textContent = `STARTS IN: ${timeLeft}s`;
+                window.syncGame("--", [], "WAITING"); // Firebase ላይ ሁኔታውን ያሳውቃል
+                
+                if(timeLeft <= 0) {
+                    clearInterval(countdown);
+                    timerLabel.textContent = "";
+                    callInfo.textContent = "LIVE DRAWING";
+                    beginLiveDraw();
+                }
+                timeLeft--;
+            }, 1000);
+        }
+
+        async function beginLiveDraw() {
             let pool = [];
-            document.getElementById('draw-btn').disabled = true;
-            const loop = setInterval(() => {
-                if(pool.length >= 75) { clearInterval(loop); return; }
+            const loop = setInterval(async () => {
+                if(pool.length >= 75) { 
+                    clearInterval(loop); 
+                    window.syncGame("END", pool, "FINISHED");
+                    return; 
+                }
                 let n; do { n = Math.floor(Math.random()*75)+1; } while(pool.includes(n));
                 pool.push(n);
-                window.syncGame(n, pool);
+                await window.syncGame(n, pool, "LIVE");
             }, 3000);
         }
 
