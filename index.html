@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - PROFESSIONAL EDITION</title>
+    <title>JOBE BINGO PRO - MASTER EDITION</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
-    <!-- Firebase Modules -->
+    <!-- Firebase SDK Integration -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
+        // Firebase Configuration (Based on your credentials)
         const firebaseConfig = {
             apiKey: "AIzaSyD2lOQ4J...", 
             authDomain: "my-app-pro-38440.firebaseapp.com",
@@ -23,21 +24,20 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ለጨዋታው የቀጥታ ዝመና
-        window.syncGameData = async (ball, history, status) => {
+        // Function to push drawing data to Firebase
+        window.syncToFirebase = async (ball, history, status) => {
             try {
-                const gameRef = doc(db, "live_bingo", "current");
-                await setDoc(gameRef, { 
-                    lastBall: ball, 
-                    drawnNumbers: history, 
-                    gameStatus: status,
-                    lastUpdate: Date.now() 
+                await setDoc(doc(db, "live_bingo", "current"), { 
+                    ball: ball, 
+                    history: history, 
+                    status: status, 
+                    timestamp: Date.now() 
                 }, { merge: true });
-            } catch (e) { console.error("Sync Error:", e); }
+            } catch (e) { console.error("Firebase Sync Error:", e); }
         };
 
-        // ዳታውን ለማዳመጥ
-        window.listenToGame = (callback) => {
+        // Function to listen for live updates
+        window.listenToFirebase = (callback) => {
             onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
                 if(snap.exists()) callback(snap.data());
             });
@@ -45,169 +45,166 @@
     </script>
 
     <style>
+        /* CSS Styling - Professional Dark Theme */
         :root { 
-            --primary: #00ffcc; --secondary: #ff5722; --bg: #050a10; 
-            --panel: #111a24; --text: #ffffff; --muted: #445b73;
+            --bg: #050a10; --panel: #111a24; --neon: #00ffcc; 
+            --orange: #ff5722; --text: #ffffff; --dim: #445b73;
         }
-        * { box-sizing: border-box; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: 'Inter', 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Navigation */
-        .page { display: none; height: 100vh; flex-direction: column; animation: fadeIn 0.3s; }
-        .page.active { display: flex; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Page Management */
+        .view { display: none; height: 100vh; flex-direction: column; }
+        .active-view { display: flex; }
 
-        /* Global Header */
-        .top-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #081018; border-bottom: 1px solid #1c2a38; }
-        .stat-box { background: var(--panel); border-radius: 12px; padding: 8px; text-align: center; border: 1px solid #1c2a38; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
-        .stat-box label { font-size: 9px; color: var(--primary); display: block; letter-spacing: 1px; margin-bottom: 2px; }
-        .stat-box span { font-size: 15px; font-weight: 800; }
+        /* Header UI */
+        .top-header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; background: #081018; border-bottom: 1px solid #1c2a38; }
+        .stat-card { background: var(--panel); border-radius: 12px; padding: 8px; text-align: center; border: 1px solid #1c2a38; }
+        .stat-card label { font-size: 9px; color: var(--neon); display: block; text-transform: uppercase; margin-bottom: 2px; }
+        .stat-card span { font-size: 15px; font-weight: 800; }
 
-        /* SELECTION PAGE */
-        .selection-container { flex: 1; overflow-y: auto; padding: 15px; }
-        .grid-500 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-        .cartela-slot { aspect-ratio: 1; background: var(--panel); border: 1.5px solid #1c2a38; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; transition: 0.3s; cursor: pointer; }
-        .cartela-slot.picked { border-color: var(--secondary); background: rgba(255, 87, 34, 0.1); color: var(--secondary); transform: scale(0.92); }
+        /* Selection View Styles */
+        .selection-area { flex: 1; overflow-y: auto; padding: 15px; }
+        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+        .slot-item { aspect-ratio: 1; background: var(--panel); border: 1.5px solid #1c2a38; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .slot-item.picked { border-color: var(--orange); background: rgba(255, 87, 34, 0.15); color: var(--orange); transform: scale(0.95); }
 
-        /* GAME PAGE LAYOUT */
-        .game-layout { flex: 1; display: flex; gap: 15px; padding: 15px; overflow: hidden; }
+        /* Game View Styles */
+        .game-container { flex: 1; display: flex; gap: 15px; padding: 15px; overflow: hidden; }
         
-        /* Left: Board & Control */
-        .board-section { flex: 1.3; display: flex; flex-direction: column; background: var(--panel); border-radius: 24px; padding: 15px; border: 1px solid #1c2a38; }
-        .current-ball-display { background: #081018; border: 3px solid var(--primary); border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 15px; }
-        .ball-value { font-size: 65px; font-weight: 900; line-height: 1; text-shadow: 0 0 15px var(--primary); }
-        
-        .bingo-header-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
-        .letter-box { background: var(--secondary); color: white; text-align: center; font-weight: 900; border-radius: 8px; padding: 10px 0; font-size: 18px; }
-        
-        .full-board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; flex: 1; overflow-y: auto; }
-        .board-num { background: #0d141f; font-size: 12px; text-align: center; padding: 8px 0; border-radius: 6px; color: var(--muted); font-weight: bold; border: 1px solid transparent; }
-        .board-num.called { background: var(--primary); color: #000; border-color: #fff; transform: scale(1.05); }
+        .main-board { flex: 1.3; background: var(--panel); border-radius: 25px; padding: 15px; border: 1px solid #1c2a38; display: flex; flex-direction: column; }
+        .ball-call-box { background: #081018; border: 2.5px solid var(--neon); border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 15px; box-shadow: 0 0 20px rgba(0, 255, 204, 0.15); }
+        .ball-num { font-size: 60px; font-weight: 900; line-height: 1; color: #fff; text-shadow: 0 0 10px var(--neon); }
 
-        /* Right: Personal Cards */
-        .cards-section { flex: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
-        .live-card { background: #081018; border: 2px solid var(--secondary); border-radius: 18px; padding: 12px; }
-        .card-title { text-align: center; color: var(--secondary); font-size: 12px; font-weight: 900; margin-bottom: 10px; }
+        .bingo-label-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+        .letter { background: var(--orange); color: #fff; text-align: center; font-weight: 900; border-radius: 8px; padding: 10px 0; font-size: 18px; }
+
+        .number-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; flex: 1; overflow-y: auto; padding-right: 5px; }
+        .num-box { background: #0d141f; font-size: 12px; text-align: center; padding: 8px 0; border-radius: 6px; color: var(--dim); font-weight: bold; border: 1px solid transparent; }
+        .num-box.active { background: var(--neon); color: #000; border-color: #fff; transform: scale(1.05); font-weight: 900; }
+
+        .player-cards-side { flex: 1; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .game-card { background: #081018; border: 2px solid var(--orange); border-radius: 20px; padding: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .game-card-head { text-align: center; color: var(--orange); font-size: 11px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; }
         .card-inner-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
         .cell { aspect-ratio: 1; background: var(--panel); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: #5c7894; }
-        .cell.hit { background: var(--secondary); color: #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); border: 1px solid #fff; }
+        .cell.marked { background: var(--orange); color: #fff; border: 1px solid #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.4); }
 
-        /* Footer */
-        .action-bar { padding: 15px; background: #081018; border-top: 1px solid #1c2a38; }
-        .main-btn { width: 100%; padding: 22px; border-radius: 18px; border: none; background: var(--primary); color: #000; font-weight: 900; font-size: 20px; cursor: pointer; transition: 0.2s; }
-        .main-btn:active { transform: scale(0.96); opacity: 0.8; }
+        /* Button Footer */
+        .bottom-nav { padding: 15px; background: #081018; border-top: 1px solid #1c2a38; }
+        .action-btn { width: 100%; padding: 22px; border-radius: 18px; border: none; background: var(--neon); color: #000; font-weight: 900; font-size: 18px; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(0, 255, 204, 0.2); }
+        .action-btn:active { transform: scale(0.97); }
     </style>
 </head>
 <body>
 
-    <!-- PAGE: SELECTION -->
-    <div id="selection-page" class="page active">
-        <div class="top-bar">
-            <div class="stat-box"><label>CREDITS</label><span>40.00</span></div>
-            <div class="stat-box"><label>PICKED</label><span id="count-display">0/2</span></div>
-            <div class="stat-box"><label>STATUS</label><span>OPEN</span></div>
+    <!-- SECTION 1: CARTELLA SELECTION -->
+    <div id="view-selection" class="view active-view">
+        <div class="top-header">
+            <div class="stat-card"><label>WALLET</label><span>40.00 ETB</span></div>
+            <div class="stat-card"><label>SELECTED</label><span id="count-ui">0/2</span></div>
+            <div class="stat-card"><label>MODE</label><span>CLASSIC</span></div>
         </div>
-        <div class="selection-container">
-            <div id="grid-500" class="grid-500"></div>
+        <div class="selection-area">
+            <p style="text-align:center; color:var(--neon); margin-bottom:15px; font-weight:800; font-size:14px;">SELECT YOUR SLOTS (1-500)</p>
+            <div id="slot-container" class="slot-grid"></div>
         </div>
-        <div class="action-bar">
-            <button class="main-btn" onclick="confirmSelection()">START BINGO SESSION</button>
+        <div class="bottom-nav">
+            <button class="action-btn" onclick="moveToGame()">START GAME SESSION</button>
         </div>
     </div>
 
-    <!-- PAGE: GAME -->
-    <div id="game-page" class="page">
-        <div class="top-bar">
-            <div class="stat-box"><label>GAME STATUS</label><span id="game-status-label">READY</span></div>
-            <div class="stat-box"><label>NEXT BALL</label><span id="timer-label">--</span></div>
-            <div class="stat-box"><label>CALLED</label><span id="history-label">0</span></div>
+    <!-- SECTION 2: LIVE BINGO GAME -->
+    <div id="view-game" class="view">
+        <div class="top-header">
+            <div class="stat-card"><label>STATUS</label><span id="game-status">IDLE</span></div>
+            <div class="stat-card"><label>DRAW TIMER</label><span id="timer-ui">15s</span></div>
+            <div class="stat-card"><label>BALLS</label><span id="ball-count-ui">0/75</span></div>
         </div>
-        <div class="game-layout">
-            <div class="board-section">
-                <div class="current-ball-display">
-                    <div id="active-ball" class="ball-value">--</div>
-                    <div style="font-size: 11px; color: var(--primary); margin-top: 5px; font-weight: bold;">NOW DRAWING</div>
+        <div class="game-container">
+            <!-- Left: Master Board -->
+            <div class="main-board">
+                <div class="ball-call-box">
+                    <div id="current-ball" class="ball-num">--</div>
+                    <div id="draw-info" style="font-size:11px; color:var(--neon); margin-top:5px; font-weight:bold;">PREPARING...</div>
                 </div>
-                <div class="bingo-header-row">
-                    <div class="letter-box">B</div><div class="letter-box">I</div>
-                    <div class="letter-box">N</div><div class="letter-box">G</div>
-                    <div class="letter-box">O</div>
+                <div class="bingo-label-row">
+                    <div class="letter">B</div><div class="letter">I</div>
+                    <div class="letter">N</div><div class="letter">G</div>
+                    <div class="letter">O</div>
                 </div>
-                <div id="full-board" class="full-board-grid"></div>
+                <div id="master-grid" class="number-grid"></div>
             </div>
-            <div id="player-cards" class="cards-section"></div>
+
+            <!-- Right: My Cards -->
+            <div id="my-active-cards" class="player-cards-side"></div>
         </div>
     </div>
 
     <script>
-        let myPicks = [];
-        let drawHistory = [];
-        let isSessionActive = false;
+        let selectedSlots = [];
+        let callHistory = [];
+        let engineRunning = false;
 
-        function initApp() {
-            // 500 Slots መፍጠር
-            const grid = document.getElementById('grid-500');
+        function initialize() {
+            // Generate 500 Slots
+            const container = document.getElementById('slot-container');
             for(let i=1; i<=500; i++) {
                 const el = document.createElement('div');
-                el.className = 'cartela-slot';
-                el.textContent = i;
-                el.id = `pick-${i}`;
-                el.onclick = () => handlePick(i);
-                grid.appendChild(el);
+                el.className = 'slot-item'; el.id = `slot-${i}`; el.textContent = i;
+                el.onclick = () => handleSlotClick(i);
+                container.appendChild(el);
             }
 
-            // 1-75 ቦርድ መፍጠር
-            const board = document.getElementById('full-board');
+            // Generate Master Board (1-75)
+            const master = document.getElementById('master-grid');
             for(let n=1; n<=75; n++) {
-                const bnum = document.createElement('div');
-                bnum.className = 'board-num';
-                bnum.id = `master-${n}`;
-                bnum.textContent = n;
-                board.appendChild(bnum);
+                const nbox = document.createElement('div');
+                nbox.className = 'num-box'; nbox.id = `master-${n}`; nbox.textContent = n;
+                master.appendChild(nbox);
             }
 
-            // Firebase ማዳመጥ
-            window.listenToGame((data) => {
-                drawHistory = data.drawnNumbers || [];
-                document.getElementById('active-ball').textContent = data.lastBall || "--";
-                document.getElementById('game-status-label').textContent = data.gameStatus;
-                document.getElementById('history-label').textContent = drawHistory.length;
-                updateLiveInterface();
+            // Listen for Firebase Sync
+            window.listenToFirebase((data) => {
+                callHistory = data.history || [];
+                document.getElementById('current-ball').textContent = data.ball || "--";
+                document.getElementById('game-status').textContent = data.status;
+                document.getElementById('ball-count-ui').textContent = `${callHistory.length}/75`;
+                refreshLiveUI();
             });
         }
 
-        function handlePick(id) {
-            if(myPicks.includes(id)) {
-                myPicks = myPicks.filter(x => x !== id);
-            } else if(myPicks.length < 2) {
-                myPicks.push(id);
+        function handleSlotClick(id) {
+            if(selectedSlots.includes(id)) {
+                selectedSlots = selectedSlots.filter(x => x !== id);
+            } else if(selectedSlots.length < 2) {
+                selectedSlots.push(id);
             }
-            updateSelectionUI();
+            updateSelectionVisuals();
         }
 
-        function updateSelectionUI() {
-            document.querySelectorAll('.cartela-slot').forEach(s => s.classList.remove('picked'));
-            myPicks.forEach(id => document.getElementById(`pick-${id}`).classList.add('picked'));
-            document.getElementById('count-display').textContent = `${myPicks.length}/2`;
+        function updateSelectionVisuals() {
+            document.querySelectorAll('.slot-item').forEach(s => s.classList.remove('picked'));
+            selectedSlots.forEach(id => document.getElementById(`slot-${id}`).classList.add('picked'));
+            document.getElementById('count-ui').textContent = `${selectedSlots.length}/2`;
         }
 
-        function confirmSelection() {
-            if(myPicks.length === 0) return alert("እባክዎ ካርቴላ ይምረጡ!");
+        function moveToGame() {
+            if(selectedSlots.length === 0) return alert("እባክዎ ካርቴላ ይምረጡ!");
+            document.getElementById('view-selection').classList.remove('active-view');
+            document.getElementById('view-game').classList.add('active-view');
             
-            document.getElementById('selection-page').classList.remove('active');
-            document.getElementById('game-page').classList.add('active');
-            
-            generatePersonalCards();
-            startSequence();
+            buildPlayerCards();
+            startCountdown();
         }
 
-        function generatePersonalCards() {
-            const container = document.getElementById('player-cards');
-            container.innerHTML = '';
-            myPicks.forEach(cardId => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'live-card';
-                wrapper.innerHTML = `<div class="card-title">CARTELLA #${cardId}</div>`;
+        function buildPlayerCards() {
+            const wrap = document.getElementById('my-active-cards');
+            wrap.innerHTML = '';
+            selectedSlots.forEach(cid => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'game-card';
+                cardDiv.innerHTML = `<div class="game-card-head">CARTELLA #${cid}</div>`;
                 
                 const grid = document.createElement('div');
                 grid.className = 'card-inner-grid';
@@ -218,69 +215,71 @@
                         const cell = document.createElement('div');
                         cell.className = 'cell';
                         if(r===2 && c===2) {
-                            cell.innerHTML = '⭐'; cell.classList.add('hit');
+                            cell.innerHTML = '⭐'; cell.classList.add('marked');
                         } else {
-                            // Seeded Random for consistent card numbers
-                            let val = ranges[c][0] + ((cardId * (r + 17) + c) % 15);
+                            // Professional algorithm for consistent card numbers
+                            let val = ranges[c][0] + ((cid * (r + 19) + c) % 15);
                             cell.textContent = val;
-                            cell.id = `c-${cardId}-v-${val}`;
+                            cell.id = `card-${cid}-val-${val}`;
                         }
                         grid.appendChild(cell);
                     }
                 }
-                wrapper.appendChild(grid);
-                container.appendChild(wrapper);
+                cardDiv.appendChild(grid);
+                wrap.appendChild(cardDiv);
             });
         }
 
-        function updateLiveInterface() {
-            drawHistory.forEach(num => {
-                // Master Board አብራ
-                const master = document.getElementById(`master-${num}`);
-                if(master) master.classList.add('called');
+        function refreshLiveUI() {
+            callHistory.forEach(num => {
+                const mBox = document.getElementById(`master-${num}`);
+                if(mBox) mBox.classList.add('active');
                 
-                // ካርቴላህ ላይ ካለ አብራ (Auto-fill)
-                myPicks.forEach(id => {
-                    const target = document.getElementById(`c-${id}-v-${num}`);
-                    if(target) target.classList.add('hit');
+                selectedSlots.forEach(cid => {
+                    const cCell = document.getElementById(`card-${cid}-val-${num}`);
+                    if(cCell) cCell.classList.add('marked');
                 });
             });
         }
 
-        async function startSequence() {
-            let countdown = 10;
-            const t = setInterval(async () => {
-                document.getElementById('timer-label').textContent = `${countdown}s`;
-                if(countdown <= 0) {
-                    clearInterval(t);
-                    document.getElementById('timer-label').textContent = "LIVE";
-                    runGameEngine();
+        function startCountdown() {
+            let sec = 15;
+            const timer = setInterval(() => {
+                document.getElementById('timer-ui').textContent = `${sec}s`;
+                document.getElementById('draw-info').textContent = "WAITING FOR PLAYERS...";
+                if(sec <= 0) {
+                    clearInterval(timer);
+                    document.getElementById('timer-ui').textContent = "LIVE";
+                    document.getElementById('draw-info').textContent = "DRAWING NOW";
+                    startAutoDrawing();
                 }
-                countdown--;
+                sec--;
             }, 1000);
         }
 
-        async function runGameEngine() {
-            if(isSessionActive) return;
-            isSessionActive = true;
-            let currentPool = [];
+        async function startAutoDrawing() {
+            if(engineRunning) return;
+            engineRunning = true;
+            let pool = [];
             
-            const engine = setInterval(async () => {
-                if(currentPool.length >= 75) {
-                    clearInterval(engine);
-                    await window.syncGameData("FINISH", currentPool, "OVER");
+            const drawingInterval = setInterval(async () => {
+                if(pool.length >= 75) {
+                    clearInterval(drawingInterval);
+                    await window.syncToFirebase("END", pool, "FINISHED");
                     return;
                 }
                 
-                let next;
-                do { next = Math.floor(Math.random() * 75) + 1; } while(currentPool.includes(next));
+                let nextBall;
+                do {
+                    nextBall = Math.floor(Math.random() * 75) + 1;
+                } while(pool.includes(nextBall));
                 
-                currentPool.push(next);
-                await window.syncGameData(next, currentPool, "LIVE");
-            }, 3500); // በየ 3.5 ሰከንዱ እጣ ይወጣል
+                pool.push(nextBall);
+                await window.syncToFirebase(nextBall, pool, "LIVE");
+            }, 3500); // Draws every 3.5 seconds
         }
 
-        initApp();
+        initialize();
     </script>
 </body>
 </html>
