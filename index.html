@@ -3,50 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo Pro</title>
+    <title>VamosBingo Pro+ Header</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #050a10; --card-bg: #121a26; --accent: #00ffcc; --text: #ffffff; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Header */
+        /* Header Stats */
         .header { padding: 10px; flex-shrink: 0; background: var(--bg); }
         .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
         .stat-item { background: var(--card-bg); padding: 8px 2px; border-radius: 8px; text-align: center; border: 1px solid #232d3d; }
         .stat-lbl { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
         .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
 
-        /* Selection Scroll Area */
-        #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; display: block; -webkit-overflow-scrolling: touch; }
+        /* Selection View */
+        #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; -webkit-overflow-scrolling: touch; }
         .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-bottom: 120px; }
-        .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; border: 1px solid #232d3d; color: #a0b0c0; transition: 0.2s; }
-        .slot.active { border-color: #fb8c00; background: #fb8c0033; color: white; transform: scale(0.95); }
+        .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; border: 1px solid #232d3d; color: #a0b0c0; }
+        .slot.active { border-color: #fb8c00; background: #fb8c0033; color: white; }
 
-        /* Bottom UI */
         .footer-action { position: fixed; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 20px 15px; z-index: 100; }
-        .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; box-shadow: 0 4px 20px rgba(0,255,204,0.3); }
+        .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; }
 
         /* Game Layout */
         #game-view { display: none; padding: 10px; grid-template-columns: 1fr 1.3fr; gap: 10px; height: 100%; overflow: hidden; }
         .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; }
         .track-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
         .t-num { background: #1c283d; text-align: center; font-size: 10px; padding: 6px 0; border-radius: 4px; color: #5d6d82; }
-        .t-num.on { background: var(--accent); color: #000; font-weight: bold; animation: pop 0.3s ease; }
+        .t-num.on { background: var(--accent); color: #000; font-weight: bold; }
 
-        .big-ball { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 130px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; }
-        .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; }
-        .play-card { background: var(--card-bg); border-radius: 15px; padding: 10px; border: 1px solid #232d3d; }
+        .big-ball { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; }
+        
+        /* Play Card with BINGO Header */
+        .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
+        .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; }
+        .card-header-bingo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 5px; text-align: center; font-weight: 900; font-size: 12px; }
+        .card-header-bingo div { padding: 2px 0; border-radius: 3px; color: #fff; }
+        
         .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .p-cell { background: #1c283d; aspect-ratio: 1.2; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 11px; }
-        .p-cell.hit { background: var(--accent) !important; color: #000; font-weight: bold; }
+        .p-cell { background: #1c283d; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; color: #cbd5e0; }
+        .p-cell.hit { background: var(--accent) !important; color: #000; box-shadow: 0 0 8px var(--accent); }
 
-        /* Mode Switcher */
-        .mode-box { display: flex; background: #1a2a3a; border-radius: 8px; margin-bottom: 10px; padding: 4px; }
-        .mode-btn { flex: 1; border: none; background: none; color: #5d6d82; font-size: 10px; padding: 6px; border-radius: 6px; font-weight: bold; }
+        .mode-box { display: flex; background: #1a2a3a; border-radius: 8px; margin-bottom: 8px; padding: 3px; }
+        .mode-btn { flex: 1; border: none; background: none; color: #5d6d82; font-size: 10px; padding: 6px; border-radius: 5px; font-weight: bold; }
         .mode-btn.active { background: var(--accent); color: #000; }
 
-        @keyframes pop { 0% { transform: scale(1.5); } 100% { transform: scale(1); } }
         #win-overlay { position: fixed; inset: 0; background: rgba(0, 255, 204, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: #000; }
     </style>
 </head>
@@ -79,11 +81,11 @@
 <div id="game-view">
     <div class="ball-tracker">
         <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:2px; margin-bottom:8px; font-size:10px; text-align:center; font-weight:bold;">
-            <div style="background:#1e88e5; border-radius:3px;">B</div>
-            <div style="background:#8e24aa; border-radius:3px;">I</div>
-            <div style="background:#d81b60; border-radius:3px;">N</div>
-            <div style="background:#00897b; border-radius:3px;">G</div>
-            <div style="background:#fb8c00; border-radius:3px;">O</div>
+            <div style="color:#1e88e5;">B</div>
+            <div style="color:#8e24aa;">I</div>
+            <div style="color:#d81b60;">N</div>
+            <div style="color:#00897b;">G</div>
+            <div style="color:#fb8c00;">O</div>
         </div>
         <div class="track-grid" id="track-grid"></div>
     </div>
@@ -93,8 +95,8 @@
             <button class="mode-btn" id="btn-manual" onclick="setMode('manual')">MANUAL</button>
         </div>
         <div class="big-ball">
-            <div id="big-num" style="font-size:65px; font-weight:900; line-height:1;">--</div>
-            <div id="ball-letter" style="background:#fb8c00; color:#000; padding:2px 12px; border-radius:10px; font-size:14px; margin-top:5px; font-weight:bold;">WAITING</div>
+            <div id="big-num" style="font-size:60px; font-weight:900;">--</div>
+            <div id="ball-letter" style="background:#fb8c00; color:#000; padding:1px 12px; border-radius:10px; font-size:13px; font-weight:bold;">WAIT</div>
         </div>
         <div class="active-cards" id="active-cards"></div>
     </div>
@@ -170,11 +172,18 @@
         selected.forEach(id => {
             let card = allCards[id-1];
             let html = `<div class="play-card">
-                <div style="font-size:10px; color:#fb8c00; margin-bottom:5px; font-weight:bold;">CARTELA ${id}</div>
+                <div style="font-size:9px; color:#fb8c00; margin-bottom:4px; font-weight:bold;">CARTELA #${id}</div>
+                <div class="card-header-bingo">
+                    <div style="background:#1e88e5">B</div>
+                    <div style="background:#8e24aa">I</div>
+                    <div style="background:#d81b60">N</div>
+                    <div style="background:#00897b">G</div>
+                    <div style="background:#fb8c00">O</div>
+                </div>
                 <div class="card-grid">`;
             for(let r=0; r<5; r++) {
                 for(let c=0; c<5; c++) {
-                    if(r===2 && c===2) html += `<div class="p-cell hit">★</div>`;
+                    if(r===2 && c===2) html += `<div class="p-cell hit" style="font-size:16px;">★</div>`;
                     else {
                         let val = card[c][r];
                         html += `<div class="p-cell" id="p-${id}-v-${val}" onclick="manualMark(${id}, ${val})">${val}</div>`;
@@ -197,7 +206,7 @@
     function speak(text) {
         const msg = new SpeechSynthesisUtterance();
         msg.text = text;
-        msg.rate = 1;
+        msg.rate = 1.1;
         window.speechSynthesis.speak(msg);
     }
 
