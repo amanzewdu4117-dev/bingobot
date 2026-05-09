@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VAMOS BINGO - NO ADMIN PASS</title>
+    <title>VAMOS BINGO - AUTO FILL PRO</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
@@ -59,7 +59,8 @@
         .stats-header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; background: var(--card-bg); border-bottom: 1px solid #1f2d40; }
         .stat-box { background: rgba(0,0,0,0.3); border: 1px solid #1f2d40; border-radius: 8px; padding: 5px; text-align: center; }
         .stat-label { font-size: 8px; color: var(--neon); font-weight: bold; }
-        .stat-val { font-size: 14px; font-weight: 900; }
+        
+        #cartela-select { background: transparent; color: white; border: none; font-size: 14px; font-weight: 900; width: 100%; text-align: center; outline: none; }
 
         .main-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; height: calc(100vh - 120px); }
 
@@ -68,8 +69,10 @@
         .b-letter { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 900; font-size: 14px; color: white; }
         
         .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
-        .num-cell { background: #050a10; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 12px; font-weight: bold; color: #2d3e50; border: 1px solid #1a2a3a; }
-        .num-cell.active { color: white; border: 1px solid white; }
+        .num-cell { background: #050a10; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 14px; font-weight: bold; color: #2d3e50; border: 1px solid #1a2a3a; transition: 0.3s; }
+        
+        /* Auto-Fill Effect */
+        .num-cell.active { color: white; border: 2px solid white; transform: scale(1.05); box-shadow: 0 0 10px rgba(255,255,255,0.2); }
         .b_active { background: var(--b); } .i_active { background: var(--i); } .n_active { background: var(--n); } .g_active { background: var(--g); } .o_active { background: var(--o); }
 
         .display-side { display: flex; flex-direction: column; gap: 10px; }
@@ -77,16 +80,11 @@
         .ball-val { font-size: 75px; font-weight: 900; line-height: 1; }
         .ball-cat-label { padding: 5px 20px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
 
-        .history-dots { display: flex; flex-direction: column; gap: 5px; position: absolute; right: 10px; }
-        .h-dot { width: 35px; height: 35px; border-radius: 50%; background: rgba(0,0,0,0.5); border: 1px solid #2d3e50; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; }
-
-        .status-msg { background: var(--card-bg); border-radius: 15px; flex: 1.5; border: 1px dashed #2d3e50; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-
         #restart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; }
         .count-circle { width: 90px; height: 90px; border: 5px solid var(--neon); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 900; margin-bottom: 20px; }
 
-        .footer-btns { position: fixed; bottom: 0; width: 100%; padding: 10px; background: var(--bg); display: flex; gap: 10px; }
-        .btn-start { flex: 1; padding: 15px; border-radius: 12px; border: none; font-weight: 900; font-size: 16px; background: var(--neon); color: black; cursor: pointer; }
+        .footer-btns { position: fixed; bottom: 0; width: 100%; padding: 10px; background: var(--bg); }
+        .btn-start { width: 100%; padding: 15px; border-radius: 12px; border: none; font-weight: 900; font-size: 16px; background: var(--neon); color: black; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -94,11 +92,16 @@
     <div id="restart-overlay">
         <div class="count-circle" id="timer-val">5</div>
         <h2 style="color:var(--neon)">ዙሩ ተጠናቋል!</h2>
-        <p>ቀጣይ ዙር በቅርቡ ይጀምራል...</p>
+        <p>አዲስ ዙር በራስ-ሰር ይጀምራል...</p>
     </div>
 
     <div class="stats-header">
-        <div class="stat-box"><div class="stat-label">CARTELA</div><div class="stat-val">235</div></div>
+        <div class="stat-box">
+            <div class="stat-label">CARTELA</div>
+            <select id="cartela-select" onchange="generateCartelaNumbers()">
+                <!-- 1-500 options populated by JS -->
+            </select>
+        </div>
         <div class="stat-box"><div class="stat-label">CALLED</div><div class="stat-val" id="st-called">0</div></div>
         <div class="stat-box" onclick="addCashSecret()"><div class="stat-label">WALLET</div><div class="stat-val" id="st-wallet">0</div></div>
         <div class="stat-box"><div class="stat-label">DERASH</div><div class="stat-val" style="color:var(--neon)">1,880</div></div>
@@ -113,18 +116,19 @@
                 <div class="b-letter" style="background:var(--g)">G</div>
                 <div class="b-letter" style="background:var(--o)">O</div>
             </div>
-            <div class="numbers-grid" id="num-grid"></div>
+            <div class="numbers-grid" id="num-grid">
+                <!-- 25 Cartela numbers populated by JS -->
+            </div>
         </div>
 
         <div class="display-side">
             <div class="current-ball-box">
                 <div class="ball-val" id="main-ball">--</div>
                 <div id="main-cat" class="ball-cat-label" style="background:#2d3e50">READY</div>
-                <div class="history-dots" id="hist-dots"></div>
             </div>
-            <div class="status-msg">
-                <div style="font-size: 35px;">📡</div>
-                <div>ዙሩ ተጀምሯል<br>ይከታተሉ</div>
+            <div style="background:var(--card-bg); flex:1.5; border-radius:15px; border:1px dashed #2d3e50; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:10px;">
+               <div style="font-size: 30px;">📡</div>
+               <div style="font-size: 12px;">አውቶማቲክ አሞላል ተከፍቷል<br>ቁጥሮቹን ሲስተሙ ይሞላልዎታል</div>
             </div>
         </div>
     </div>
@@ -134,62 +138,95 @@
     </div>
 
     <script>
-        let myWallet = 0;
-        let drawnNumbers = [];
+        let currentCartelaNumbers = [];
+        let serverHistory = [];
         let isRestarting = false;
 
         function init() {
-            const grid = document.getElementById('num-grid');
-            for(let i=1; i<=75; i++) {
-                let cell = document.createElement('div');
-                cell.className = 'num-cell'; cell.id = `n-${i}`; cell.textContent = i;
-                grid.appendChild(cell);
+            const select = document.getElementById('cartela-select');
+            for(let i=1; i<=500; i++) {
+                let opt = document.createElement('option');
+                opt.value = i; opt.textContent = i;
+                if(i === 235) opt.selected = true;
+                select.appendChild(opt);
             }
+
+            generateCartelaNumbers();
+
             window.syncFromCloud((data) => {
-                if(data.status === "active") updateUI(data.lastBall, data.history);
+                if(data.status === "active") {
+                    serverHistory = data.history;
+                    updateUI(data.lastBall, data.history);
+                }
                 if(data.status === "reset") location.reload();
             });
+        }
+
+        // እያንዳንዱ ካርቴላ የራሱ ቁጥር እንዲኖረው ማድረጊያ (Pseudo-random based on ID)
+        function generateCartelaNumbers() {
+            const id = parseInt(document.getElementById('cartela-select').value);
+            const grid = document.getElementById('num-grid');
+            grid.innerHTML = '';
+            currentCartelaNumbers = [];
+
+            const ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
+            
+            for(let col=0; col<5; col++) {
+                let colNums = [];
+                let start = ranges[col][0];
+                // ለሙከራ ያህል በየካርቴላው ቁጥሩ እንዲቀያየር (Seed based logic)
+                for(let row=0; row<5; row++) {
+                    let n = start + ((id + row * 3 + col) % 15);
+                    colNums.push(n);
+                }
+                currentCartelaNumbers.push(...colNums);
+            }
+
+            currentCartelaNumbers.forEach(num => {
+                let cell = document.createElement('div');
+                cell.className = 'num-cell';
+                cell.id = `c-num-${num}`;
+                cell.textContent = num;
+                grid.appendChild(cell);
+            });
+            
+            // Re-check auto-fill if game is already in progress
+            checkAutoFill();
         }
 
         function updateUI(last, history) {
             if(isRestarting) return;
             document.getElementById('main-ball').textContent = last;
             document.getElementById('st-called').textContent = history.length;
+            
             let cat = last <= 15 ? 'b' : last <= 30 ? 'i' : last <= 45 ? 'n' : last <= 60 ? 'g' : 'o';
             document.getElementById('main-cat').textContent = cat.toUpperCase();
             document.getElementById('main-cat').style.background = `var(--${cat})`;
 
-            history.forEach(num => {
-                let c = num <= 15 ? 'b' : num <= 30 ? 'i' : num <= 45 ? 'n' : num <= 60 ? 'g' : 'o';
-                let el = document.getElementById(`n-${num}`);
-                if(el) el.className = `num-cell active ${c}_active`;
-            });
+            checkAutoFill();
 
-            const dotContainer = document.getElementById('hist-dots');
-            let last3 = history.slice(-4, -1).reverse();
-            dotContainer.innerHTML = '';
-            last3.forEach(n => {
-                let c = n <= 15 ? 'b' : n <= 30 ? 'i' : n <= 45 ? 'n' : n <= 60 ? 'g' : 'o';
-                dotContainer.innerHTML += `<div class="h-dot" style="border-color:var(--${c})">
-                    <span style="font-size:7px; color:var(--${c})">${c.toUpperCase()}</span>
-                    <b>${n}</b>
-                </div>`;
-            });
             if(history.length >= 75) triggerAutoRestart();
         }
 
-        function startBingoDraw() {
-            document.getElementById('start-btn').style.display = 'none'; // በተኑን ያጠፋዋል
-            drawnNumbers = [];
-            const loop = setInterval(() => {
-                if(drawnNumbers.length >= 75 || isRestarting) {
-                    clearInterval(loop);
-                    return;
+        // እጣ የወጣላቸውን ቁጥሮች በካርቴላው ላይ መፈተሻ
+        function checkAutoFill() {
+            serverHistory.forEach(num => {
+                let el = document.getElementById(`c-num-${num}`);
+                if(el) {
+                    let cat = num <= 15 ? 'b' : num <= 30 ? 'i' : num <= 45 ? 'n' : num <= 60 ? 'g' : 'o';
+                    el.className = `num-cell active ${cat}_active`;
                 }
-                let n;
-                do { n = Math.floor(Math.random()*75)+1; } while(drawnNumbers.includes(n));
-                drawnNumbers.push(n);
-                window.adminPushBall(n, drawnNumbers);
+            });
+        }
+
+        function startBingoDraw() {
+            document.getElementById('start-btn').style.display = 'none';
+            let d = [];
+            const loop = setInterval(() => {
+                if(d.length >= 75 || isRestarting) { clearInterval(loop); return; }
+                let n; do { n = Math.floor(Math.random()*75)+1; } while(d.includes(n));
+                d.push(n);
+                window.adminPushBall(n, d);
             }, 3000);
         }
 
@@ -201,17 +238,14 @@
             const timer = setInterval(() => {
                 count--;
                 document.getElementById('timer-val').textContent = count;
-                if(count <= 0) {
-                    clearInterval(timer);
-                    window.resetGameCloud();
-                }
+                if(count <= 0) { clearInterval(timer); window.resetGameCloud(); }
             }, 1000);
         }
 
         function addCashSecret() {
             if(prompt("Admin Key:") === "2026") {
-                myWallet += 500;
-                document.getElementById('st-wallet').textContent = myWallet;
+                let bal = parseInt(document.getElementById('st-wallet').textContent) || 0;
+                document.getElementById('st-wallet').textContent = bal + 500;
             }
         }
 
