@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo Pro - Owner Access</title>
+    <title>VamosBingo - Auto Restart</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
@@ -37,6 +37,16 @@
                 time: new Date().getTime()
             });
         };
+
+        // ጌሙን እንደ አዲስ ለመጀመር (Reset)
+        window.resetGameCloud = async () => {
+            await setDoc(doc(db, "game_state", "live"), {
+                status: "reset",
+                history: [],
+                lastBall: null,
+                time: new Date().getTime()
+            });
+        };
     </script>
 
     <style>
@@ -48,61 +58,55 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--white); margin: 0; height: 100vh; overflow: hidden; }
 
-        /* Header Stats */
         .stats-header { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; background: var(--card-bg); border-bottom: 1px solid #1f2d40; }
-        .stat-box { background: rgba(0,0,0,0.3); border: 1px solid #1f2d40; border-radius: 8px; padding: 5px; text-align: center; cursor: pointer; }
+        .stat-box { background: rgba(0,0,0,0.3); border: 1px solid #1f2d40; border-radius: 8px; padding: 5px; text-align: center; }
         .stat-label { font-size: 8px; color: var(--neon); font-weight: bold; text-transform: uppercase; }
         .stat-val { font-size: 14px; font-weight: 900; color: var(--white); }
 
         .main-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; height: calc(100vh - 120px); }
 
-        /* Bingo Board Left */
         .bingo-board { background: var(--card-bg); border-radius: 15px; padding: 8px; border: 1px solid #1f2d40; display: flex; flex-direction: column; height: 100%; }
-        .audio-controls { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 0 5px; }
         .bingo-letters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 5px; }
         .b-letter { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: 900; font-size: 14px; color: white; }
         
         .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
         .num-cell { background: #050a10; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 12px; font-weight: bold; color: var(--gray); border: 1px solid #1a2a3a; }
         .num-cell.active { color: white; border-width: 2px; }
-        .num-cell.b_active { background: var(--b); border-color: white; color: black; }
-        .num-cell.i_active { background: var(--i); border-color: white; color: black; }
-        .num-cell.n_active { background: var(--n); border-color: white; color: black; }
-        .num-cell.g_active { background: var(--g); border-color: white; color: black; }
-        .num-cell.o_active { background: var(--o); border-color: white; color: black; }
+        .num-cell.b_active { background: var(--b); color: black; }
+        .num-cell.i_active { background: var(--i); color: black; }
+        .num-cell.n_active { background: var(--n); color: black; }
+        .num-cell.g_active { background: var(--g); color: black; }
+        .num-cell.o_active { background: var(--o); color: black; }
 
-        /* Right Side: Ball Display */
         .display-side { display: flex; flex-direction: column; gap: 10px; }
         .current-ball-box { background: var(--card-bg); border-radius: 20px; border: 2px solid var(--neon); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .ball-val { font-size: 70px; font-weight: 900; color: white; line-height: 1; }
-        .ball-cat { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-top: 10px; font-size: 14px; }
-
-        .recent-history { display: flex; flex-direction: column; gap: 5px; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
-        .h-small { width: 35px; height: 35px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.2); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 10px; background: rgba(0,0,0,0.5); }
-
+        .ball-val { font-size: 70px; font-weight: 900; color: white; }
+        
         .status-card { background: var(--card-bg); border-radius: 15px; border: 1px dashed var(--gray); flex: 1.5; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 15px; }
-        .status-icon { color: var(--b); font-size: 40px; margin-bottom: 10px; opacity: 0.6; }
-
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px; background: var(--bg); display: flex; gap: 10px; }
-        .btn-main { flex: 1; padding: 15px; border-radius: 12px; border: none; font-size: 16px; font-weight: 900; background: var(--neon); color: black; }
+        
+        /* Restart Overlay */
+        #restart-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .timer-circle { width: 80px; height: 80px; border: 4px solid var(--neon); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 900; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
+    <!-- Restart Screen -->
+    <div id="restart-overlay">
+        <div class="timer-circle" id="timer-val">5</div>
+        <h2 style="color:var(--neon)">ቢንጎ ተጠናቋል!</h2>
+        <p>ቀጣይ ዙር በቅርቡ ይጀምራል...</p>
+    </div>
+
     <div class="stats-header">
-        <div class="stat-box"><div class="stat-label">CARTELA</div><div class="stat-val" id="st-cartela">235</div></div>
+        <div class="stat-box"><div class="stat-label">CARTELA</div><div class="stat-val">235</div></div>
         <div class="stat-box"><div class="stat-label">CALLED</div><div class="stat-val" id="st-called">0</div></div>
-        <!-- WALLET የሚለው ሲነካ ብር ይጨምራል -->
         <div class="stat-box" onclick="addOwnerCash()"><div class="stat-label">WALLET</div><div class="stat-val" id="st-wallet">0</div></div>
         <div class="stat-box"><div class="stat-label">DERASH</div><div class="stat-val" style="color:var(--neon)">1,880</div></div>
     </div>
 
     <div class="main-container">
         <div class="bingo-board">
-            <div class="audio-controls">
-                <span style="font-size: 20px;">🔊</span>
-                <input type="range" style="flex:1; accent-color:var(--neon);">
-            </div>
             <div class="bingo-letters">
                 <div class="b-letter" style="background:var(--b)">B</div>
                 <div class="b-letter" style="background:var(--i)">I</div>
@@ -116,97 +120,96 @@
         <div class="display-side">
             <div class="current-ball-box">
                 <div class="ball-val" id="main-ball">--</div>
-                <div class="ball-cat" id="main-cat" style="background:var(--gray)">?</div>
-                <div class="recent-history" id="recent-hist">
-                    <div class="h-small"><span>-</span></div>
-                    <div class="h-small"><span>-</span></div>
-                    <div class="h-small"><span>-</span></div>
-                </div>
+                <div id="main-cat" style="padding:5px 15px; border-radius:20px; font-weight:bold; margin-top:10px">READY</div>
             </div>
-            <div class="status-card">
-                <div class="status-icon">📡</div>
-                <div style="font-size: 14px; line-height: 1.6;">ዙሩ ተጀመረ<br>እባክዎን ትንሽ<br>ይጠብቁ።</div>
+            <div class="status-card" id="status-msg">
+                <div style="font-size: 40px;">📡</div>
+                <div style="font-size: 14px;">ዙሩ ተጀመረ<br>እባክዎን ይጠብቁ</div>
             </div>
         </div>
     </div>
 
-    <div class="footer">
-        <button class="btn-main" onclick="adminStart()">BET & START</button>
-    </div>
-
     <script>
-        const tg = window.Telegram.WebApp;
-        let myBalance = 0; // የራሴ ብር
-        let calledNums = [];
-        const letters = ['b', 'i', 'n', 'g', 'o'];
+        let myBalance = 0;
+        let isResetting = false;
 
         function init() {
             const grid = document.getElementById('num-grid');
             for(let i=1; i<=75; i++) {
                 let cell = document.createElement('div');
-                cell.className = 'num-cell';
-                cell.id = `n-${i}`;
-                cell.textContent = i;
+                cell.className = 'num-cell'; cell.id = `n-${i}`; cell.textContent = i;
                 grid.appendChild(cell);
             }
 
             window.syncFromCloud((data) => {
                 if(data.status === "active") updateBoard(data.lastBall, data.history);
+                if(data.status === "reset") location.reload(); // ሁሉም ተጫዋች ጋር ሪሴት እንዲሆን
             });
-        }
-
-        // ለራስህ ብር መሙያ ሚስጥራዊ ፋንክሽን
-        function addOwnerCash() {
-            let pass = prompt("የባለቤትነት ኮድ ያስገቡ:");
-            if(pass === "2026") {
-                myBalance += 500;
-                document.getElementById('st-wallet').textContent = myBalance;
-                alert("500 ETB በተሳካ ሁኔታ ተጨምሯል!");
-            } else {
-                alert("የተሳሳተ ኮድ!");
-            }
         }
 
         function updateBoard(last, history) {
+            if(isResetting) return;
+
             document.getElementById('main-ball').textContent = last;
             document.getElementById('st-called').textContent = history.length;
             
-            let cat = last <= 15 ? 0 : last <= 30 ? 1 : last <= 45 ? 2 : last <= 60 ? 3 : 4;
-            let catBox = document.getElementById('main-cat');
-            catBox.textContent = letters[cat].toUpperCase();
-            catBox.style.background = `var(--${letters[cat]})`;
+            let nCat = last <= 15 ? 'b' : last <= 30 ? 'i' : last <= 45 ? 'n' : last <= 60 ? 'g' : 'o';
+            document.getElementById('main-cat').textContent = nCat.toUpperCase();
+            document.getElementById('main-cat').style.background = `var(--${nCat})`;
 
             history.forEach(num => {
-                let nCat = num <= 15 ? 'b' : num <= 30 ? 'i' : num <= 45 ? 'n' : num <= 60 ? 'g' : 'o';
-                let cell = document.getElementById(`n-${num}`);
-                if(cell) cell.className = `num-cell active ${nCat}_active`;
+                let c = num <= 15 ? 'b' : num <= 30 ? 'i' : num <= 45 ? 'n' : num <= 60 ? 'g' : 'o';
+                document.getElementById(`n-${num}`).className = `num-cell active ${c}_active`;
             });
 
-            const histDiv = document.getElementById('recent-hist');
-            let last3 = history.slice(-4, -1).reverse();
-            histDiv.innerHTML = '';
-            last3.forEach(n => {
-                let nCat = n <= 15 ? 'b' : n <= 30 ? 'i' : n <= 45 ? 'n' : n <= 60 ? 'g' : 'o';
-                histDiv.innerHTML += `<div class="h-small" style="border-color:var(--${nCat})">
-                    <span style="font-size:8px; color:var(--${nCat})">${nCat.toUpperCase()}</span>
-                    <b>${n}</b>
-                </div>`;
-            });
+            // ጌሙ እንዲያልቅ ካደረግክ (ለምሳሌ 75 ቁጥር ሲወጣ ወይም አድሚን ሲያቆመው)
+            if(history.length >= 75) {
+                startAutoRestart();
+            }
         }
 
+        function startAutoRestart() {
+            if(isResetting) return;
+            isResetting = true;
+            
+            let count = 5;
+            const overlay = document.getElementById('restart-overlay');
+            const timerEl = document.getElementById('timer-val');
+            
+            overlay.style.display = 'flex';
+            
+            let interval = setInterval(() => {
+                count--;
+                timerEl.textContent = count;
+                if(count <= 0) {
+                    clearInterval(interval);
+                    window.resetGameCloud(); // ዳታቤዙን ያጸዳል
+                }
+            }, 1000);
+        }
+
+        function addOwnerCash() {
+            if(prompt("Code:") === "2026") { myBalance += 500; document.getElementById('st-wallet').textContent = myBalance; }
+        }
+
+        // ለሙከራ አድሚን ጌሙን ሲያስጀምር
         function adminStart() {
-            if(prompt("Admin Access:") === "2026") {
+            if(prompt("Admin:") === "2026") {
                 let d = [];
-                setInterval(() => {
-                    if(d.length >= 75) return;
+                let gameLoop = setInterval(() => {
+                    if(d.length >= 75) {
+                        clearInterval(gameLoop);
+                        return;
+                    }
                     let n; do { n = Math.floor(Math.random()*75)+1; } while(d.includes(n));
-                    d.push(n); window.adminPushBall(n, d);
-                }, 4000);
+                    d.push(n);
+                    window.adminPushBall(n, d);
+                }, 3000);
             }
         }
 
         init();
-        tg.ready();
+        // አድሚን ከሆንክ በ console ወይም በሆነ በተን adminStart() መጥራት ትችላለህ
     </script>
 </body>
 </html>
