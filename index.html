@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo - Auto Restart</title>
+    <title>VamosBingo - 20% Commission System</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --bg: #050a10; --card-bg: #121a26; --accent: #00ffcc; --text: #ffffff; }
@@ -18,7 +18,7 @@
         .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
 
         /* Selection Screen */
-        #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; -webkit-overflow-scrolling: touch; }
+        #selection-view { flex: 1; overflow-y: auto; padding: 0 10px; }
         .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding-bottom: 120px; }
         .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 12px; border: 1px solid #232d3d; color: #a0b0c0; }
         .slot.active { border-color: #fb8c00; background: #fb8c0033; color: white; }
@@ -28,7 +28,7 @@
 
         /* Game Layout */
         #game-view { display: none; padding: 10px; grid-template-columns: 1fr 1.3fr; gap: 10px; height: 100%; overflow: hidden; }
-        .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; overflow: hidden; }
+        .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; }
         .track-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
         .t-num { background: #1c283d; text-align: center; font-size: 10px; padding: 6px 0; border-radius: 4px; color: #5d6d82; }
         .t-num.on { background: var(--accent); color: #000; font-weight: bold; }
@@ -44,73 +44,57 @@
         .p-cell { background: #1c283d; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; color: #cbd5e0; }
         .p-cell.hit { background: var(--accent) !important; color: #000; box-shadow: 0 0 8px var(--accent); transition: 0.3s; }
 
-        .mode-box { display: flex; background: #1a2a3a; border-radius: 8px; margin-bottom: 10px; padding: 3px; }
-        .mode-btn { flex: 1; border: none; background: none; color: #5d6d82; font-size: 10px; padding: 6px; border-radius: 5px; font-weight: bold; }
-        .mode-btn.active { background: var(--accent); color: #000; }
-
-        /* WIN OVERLAY WITH COUNTDOWN */
+        /* Win Overlay */
         #win-overlay { 
-            position: fixed; inset: 0; 
-            background: rgba(5, 10, 16, 0.95); 
-            display: none; flex-direction: column; 
-            align-items: center; justify-content: center; 
-            z-index: 2000; text-align: center; 
+            position: fixed; inset: 0; background: rgba(5, 10, 16, 0.98); 
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; 
         }
-        .win-card {
-            background: var(--card-bg); border: 2px solid var(--accent);
-            padding: 30px; border-radius: 20px; box-shadow: 0 0 30px var(--accent);
-        }
-        #countdown-box { margin-top: 20px; font-size: 14px; color: #4cafaf; }
-        #seconds { font-size: 24px; color: var(--accent); font-weight: bold; }
+        .win-card { border: 2px solid var(--accent); padding: 30px; border-radius: 20px; text-align: center; background: var(--card-bg); max-width: 80%; }
+        .prize-text { font-size: 32px; color: #ffd700; margin: 15px 0; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div id="win-overlay">
     <div class="win-card">
-        <h1 style="font-size: 50px; color: var(--accent); margin: 0;">BINGO!</h1>
-        <h2 id="winner-text" style="color: #fff; margin: 10px 0;"></h2>
-        <p style="color: #cbd5e0;">እንኳን ደስ ያለህ!</p>
-        <div id="countdown-box">
-            አዲስ ጨዋታ በ <span id="seconds">5</span> ሰከንድ ይጀምራል...
-        </div>
+        <h1 style="color:var(--accent); margin:0; font-size: 40px;">BINGO!</h1>
+        <h2 id="winner-id" style="color:white; margin:10px 0;"></h2>
+        <p style="color:#a0b0c0; margin:0;">ጠቅላላ ሽልማት</p>
+        <div class="prize-text"><span id="win-amount">0</span> ETB</div>
+        <p style="color:#4cafaf; font-size: 14px;">አዲስ ጨዋታ በ <span id="seconds">5</span> ሰከንድ ይጀምራል</p>
     </div>
 </div>
 
 <div class="header">
     <div class="top-bar">
-        <div class="stat-item"><div class="stat-lbl">Cartela</div><div id="sel-count" class="stat-val">0</div></div>
+        <div class="stat-item"><div class="stat-lbl">ካርቴላ</div><div id="sel-count" class="stat-val">0</div></div>
         <div class="stat-item"><div class="stat-lbl">Called</div><div id="called-count" class="stat-val">0</div></div>
-        <div class="stat-item"><div class="stat-lbl">Wallet</div><div class="stat-val">40</div></div>
-        <div class="stat-item"><div class="stat-lbl">Derash</div><div class="stat-val">2,184</div></div>
+        <div class="stat-item"><div class="stat-lbl">Wallet</div><div id="wallet" class="stat-val">40</div></div>
+        <div class="stat-item"><div class="stat-lbl">ደራሽ</div><div id="derash" class="stat-val">2,184</div></div>
     </div>
 </div>
 
 <div id="selection-screen">
-    <div style="text-align: center; color: var(--accent); font-size: 12px; padding: 10px 0;">እባክዎ እስከ 2 ካርቴላ ይምረጡ</div>
+    <div style="text-align: center; padding: 10px 0;">
+        <span style="color: #fb8c00; font-size: 12px; font-weight: bold;">የ1 ካርቴላ ዋጋ 20 ብር</span><br>
+        <span style="color: #5d6d82; font-size: 10px;">(20% ለአጫዋቹ ይቆረጣል)</span>
+    </div>
     <div id="selection-view">
         <div class="grid-500" id="slot-grid"></div>
     </div>
     <div class="footer-action">
-        <button class="start-btn" onclick="startPlay()">አሁን ተጫወት (PLAY)</button>
+        <button class="start-btn" onclick="confirmBet()">አሁን ተጫወት (BET)</button>
     </div>
 </div>
 
 <div id="game-view">
     <div class="ball-tracker">
-        <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:2px; margin-bottom:8px; font-size:10px; text-align:center; font-weight:bold;">
-            <div style="color:#1e88e5;">B</div><div style="color:#8e24aa;">I</div><div style="color:#d81b60;">N</div><div style="color:#00897b;">G</div><div style="color:#fb8c00;">O</div>
-        </div>
         <div class="track-grid" id="track-grid"></div>
     </div>
     <div style="display:flex; flex-direction:column; min-height:0;">
-        <div class="mode-box">
-            <button class="mode-btn active" id="btn-auto" onclick="toggleMode(true)">AUTO</button>
-            <button class="mode-btn" id="btn-manual" onclick="toggleMode(false)">MANUAL</button>
-        </div>
         <div class="big-ball">
             <div id="big-num" style="font-size:55px; font-weight:900;">--</div>
-            <div id="ball-letter" style="background:#fb8c00; color:#000; padding:1px 12px; border-radius:10px; font-size:13px; font-weight:bold;">READY</div>
+            <div id="ball-letter" style="background:#fb8c00; color:#000; padding:1px 12px; border-radius:10px; font-size:13px; font-weight:bold;">START</div>
         </div>
         <div class="active-cards" id="active-cards"></div>
     </div>
@@ -120,10 +104,20 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    let selected = [], allCards = [], called = new Set(), isAuto = true;
+    let wallet = 40; 
+    let derash = 2184; 
+    const cardPrice = 20;
+    const adminCut = 0.20; // 20% ለአጫዋቹ
+    
+    let selected = [], allCards = [], called = new Set();
     let drawInt;
 
     function init() {
+        const savedWallet = localStorage.getItem('bingo_wallet');
+        if(savedWallet) wallet = parseInt(savedWallet);
+        updateUI();
+
+        // ካርቴላዎችን ማዘጋጀት
         for(let i=0; i<500; i++) {
             let card = [[],[],[],[],[]];
             let ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
@@ -147,7 +141,6 @@
                 } else if(selected.length < 2) {
                     selected.push(i);
                     s.classList.add('active');
-                    tg.HapticFeedback.impactOccurred('light');
                 }
                 document.getElementById('sel-count').textContent = selected.length;
             };
@@ -165,14 +158,27 @@
         }
     }
 
-    function toggleMode(val) {
-        isAuto = val;
-        document.getElementById('btn-auto').classList.toggle('active', isAuto);
-        document.getElementById('btn-manual').classList.toggle('active', !isAuto);
+    function updateUI() {
+        document.getElementById('wallet').textContent = wallet;
+        document.getElementById('derash').textContent = Math.floor(derash).toLocaleString();
+        localStorage.setItem('bingo_wallet', wallet);
+    }
+
+    function confirmBet() {
+        let totalCost = selected.length * cardPrice;
+        if(selected.length === 0) return tg.showAlert("እባክዎ ካርቴላ ይምረጡ");
+        if(wallet < totalCost) return tg.showAlert("በቂ ብር የለዎትም! እባክዎ Wallet ይሙሉ::");
+
+        // ሂሳብ ስሌት
+        wallet -= totalCost; // ከተጫዋቹ ዋሌት ተቀነሰ
+        let netToPot = totalCost * (1 - adminCut); // 80% ወደ ደራሽ
+        derash += netToPot; 
+        
+        updateUI();
+        startPlay();
     }
 
     function startPlay() {
-        if(selected.length === 0) return tg.showAlert("ካርቴላ ይምረጡ");
         document.getElementById('selection-screen').style.display = 'none';
         document.getElementById('game-view').style.display = 'grid';
         
@@ -192,7 +198,7 @@
                     if(r===2 && c===2) html += `<div class="p-cell hit">★</div>`;
                     else {
                         let val = card[c][r];
-                        html += `<div class="p-cell" id="p-${id}-${val}" onclick="manualMark(${id}, ${val})">${val}</div>`;
+                        html += `<div class="p-cell" id="p-${id}-${val}">${val}</div>`;
                     }
                 }
             }
@@ -200,13 +206,6 @@
             container.innerHTML += html;
         });
         runGame();
-    }
-
-    function manualMark(cardId, val) {
-        if(!isAuto && called.has(val)) {
-            document.getElementById(`p-${cardId}-${val}`).classList.add('hit');
-            checkBingo();
-        }
     }
 
     function runGame() {
@@ -222,12 +221,11 @@
             document.getElementById('called-count').textContent = called.size;
             document.getElementById(`track-${n}`).classList.add('on');
 
-            if(isAuto) {
-                selected.forEach(id => {
-                    let cell = document.getElementById(`p-${id}-${n}`);
-                    if(cell) cell.classList.add('hit');
-                });
-            }
+            // Auto Fill
+            selected.forEach(id => {
+                let cell = document.getElementById(`p-${id}-${n}`);
+                if(cell) cell.classList.add('hit');
+            });
             checkBingo();
         }, 3000);
     }
@@ -250,19 +248,22 @@
 
     function finishGame(winnerId) {
         clearInterval(drawInt);
-        document.getElementById('winner-text').textContent = "CARTELA #" + winnerId;
+        let winPrize = Math.floor(derash);
+        wallet += winPrize;
+        derash = 2000; // ለቀጣይ ጨዋታ መነሻ
+        
+        document.getElementById('winner-id').textContent = "ተሸላሚ ካርቴላ #" + winnerId;
+        document.getElementById('win-amount').textContent = winPrize.toLocaleString();
         document.getElementById('win-overlay').style.display = 'flex';
-        tg.HapticFeedback.notificationOccurred('success');
+        updateUI();
 
-        // 5 Second Countdown to restart
         let timeLeft = 5;
-        const timerLabel = document.getElementById('seconds');
         const countdownInt = setInterval(() => {
             timeLeft -= 1;
-            timerLabel.textContent = timeLeft;
+            document.getElementById('seconds').textContent = timeLeft;
             if(timeLeft <= 0) {
                 clearInterval(countdownInt);
-                location.reload(); // Refresh the app for a new game
+                location.reload();
             }
         }, 1000);
     }
