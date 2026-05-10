@@ -2,8 +2,9 @@
 <html lang="am">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JOBE BINGO - TEST MODE</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JOBE BINGO - ONE BY ONE DRAW</title>
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
@@ -14,6 +15,7 @@
             projectId: "my-app-project-1e0bb",
             appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
         };
+
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         window.db = db;
@@ -24,113 +26,133 @@
             });
         };
     </script>
+
     <style>
         :root { --bg: #0b141a; --panel: #111b21; --neon: #00ffcc; --orange: #ff7e21; --border: #1c2b3a; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; overflow: hidden; }
-        .header { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 15px; background: #0d161d; border-bottom: 1px solid var(--border); }
-        .box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 8px; text-align: center; }
-        .label { font-size: 10px; color: #788da1; }
-        
-        /* Slot Selection */
-        #selection-screen { height: 100vh; display: flex; flex-direction: column; }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 15px; overflow-y: auto; flex-grow: 1; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+        body { background: var(--bg); color: white; height: 100vh; overflow: hidden; }
+
+        /* Header */
+        .header-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 15px; background: #0d161d; border-bottom: 1px solid var(--border); }
+        .stat-box { background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 12px; padding: 8px; text-align: center; }
+        .stat-label { font-size: 8px; color: #788da1; text-transform: uppercase; }
+        .stat-val { font-size: 14px; font-weight: bold; color: var(--neon); }
+
+        /* Selection Screen */
+        #selection-screen { display: flex; flex-direction: column; height: 100vh; }
+        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 15px; overflow-y: auto; flex-grow: 1; }
         .slot { aspect-ratio: 1; background: #1a252f; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #253341; cursor: pointer; }
-        .slot.selected { border-color: var(--neon); color: var(--neon); background: rgba(0,255,204,0.1); }
+        .slot.selected { border-color: var(--neon); color: var(--neon); background: rgba(0, 255, 204, 0.1); }
 
         /* Game Screen */
-        #game-screen { display: none; grid-template-columns: 100px 1fr; gap: 10px; padding: 10px; height: 90vh; }
-        .side-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; background: var(--panel); padding: 5px; border-radius: 10px; overflow-y: auto; }
-        .b-num { font-size: 10px; background: #1a252f; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; color: #3a4d5e; }
-        .b-num.active { background: var(--orange); color: white; }
-        .ball-box { background: #000; border: 2px solid var(--neon); border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 10px; }
-        .big-num { font-size: 80px; font-weight: bold; color: var(--neon); }
-        .card { background: #16212a; padding: 10px; border-radius: 15px; margin-top: 10px; border: 1px solid #253341; }
+        #game-screen { display: none; height: 100vh; grid-template-columns: 90px 1fr; gap: 8px; padding: 10px; }
+        .side-board { background: var(--panel); border-radius: 15px; padding: 6px; border: 1px solid var(--border); overflow-y: auto; }
+        .bingo-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+        .b-num { background: #1a252f; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 4px; color: #3a4d5e; border: 1px solid #253341; }
+        .b-num.called { background: var(--orange); color: white; box-shadow: 0 0 5px var(--orange); }
+
+        .draw-area { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
+        .ball-display { background: #000; border: 2px solid var(--neon); border-radius: 20px; padding: 20px; text-align: center; }
+        .current-ball-num { font-size: 80px; font-weight: 900; color: var(--neon); line-height: 1; }
+        
+        .card { background: #16212a; border-radius: 15px; padding: 10px; border: 1px solid #253341; margin-top: 10px; }
         .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-size: 14px; }
-        .cell.hit { background: var(--neon); color: black; font-weight: bold; }
+        .cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; border-radius: 5px; color: white; }
+        .cell.hit { background: var(--neon) !important; color: black !important; font-weight: bold; }
     </style>
 </head>
-<body onload="init()">
+<body onload="initApp()">
 
     <div id="selection-screen">
         <div class="header">
-            <div class="box"><div class="label">PLAYER</div><div>@User</div></div>
-            <div class="box"><div class="label">SELECTED</div><div id="sel-txt">0/2</div></div>
-            <div class="box"><div class="label">STARTS IN</div><div id="timer" style="color:red">00:15</div></div>
+            <div class="stat-box"><div class="stat-label">SELECTED</div><div class="stat-val" id="sel-count">0/2</div></div>
+            <div class="stat-box"><div class="stat-label">STARTS IN</div><div class="stat-val" id="timer" style="color:red">00:20</div></div>
         </div>
-        <div class="grid" id="slot-grid"></div>
+        <div class="slot-grid" id="slot-grid"></div>
     </div>
 
     <div id="game-screen">
-        <div class="side-board" id="side-board"></div>
-        <div style="overflow-y:auto">
-            <div class="ball-box">
-                <div class="big-num" id="big-ball">--</div>
-                <div style="color:var(--neon); font-size:12px;">CURRENT BALL</div>
+        <div class="side-board"><div id="side-grid" class="bingo-board"></div></div>
+        <div class="draw-area">
+            <div class="ball-display">
+                <div class="current-ball-num" id="big-ball">--</div>
+                <div style="font-size:10px; color:var(--neon); margin-top:5px; letter-spacing:2px;">CURRENT BALL</div>
             </div>
-            <div id="cards-area"></div>
+            <div id="my-cards"></div>
         </div>
     </div>
 
     <script>
-        let selected = [];
-        let timeLeft = 15;
+        let mySelected = [];
+        let timeLeft = 20;
 
-        function init() {
+        function initApp() {
             const grid = document.getElementById('slot-grid');
             for(let i=1; i<=800; i++) {
                 let s = document.createElement('div');
                 s.className = 'slot'; s.innerText = i;
                 s.onclick = () => {
-                    if(selected.includes(i)) selected = selected.filter(x => x!==i);
-                    else if(selected.length < 2) selected.push(i);
-                    document.getElementById('sel-txt').innerText = selected.length + "/2";
+                    if(mySelected.includes(i)) mySelected = mySelected.filter(x => x !== i);
+                    else if(mySelected.length < 2) mySelected.push(i);
                     s.classList.toggle('selected');
+                    document.getElementById('sel-count').innerText = mySelected.length + "/2";
                 };
                 grid.appendChild(s);
             }
             let cd = setInterval(() => {
                 timeLeft--;
                 document.getElementById('timer').innerText = "00:" + (timeLeft < 10 ? "0"+timeLeft : timeLeft);
-                if(timeLeft <= 0) { clearInterval(cd); startDrawing(); }
+                if(timeLeft <= 0) { clearInterval(cd); startGame(); }
             }, 1000);
         }
 
-        async function startDrawing() {
-            if(selected.length === 0) { alert("ካርቴላ ይምረጡ!"); location.reload(); return; }
+        async function startGame() {
+            if(mySelected.length === 0) { alert("ካርቴላ ይምረጡ!"); location.reload(); return; }
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'grid';
 
-            // ሰሌዳ እና ካርቴላ ማዘጋጀት
-            const sb = document.getElementById('side-board');
-            for(let i=1; i<=75; i++) sb.innerHTML += `<div class="b-num" id="bn-${i}">${i}</div>`;
-            
-            const area = document.getElementById('cards-area');
-            selected.forEach(id => {
+            // 1-75 ቦርድ
+            const sg = document.getElementById('side-grid');
+            for(let i=1; i<=75; i++) sg.innerHTML += `<div class="b-num" id="bn-${i}">${i}</div>`;
+
+            // ካርቴላዎች
+            const area = document.getElementById('my-cards');
+            mySelected.forEach(id => {
                 let nums = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, 25);
                 let h = `<div class="card"><div class="c-grid">`;
                 nums.forEach((n, idx) => h += `<div class="cell" id="c-${id}-${n}">${idx==12?'★':n}</div>`);
                 area.innerHTML += h + `</div></div>`;
             });
 
-            // Firebase ማዳመጥ
+            // Firebase Listen
+            await setDoc(doc(window.db, "live_bingo", "current"), { ball: null, history: [] });
             window.listenToGame(data => {
-                document.getElementById('big-ball').innerText = data.ball || "--";
-                (data.history || []).forEach(n => {
-                    document.getElementById(`bn-${n}`)?.classList.add('active'); // ቦርዱን ያበራል
-                    selected.forEach(id => document.getElementById(`c-${id}-${n}`)?.classList.add('hit'));
+                const currentBall = data.ball;
+                const history = data.history || [];
+                
+                document.getElementById('big-ball').innerText = currentBall || "--";
+                
+                history.forEach(n => {
+                    document.getElementById(`bn-${n}`)?.classList.add('called'); // በግራ በኩል ምልክት ያደርጋል
+                    mySelected.forEach(id => document.getElementById(`c-${id}-${n}`)?.classList.add('hit')); // ካርቴላ ላይ
                 });
             });
 
-            // እጣ ማውጣት መጀመር
+            runDrawProcess();
+        }
+
+        async function runDrawProcess() {
             let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
             let history = [];
-            for (let b of pool) {
-                history.push(b);
-                try {
-                    await setDoc(doc(window.db, "live_bingo", "current"), { ball: b, history: history });
-                } catch(e) { console.log("Firebase Error: Rules ቼክ አድርግ!"); }
-                await new Promise(r => setTimeout(r, 3000));
+            
+            for (let ball of pool) {
+                history.push(ball);
+                // እያንዳንዱን ቁጥር ለብቻው ወደ Firebase ይልካል
+                await setDoc(doc(window.db, "live_bingo", "current"), { 
+                    ball: ball, 
+                    history: history 
+                });
+                await new Promise(r => setTimeout(r, 4000)); // 4 ሰከንድ ፋታ ሰጥቶ ቀጣዩን ያወጣል
             }
         }
     </script>
