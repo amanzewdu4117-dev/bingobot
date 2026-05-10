@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO PRO</title>
+    <title>JOBE BINGO - SLOT NETWORK</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
-        // Firebase Config (ያንተ መለያ ቁጥሮች)
         const firebaseConfig = {
             apiKey: "AIzaSyDE-pMh_07nshv79477-QG-o2qfF28G2M8",
             authDomain: "my-app-project-1e0bb.firebaseapp.com",
@@ -21,196 +20,180 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ዳታ ወደ Firebase ለመላክ
-        window.saveGameState = async (ball, history, status) => {
-            await setDoc(doc(db, "live_bingo", "current"), { 
-                ball, history, status, lastUpdate: Date.now() 
-            }, { merge: true });
+        // ተጫዋች ቦታ ሲመርጥ Firebase ላይ መመዝገብ
+        window.occupySlot = async (slotNum, userName) => {
+            await setDoc(doc(db, "active_slots", "slot_" + slotNum), {
+                name: userName,
+                slot: slotNum,
+                time: Date.now()
+            });
         };
 
-        // ዳታ ከ Firebase ለማዳመጥ
+        // የታዘዙ ቦታዎችን ከ Firebase ማዳመጥ
+        window.listenToSlots = (callback) => {
+            onSnapshot(collection(db, "active_slots"), (snap) => {
+                let takenSlots = {};
+                snap.forEach(doc => { takenSlots[doc.data().slot] = doc.data().name; });
+                callback(takenSlots);
+            });
+        };
+
+        // የጨዋታውን ሁኔታ ማዳመጥ
         window.listenToGame = (callback) => {
             onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
                 if(snap.exists()) callback(snap.data());
             });
         };
+
+        window.saveGameState = async (ball, history, status) => {
+            await setDoc(doc(db, "live_bingo", "current"), { ball, history, status, lastUpdate: Date.now() }, { merge: true });
+        };
     </script>
 
     <style>
         :root { --bg: #050a0f; --panel: #111b21; --neon: #00ffcc; --orange: #ff7e21; --text: #ffffff; --dark-text: #788da1; }
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Login/Join Screen */
-        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        /* Auth Screen */
+        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .auth-card { background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid #1c2b3a; width: 85%; text-align: center; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #081118; border: 1px solid #253341; color: white; border-radius: 10px; outline: none; }
-        .btn-join { width: 100%; padding: 12px; background: var(--neon); color: black; border: none; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+        input { width: 100%; padding: 12px; margin: 15px 0; background: #081118; border: 1px solid #253341; color: white; border-radius: 10px; outline: none; }
+        .btn-main { width: 100%; padding: 12px; background: var(--neon); color: black; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
 
-        /* Main App Header */
+        /* Slot Selection Screen */
+        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; }
+        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 15px; overflow-y: auto; flex-grow: 1; }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 14px; border: 1px solid #253341; cursor: pointer; }
+        .slot.taken { border-color: var(--neon); background: #0d161d; color: var(--neon); cursor: not-allowed; }
+        .slot .u-name { font-size: 8px; color: var(--dark-text); }
+
+        /* Game UI */
+        #game-ui { display: none; height: 100vh; }
         .header { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px; padding: 10px; background: #0a1117; }
         .stat-box { background: #121d26; border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2b3a; }
         .stat-box label { font-size: 9px; color: var(--neon); display: block; }
-        .stat-box span { font-size: 14px; font-weight: 800; }
-
         .main-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; padding: 10px; height: calc(100vh - 140px); }
         .board-container { background: var(--panel); border-radius: 15px; padding: 5px; border: 1px solid #1c2b3a; overflow-y: auto; }
-        .bingo-header { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 5px; }
-        .letter { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-weight: 900; font-size: 12px; }
-        .B { background: #1a99d5; } .I { background: #9c27b0; } .N { background: #e91e63; } .G { background: #009688; } .O { background: #ff9800; }
-        
         .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
         .num { background: #1d2938; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 4px; color: #5c7894; }
-        .num.active { background: var(--orange); color: white; box-shadow: 0 0 10px var(--orange); }
-
+        .num.active { background: var(--orange); color: white; }
         .ball-display { background: #000; border: 2px solid #1c2b3a; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 10px; }
-        .ball-num { font-size: 55px; font-weight: 900; line-height: 1; color: white; }
-        
-        .personal-card { background: var(--panel); border-radius: 15px; padding: 10px; border: 1px dashed #253341; }
-        .p-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .p-cell { aspect-ratio: 1; background: #0d161d; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; color: #788da1; border: 1px solid #1c2b3a; }
-        .p-cell.marked { background: var(--neon); color: black; font-weight: 900; }
-
-        #win-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .p-cell.marked { background: var(--neon); color: black; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="auth-screen">
         <div class="auth-card">
-            <h1 style="color:var(--neon); margin-bottom:10px;">JOBE BINGO</h1>
-            <p style="color:var(--dark-text); font-size:12px;">ለመግባት ቢያንስ 500 ካርቴላ ያስፈልጋል</p>
+            <h1 style="color:var(--neon)">JOBE BINGO</h1>
             <input type="text" id="username" placeholder="ስምዎን ያስገቡ...">
-            <input type="number" id="cartela-count" placeholder="የካርቴላ ብዛት (ለምሳሌ: 500)">
-            <button class="btn-join" onclick="checkAndJoin()">ጨዋታው ውስጥ ግባ</button>
+            <button class="btn-main" onclick="goToSlots()">ለመምረጥ ግባ</button>
         </div>
     </div>
 
-    <div id="win-overlay">
-        <h1 style="color:var(--neon); font-size:60px;">BINGO!</h1>
-        <p id="winner-msg">እንኳን ደስ አሎት!</p>
-        <button class="btn-join" style="width:150px" onclick="location.reload()">ቀጥል</button>
+    <div id="slot-screen">
+        <div style="padding:15px; background:#0a1117; text-align:center;">
+            <h3 style="color:var(--neon)">ቦታ ይምረጡ (1-500)</h3>
+            <p style="font-size:10px; color:var(--dark-text)">ጠቅላላ ክፍት ቦታዎች: 500</p>
+        </div>
+        <div class="slot-grid" id="grid-500"></div>
     </div>
 
-    <div id="game-ui" style="display:none">
+    <div id="game-ui">
         <div class="header">
             <div class="stat-box" style="text-align:left; border-left:3px solid var(--neon);">
                 <label>PLAYER</label><span id="ui-player">@User</span>
             </div>
-            <div class="stat-box"><label>CARTELA</label><span id="ui-cartela">0</span></div>
+            <div class="stat-box"><label>SLOT</label><span id="ui-slot">0</span></div>
             <div class="stat-box"><label>CALLED</label><span id="ui-called">0</span></div>
         </div>
-
         <div class="main-layout">
-            <div class="board-container">
-                <div class="bingo-header">
-                    <div class="letter B">B</div><div class="letter I">I</div><div class="letter N">N</div><div class="letter G">G</div><div class="letter O">O</div>
-                </div>
-                <div id="full-board" class="numbers-grid"></div>
-            </div>
-
+            <div class="board-container"><div id="full-board" class="numbers-grid"></div></div>
             <div class="right-side">
-                <div class="ball-display">
-                    <div id="ball-val" class="ball-num">--</div>
-                    <small style="color:var(--neon)">የወጣው ቁጥር</small>
-                </div>
-                <div class="personal-card">
-                    <div id="personal-grid" class="p-grid"></div>
-                </div>
+                <div class="ball-display"><div id="ball-val" style="font-size:50px; font-weight:900;">--</div></div>
+                <div class="stat-box" style="padding:15px;"><div id="personal-grid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;"></div></div>
             </div>
         </div>
     </div>
 
     <script>
+        let currentUser = "";
         let drawnHistory = [];
         let myCardNums = [];
-        let isOwner = true;
 
-        // 1. መግቢያውን ቼክ ማድረግ
-        function checkAndJoin() {
-            const name = document.getElementById('username').value;
-            const count = parseInt(document.getElementById('cartela-count').value);
-
-            if (!name) { alert("እባክዎ ስምዎን ያስገቡ!"); return; }
-            if (count < 500) { alert("ለመጫወት ቢያንስ 500 ካርቴላ ያስፈልጋል!"); return; }
-
-            document.getElementById('ui-player').innerText = "@" + name;
-            document.getElementById('ui-cartela').innerText = count;
+        function goToSlots() {
+            currentUser = document.getElementById('username').value;
+            if(!currentUser) return alert("ስም ያስገቡ!");
             document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('game-ui').style.display = 'block';
-            
-            setupGame();
+            document.getElementById('slot-screen').style.display = 'flex';
+            renderSlots();
         }
 
-        // 2. ጨዋታውን ማዘጋጀት
-        function setupGame() {
-            const fb = document.getElementById('full-board');
-            for(let i=1; i<=75; i++) {
-                fb.innerHTML += `<div class="num" id="n-${i}">${i}</div>`;
+        function renderSlots() {
+            const grid = document.getElementById('grid-500');
+            grid.innerHTML = "";
+            for(let i=1; i<=500; i++) {
+                grid.innerHTML += `<div class="slot" id="slot-${i}" onclick="selectSlot(${i})"><b>${i}</b><span class="u-name" id="u-${i}">ክፍት</span></div>`;
             }
+            window.listenToSlots((taken) => {
+                for(let s in taken) {
+                    const el = document.getElementById('slot-' + s);
+                    if(el) {
+                        el.classList.add('taken');
+                        document.getElementById('u-' + s).innerText = "@" + taken[s];
+                    }
+                }
+            });
+        }
+
+        async function selectSlot(num) {
+            const el = document.getElementById('slot-' + num);
+            if(el.classList.contains('taken')) return alert("ይህ ቦታ ተይዟል!");
+            
+            if(confirm(num + " ቁጥርን መያዝ ትፈልጋለህ?")) {
+                await window.occupySlot(num, currentUser);
+                startBingo(num);
+            }
+        }
+
+        function startBingo(slotNum) {
+            document.getElementById('slot-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('ui-player').innerText = "@" + currentUser;
+            document.getElementById('ui-slot').innerText = slotNum;
+
+            // ቦርድ መፍጠር
+            const fb = document.getElementById('full-board');
+            for(let i=1; i<=75; i++) fb.innerHTML += `<div class="num" id="n-${i}">${i}</div>`;
 
             // ካርቴላ ማመንጨት
-            myCardNums = generateRandomCard();
+            myCardNums = Array.from({length: 25}, () => Math.floor(Math.random() * 75) + 1);
             const pg = document.getElementById('personal-grid');
             myCardNums.forEach((n, i) => {
-                let cell = `<div class="p-cell ${i==12?'marked':''}" id="p-${n}">${i==12?'★':n}</div>`;
-                pg.innerHTML += cell;
+                pg.innerHTML += `<div class="num p-cell ${i==12?'marked':''}" id="p-${n}">${i==12?'★':n}</div>`;
             });
 
-            // Firebase ማዳመጥ
             window.listenToGame((data) => {
-                if(data.status === "RESET") {
-                    location.reload();
-                    return;
-                }
                 drawnHistory = data.history || [];
-                updateUI(data.ball);
+                document.getElementById('ball-val').innerText = data.ball;
+                document.getElementById('ui-called').innerText = drawnHistory.length;
+                drawnHistory.forEach(num => {
+                    if(document.getElementById('n-'+num)) document.getElementById('n-'+num).classList.add('active');
+                    if(document.getElementById('p-'+num)) document.getElementById('p-'+num).classList.add('marked');
+                });
             });
-
-            if(isOwner) startEngine();
-        }
-
-        function generateRandomCard() {
-            let nums = [];
-            while(nums.length < 25) {
-                let r = Math.floor(Math.random() * 75) + 1;
-                if(!nums.includes(r)) nums.push(r);
-            }
-            return nums;
-        }
-
-        function updateUI(currentBall) {
-            document.getElementById('ball-val').textContent = currentBall;
-            document.getElementById('ui-called').textContent = drawnHistory.length;
             
-            drawnHistory.forEach(num => {
-                if(document.getElementById(`n-${num}`)) document.getElementById(`n-${num}`).classList.add('active');
-                if(document.getElementById(`p-${num}`)) document.getElementById(`p-${num}`).classList.add('marked');
-            });
-
-            checkWin();
-        }
-
-        function startEngine() {
-            let pool = Array.from({length: 75}, (_, i) => i + 1);
-            setInterval(async () => {
-                let remaining = pool.filter(n => !drawnHistory.includes(n));
-                if(remaining.length === 0) return;
-
-                let nextBall = remaining[Math.floor(Math.random() * remaining.length)];
-                drawnHistory.push(nextBall);
-                
-                window.saveGameState(nextBall, drawnHistory, "LIVE");
-            }, 4000);
-        }
-
-        function checkWin() {
-            // የቢንጎ አሸናፊነት ህግ እዚህ ጋር ይጨመራል
-            // ለምሳሌ፡ ሁሉም የኔ ካርቴላ ቁጥሮች ከወጡ
-            let win = myCardNums.every(n => drawnHistory.includes(n) || n === myCardNums[12]); 
-            if(win) {
-                document.getElementById('win-overlay').style.display = 'flex';
-            }
+            // እንደ ባለቤት እጣ ማውጣት (ለሙከራ)
+            setInterval(() => {
+                if(drawnHistory.length < 75) {
+                    let next = Math.floor(Math.random() * 75) + 1;
+                    if(!drawnHistory.includes(next)) {
+                        drawnHistory.push(next);
+                        window.saveGameState(next, drawnHistory, "LIVE");
+                    }
+                }
+            }, 5000);
         }
     </script>
 </body>
