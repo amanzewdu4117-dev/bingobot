@@ -52,12 +52,6 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Login Screen */
-        #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
-        .auth-card { background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid #1c2b3a; width: 85%; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 15px 0; background: #081118; border: 1px solid #253341; color: white; border-radius: 12px; outline: none; font-size: 16px; text-align: center; }
-        .btn-main { width: 100%; padding: 15px; background: var(--neon); color: black; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; text-transform: uppercase; }
-
         /* Slot Screen Header */
         .top-info { padding: 15px; background: #0a1117; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #1c2b3a; }
         .info-box { text-align: center; background: rgba(0,255,204,0.05); padding: 8px 15px; border-radius: 10px; border: 1px solid #1c2b3a; min-width: 80px; }
@@ -65,10 +59,10 @@
         .info-box span { font-size: 14px; font-weight: bold; color: var(--neon); }
 
         /* Slot Grid Design */
-        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; }
+        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; }
         .slot-header { padding: 10px 20px; background: #0a1117; }
         .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 15px; overflow-y: auto; flex-grow: 1; align-content: start; }
-        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; font-weight: bold; }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; font-weight: bold; transition: 0.2s; }
         .slot.taken { background: rgba(0, 255, 204, 0.8); border-color: var(--neon); color: black; box-shadow: 0 0 10px rgba(0,255,204,0.4); }
         .slot .u-name { font-size: 6px; margin-top: 2px; text-transform: uppercase; overflow: hidden; white-space: nowrap; width: 90%; text-align: center; }
 
@@ -86,19 +80,11 @@
         .p-cell.marked { background: var(--neon); color: black; font-weight: bold; }
     </style>
 </head>
-<body>
-
-    <div id="auth-screen">
-        <div class="auth-card">
-            <h1 style="color:var(--neon); margin-bottom: 10px;">JOBE BINGO</h1>
-            <input type="text" id="username" placeholder="ስምዎን ያስገቡ...">
-            <button class="btn-main" onclick="goToSlots()">ለመምረጥ ግባ</button>
-        </div>
-    </div>
+<body onload="initApp()">
 
     <div id="slot-screen">
         <div class="top-info">
-            <div class="info-box"><label>PLAYER</label><span id="top-username">@User</span></div>
+            <div class="info-box"><label>PLAYER</label><span id="top-username">@Player</span></div>
             <div class="info-box"><label>CLOSES IN</label><span style="color:#ff4d4d">00:30</span></div>
             <div class="info-box"><label>CARTELA</label><span>---</span></div>
         </div>
@@ -112,7 +98,7 @@
     <div id="game-ui">
         <div class="header">
             <div class="stat-box" style="text-align:left; border-left:3px solid var(--neon);">
-                <label>PLAYER</label><span id="ui-player">@User</span>
+                <label>PLAYER</label><span id="ui-player">@Player</span>
             </div>
             <div class="stat-box"><label>SLOT</label><span id="ui-slot">0</span></div>
             <div class="stat-box"><label>CALLED</label><span id="ui-called">0</span></div>
@@ -132,16 +118,12 @@
     </div>
 
     <script>
-        let currentUser = "";
+        let currentUser = "Player"; // ስም ስለማይጠየቅ በቋሚነት Player ተብሏል
         let drawnHistory = [];
         let myCardNums = [];
 
-        function goToSlots() {
-            currentUser = document.getElementById('username').value.trim();
-            if(!currentUser) return alert("እባክዎ መጀመሪያ ስምዎን ያስገቡ!");
-            document.getElementById('top-username').innerText = "@" + currentUser;
-            document.getElementById('auth-screen').style.display = 'none';
-            document.getElementById('slot-screen').style.display = 'flex';
+        // አፑ ሲከፈት በቀጥታ Slot እንዲያሳይ
+        function initApp() {
             renderSlots();
         }
 
@@ -214,6 +196,7 @@
                 });
             });
             
+            // Auto Game Loop
             setInterval(() => {
                 if(drawnHistory.length < 75) {
                     let next = Math.floor(Math.random() * 75) + 1;
