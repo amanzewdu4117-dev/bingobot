@@ -220,3 +220,80 @@
 </script>
 </body>
 </html>
+
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vamos Mini - Player</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
+    <style>
+        /* ከላይ የነበረው ቆንጆ ዲዛይን እዚህ ይቀጥላል */
+        :root { --bg: #050a10; --accent: #00ffcc; --card: #121a26; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 10px; }
+        .stat-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+        .stat { background: var(--card); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #1a2a3a; }
+        .card-box { background: var(--card); padding: 15px; border-radius: 15px; margin-top: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+        .cell { background: #1c283d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: bold; }
+        .cell.hit { background: var(--accent); color: #000; box-shadow: 0 0 10px var(--accent); }
+        .big-ball { font-size: 50px; text-align: center; color: #fb8c00; font-weight: 900; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+<div class="stat-bar">
+    <div class="stat">ደራሽ<br><span id="pot">0</span></div>
+    <div class="stat">ቁጥር<br><span id="count">0</span>/75</div>
+    <div class="stat">Wallet<br><span id="wallet">40</span></div>
+</div>
+
+<div id="game-view">
+    <div class="big-ball" id="current-ball">--</div>
+    <div id="player-cards"></div>
+</div>
+
+<script>
+    // ያንተን Config እዚህ ጋር ተካ
+    const firebaseConfig = {
+        apiKey: "AIzaSy...", 
+        authDomain: "my-app-project-1e0bb.firebaseapp.com",
+        databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com",
+        projectId: "my-app-project-1e0bb",
+        storageBucket: "my-app-project-1e0bb.appspot.com",
+        messagingSenderId: "280130045202",
+        appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 1. መረጃዎችን ከሰርቨር ተቀበል
+    db.ref('gameState').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if(!data) return;
+
+        document.getElementById('pot').textContent = data.pot || 0;
+        const history = data.history || [];
+        document.getElementById('count').textContent = history.length;
+
+        if(history.length > 0) {
+            const lastBall = history[history.length - 1];
+            document.getElementById('current-ball').textContent = lastBall;
+            markBalls(history);
+        }
+    });
+
+    function markBalls(history) {
+        history.forEach(num => {
+            const cells = document.querySelectorAll(`[data-num="${num}"]`);
+            cells.forEach(c => c.classList.add('hit'));
+        });
+    }
+
+    // ካርቴላ የማመንጫ ኮድ እዚህ ይገባል (ከዚህ ቀደም የሰራነው)
+</script>
+</body>
+</html>
