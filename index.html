@@ -20,7 +20,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ተጫዋች ቦታ ሲመርጥ Firebase ላይ መመዝገብ
         window.occupySlot = async (slotNum, userName) => {
             await setDoc(doc(db, "active_slots", "slot_" + slotNum), {
                 name: userName,
@@ -29,7 +28,6 @@
             });
         };
 
-        // የታዘዙ ቦታዎችን ከ Firebase ማዳመጥ
         window.listenToSlots = (callback) => {
             onSnapshot(collection(db, "active_slots"), (snap) => {
                 let takenSlots = {};
@@ -38,7 +36,6 @@
             });
         };
 
-        // የጨዋታውን ሁኔታ ማዳመጥ
         window.listenToGame = (callback) => {
             onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
                 if(snap.exists()) callback(snap.data());
@@ -55,21 +52,27 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Auth Screen (Login) */
+        /* Login Screen */
         #auth-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; }
         .auth-card { background: var(--panel); padding: 30px; border-radius: 20px; border: 1px solid #1c2b3a; width: 85%; text-align: center; }
-        input { width: 100%; padding: 15px; margin: 15px 0; background: #081118; border: 1px solid #253341; color: white; border-radius: 12px; outline: none; font-size: 16px; }
+        input { width: 100%; padding: 15px; margin: 15px 0; background: #081118; border: 1px solid #253341; color: white; border-radius: 12px; outline: none; font-size: 16px; text-align: center; }
         .btn-main { width: 100%; padding: 15px; background: var(--neon); color: black; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; text-transform: uppercase; }
 
-        /* Slot Selection Screen */
-        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; }
-        .slot-header { padding: 20px; background: #0a1117; text-align: center; border-bottom: 1px solid #1c2b3a; }
-        .slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 15px; overflow-y: auto; flex-grow: 1; }
-        .slot { background: var(--slot-bg); aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 18px; border: 1px solid #253341; cursor: pointer; transition: 0.3s; }
-        .slot.taken { background: rgba(0, 255, 204, 0.1); border-color: var(--neon); color: var(--neon); font-size: 12px; }
-        .slot .u-name { font-size: 9px; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; max-width: 90%; }
+        /* Slot Screen Header */
+        .top-info { padding: 15px; background: #0a1117; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #1c2b3a; }
+        .info-box { text-align: center; background: rgba(0,255,204,0.05); padding: 8px 15px; border-radius: 10px; border: 1px solid #1c2b3a; min-width: 80px; }
+        .info-box label { font-size: 8px; color: var(--dark-text); display: block; margin-bottom: 3px; }
+        .info-box span { font-size: 14px; font-weight: bold; color: var(--neon); }
 
-        /* Game UI */
+        /* Slot Grid Design */
+        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: none; flex-direction: column; }
+        .slot-header { padding: 10px 20px; background: #0a1117; }
+        .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 15px; overflow-y: auto; flex-grow: 1; align-content: start; }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; font-weight: bold; }
+        .slot.taken { background: rgba(0, 255, 204, 0.8); border-color: var(--neon); color: black; box-shadow: 0 0 10px rgba(0,255,204,0.4); }
+        .slot .u-name { font-size: 6px; margin-top: 2px; text-transform: uppercase; overflow: hidden; white-space: nowrap; width: 90%; text-align: center; }
+
+        /* Bingo UI */
         #game-ui { display: none; height: 100vh; }
         .header { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px; padding: 10px; background: #0a1117; }
         .stat-box { background: #121d26; border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2b3a; }
@@ -94,9 +97,14 @@
     </div>
 
     <div id="slot-screen">
-        <div class="slot-header">
-            <h3 style="color:var(--neon)">SLOT NETWORK</h3>
-            <p style="font-size:11px; color:var(--dark-text); margin-top:5px;">ቦታዎን ይምረጡ (1-500)</p>
+        <div class="top-info">
+            <div class="info-box"><label>PLAYER</label><span id="top-username">@User</span></div>
+            <div class="info-box"><label>CLOSES IN</label><span style="color:#ff4d4d">00:30</span></div>
+            <div class="info-box"><label>CARTELA</label><span>---</span></div>
+        </div>
+        <div class="slot-header" style="border-bottom: 1px solid #1c2b3a; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="color:var(--neon); font-size: 14px;">SLOT NETWORK</h3>
+            <span style="font-size: 10px; color: var(--dark-text)">Total Active: 500</span>
         </div>
         <div class="slot-grid" id="grid-500"></div>
     </div>
@@ -110,9 +118,7 @@
             <div class="stat-box"><label>CALLED</label><span id="ui-called">0</span></div>
         </div>
         <div class="main-layout">
-            <div class="board-container">
-                <div id="full-board" class="numbers-grid"></div>
-            </div>
+            <div class="board-container"><div id="full-board" class="numbers-grid"></div></div>
             <div class="right-side">
                 <div class="ball-display">
                     <div id="ball-val" style="font-size:50px; font-weight:900;">--</div>
@@ -130,45 +136,41 @@
         let drawnHistory = [];
         let myCardNums = [];
 
-        // ስም ተቀብሎ ወደ ምርጫ ገጽ የሚወስድ
         function goToSlots() {
             currentUser = document.getElementById('username').value.trim();
             if(!currentUser) return alert("እባክዎ መጀመሪያ ስምዎን ያስገቡ!");
-            
+            document.getElementById('top-username').innerText = "@" + currentUser;
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('slot-screen').style.display = 'flex';
             renderSlots();
         }
 
-        // የቁጥር መምረጫዎችን መፍጠር
         function renderSlots() {
             const grid = document.getElementById('grid-500');
             grid.innerHTML = "";
             for(let i=1; i<=500; i++) {
                 grid.innerHTML += `
                     <div class="slot" id="slot-${i}" onclick="selectSlot(${i})">
-                        <b>${i}</b>
+                        ${i}
                         <span class="u-name" id="u-${i}"></span>
                     </div>`;
             }
 
-            // የትኞቹ ቁጥሮች እንደተያዙ ከ Firebase ማምጣት
             window.listenToSlots((taken) => {
                 for(let s in taken) {
                     const el = document.getElementById('slot-' + s);
                     const nameEl = document.getElementById('u-' + s);
                     if(el) {
                         el.classList.add('taken');
-                        nameEl.innerText = "@" + taken[s];
+                        nameEl.innerText = taken[s];
                     }
                 }
             });
         }
 
-        // ቁጥር ሲመረጥ
         async function selectSlot(num) {
             const el = document.getElementById('slot-' + num);
-            if(el.classList.contains('taken')) return alert("ይህ ቁጥር ተይዟል! ሌላ ይምረጡ።");
+            if(el.classList.contains('taken')) return alert("ይህ ቦታ ተይዟል!");
             
             if(confirm(num + " ቁጥርን መያዝ ትፈልጋለህ?")) {
                 await window.occupySlot(num, currentUser);
@@ -176,12 +178,52 @@
             }
         }
 
-        // ጨዋታውን ማስጀመር
         function startBingo(slotNum) {
             document.getElementById('slot-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
             document.getElementById('ui-player').innerText = "@" + currentUser;
             document.getElementById('ui-slot').innerText = slotNum;
 
-            // ዋናውን የቢንጎ ሰሌዳ (1-75) መፍጠር
-            const fb = document.getElementById('full-
+            const fb = document.getElementById('full-board');
+            fb.innerHTML = "";
+            for(let i=1; i<=75; i++) fb.innerHTML += `<div class="num" id="n-${i}">${i}</div>`;
+
+            myCardNums = [];
+            while(myCardNums.length < 25) {
+                let r = Math.floor(Math.random() * 75) + 1;
+                if(!myCardNums.includes(r)) myCardNums.push(r);
+            }
+
+            const pg = document.getElementById('personal-grid');
+            pg.innerHTML = "";
+            myCardNums.forEach((n, i) => {
+                if(i === 12) {
+                    pg.innerHTML += `<div class="num p-cell marked" id="p-free">★</div>`;
+                } else {
+                    pg.innerHTML += `<div class="num p-cell" id="p-${n}">${n}</div>`;
+                }
+            });
+
+            window.listenToGame((data) => {
+                drawnHistory = data.history || [];
+                document.getElementById('ball-val').innerText = data.ball || "--";
+                document.getElementById('ui-called').innerText = drawnHistory.length;
+                drawnHistory.forEach(num => {
+                    if(document.getElementById('n-' + num)) document.getElementById('n-' + num).classList.add('active');
+                    if(document.getElementById('p-' + num)) document.getElementById('p-' + num).classList.add('marked');
+                });
+            });
+            
+            setInterval(() => {
+                if(drawnHistory.length < 75) {
+                    let next = Math.floor(Math.random() * 75) + 1;
+                    if(!drawnHistory.includes(next)) {
+                        drawnHistory.push(next);
+                        window.saveGameState(next, drawnHistory, "LIVE");
+                    }
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
