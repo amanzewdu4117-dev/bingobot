@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - SLOT NETWORK</title>
+    <title>JOBE BINGO - PRO SLOT</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDE-pMh_07nshv79477-QG-o2qfF28G2M8",
@@ -20,12 +20,14 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        window.db = db;
         window.occupySlot = async (slotNum, userName) => {
-            await setDoc(doc(db, "active_slots", "slot_" + slotNum), {
-                name: userName,
-                slot: slotNum,
-                time: Date.now()
-            });
+            await setDoc(doc(db, "active_slots", "slot_" + slotNum), { name: userName, slot: slotNum, time: Date.now() });
+        };
+
+        window.clearAllSlots = async () => {
+            const querySnapshot = await getDocs(collection(db, "active_slots"));
+            querySnapshot.forEach(async (d) => { await deleteDoc(doc(db, "active_slots", d.id)); });
         };
 
         window.listenToSlots = (callback) => {
@@ -37,13 +39,7 @@
         };
 
         window.listenToGame = (callback) => {
-            onSnapshot(doc(db, "live_bingo", "current"), (snap) => {
-                if(snap.exists()) callback(snap.data());
-            });
-        };
-
-        window.saveGameState = async (ball, history, status) => {
-            await setDoc(doc(db, "live_bingo", "current"), { ball, history, status, lastUpdate: Date.now() }, { merge: true });
+            onSnapshot(doc(db, "live_bingo", "current"), (snap) => { if(snap.exists()) callback(snap.data()); });
         };
     </script>
 
@@ -52,78 +48,87 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Slot Screen Header */
-        .top-info { padding: 15px; background: #0a1117; display: flex; justify-content: space-around; align-items: center; border-bottom: 1px solid #1c2b3a; }
-        .info-box { text-align: center; background: rgba(0,255,204,0.05); padding: 8px 15px; border-radius: 10px; border: 1px solid #1c2b3a; min-width: 80px; }
-        .info-box label { font-size: 8px; color: var(--dark-text); display: block; margin-bottom: 3px; }
+        /* Timer UI */
+        .countdown-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 5000; display: none; align-items: center; justify-content: center; flex-direction: column; }
+        .timer-circle { font-size: 80px; color: var(--neon); font-weight: bold; border: 5px solid var(--neon); width: 150px; height: 150px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+        /* Slot Screen */
+        #slot-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; }
+        .top-info { padding: 15px; background: #0a1117; display: flex; justify-content: space-around; border-bottom: 1px solid #1c2b3a; }
+        .info-box { text-align: center; background: rgba(0,255,204,0.05); padding: 8px; border-radius: 10px; border: 1px solid #1c2b3a; min-width: 90px; }
+        .info-box label { font-size: 8px; color: var(--dark-text); display: block; }
         .info-box span { font-size: 14px; font-weight: bold; color: var(--neon); }
 
-        /* Slot Grid Design */
-        #slot-screen { position: fixed; inset: 0; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; }
-        .slot-header { padding: 10px 20px; background: #0a1117; }
-        .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 15px; overflow-y: auto; flex-grow: 1; align-content: start; }
-        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; font-weight: bold; transition: 0.2s; }
-        .slot.taken { background: rgba(0, 255, 204, 0.8); border-color: var(--neon); color: black; box-shadow: 0 0 10px rgba(0,255,204,0.4); }
-        .slot .u-name { font-size: 6px; margin-top: 2px; text-transform: uppercase; overflow: hidden; white-space: nowrap; width: 90%; text-align: center; }
+        .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; padding: 10px; overflow-y: auto; flex-grow: 1; }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; }
+        .slot.selected { border-color: var(--orange); background: rgba(255, 126, 33, 0.2); }
+        .slot.taken { background: var(--neon); color: black; }
 
-        /* Bingo UI */
+        /* Game UI */
         #game-ui { display: none; height: 100vh; }
-        .header { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 8px; padding: 10px; background: #0a1117; }
-        .stat-box { background: #121d26; border-radius: 10px; padding: 8px; text-align: center; border: 1px solid #1c2b3a; }
-        .stat-box label { font-size: 9px; color: var(--neon); display: block; }
-        .main-layout { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; padding: 10px; height: calc(100vh - 140px); }
-        .board-container { background: var(--panel); border-radius: 15px; padding: 5px; border: 1px solid #1c2b3a; overflow-y: auto; }
-        .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .num { background: #1d2938; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 4px; color: #5c7894; }
+        .main-layout { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; padding: 10px; height: calc(100vh - 80px); }
+        .board-container { background: var(--panel); border-radius: 10px; padding: 5px; overflow-y: auto; }
+        .numbers-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .num { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; border-radius: 3px; color: #5c7894; }
         .num.active { background: var(--orange); color: white; }
-        .ball-display { background: #000; border: 2px solid #1c2b3a; border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 10px; color: var(--neon); }
-        .p-cell.marked { background: var(--neon); color: black; font-weight: bold; }
+
+        .right-side { display: flex; flex-direction: column; gap: 10px; }
+        .ball-display { background: #000; border: 2px solid var(--neon); border-radius: 15px; padding: 10px; text-align: center; color: var(--neon); font-size: 30px; font-weight: bold; }
+        
+        /* Double Cartela View */
+        .cartela-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .cartela { background: #121d26; padding: 5px; border-radius: 8px; border: 1px solid #1c2b3a; }
+        .p-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
+        .p-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 2px; color: white; }
+        .p-cell.marked { background: var(--neon); color: black; font-weight: bold; animation: pop 0.3s; }
+
+        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
+
+        #bingo-msg { position: fixed; inset: 0; background: rgba(0,255,204,0.8); color: black; display: none; align-items: center; justify-content: center; font-size: 50px; font-weight: 900; z-index: 6000; }
     </style>
 </head>
-<body onload="initApp()">
+<body onload="init()">
+
+    <div id="bingo-msg">BINGO!</div>
+
+    <div id="countdown" class="countdown-overlay">
+        <h2 style="color:white; margin-bottom: 20px;">ጨዋታው ሊጀምር ነው...</h2>
+        <div class="timer-circle" id="timer-val">30</div>
+    </div>
 
     <div id="slot-screen">
         <div class="top-info">
-            <div class="info-box"><label>PLAYER</label><span id="top-username">@Player</span></div>
-            <div class="info-box"><label>CLOSES IN</label><span style="color:#ff4d4d">00:30</span></div>
-            <div class="info-box"><label>CARTELA</label><span>---</span></div>
-        </div>
-        <div class="slot-header" style="border-bottom: 1px solid #1c2b3a; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="color:var(--neon); font-size: 14px;">SLOT NETWORK</h3>
-            <span style="font-size: 10px; color: var(--dark-text)">Total Active: 500</span>
+            <div class="info-box"><label>PLAYER</label><span>@User</span></div>
+            <div class="info-box"><label>SELECTED</label><span id="select-count">0 / 2</span></div>
+            <div class="info-box"><label>STATUS</label><span id="status-txt">WAITING</span></div>
         </div>
         <div class="slot-grid" id="grid-500"></div>
+        <button onclick="startCountdown()" id="start-btn" style="padding:15px; background:var(--neon); border:none; font-weight:bold; display:none;">ጨዋታውን አስጀምር</button>
     </div>
 
     <div id="game-ui">
-        <div class="header">
-            <div class="stat-box" style="text-align:left; border-left:3px solid var(--neon);">
-                <label>PLAYER</label><span id="ui-player">@Player</span>
-            </div>
-            <div class="stat-box"><label>SLOT</label><span id="ui-slot">0</span></div>
-            <div class="stat-box"><label>CALLED</label><span id="ui-called">0</span></div>
+        <div class="top-info">
+            <div class="info-box"><label>SLOTS</label><span id="ui-my-slots">--</span></div>
+            <div class="info-box"><label>CALLED</label><span id="ui-called">0</span></div>
+            <div class="info-box"><label>BALL</label><span id="ui-last-ball">--</span></div>
         </div>
         <div class="main-layout">
             <div class="board-container"><div id="full-board" class="numbers-grid"></div></div>
             <div class="right-side">
-                <div class="ball-display">
-                    <div id="ball-val" style="font-size:50px; font-weight:900;">--</div>
-                    <div style="font-size: 10px; letter-spacing: 2px;">READY</div>
-                </div>
-                <div class="stat-box" style="padding:15px; background: rgba(255,255,255,0.02);">
-                    <div id="personal-grid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:5px;"></div>
-                </div>
+                <div class="ball-display" id="current-ball">--</div>
+                <div class="cartela-pair" id="my-cards-area">
+                    </div>
             </div>
         </div>
     </div>
 
     <script>
-        let currentUser = "Player"; // ስም ስለማይጠየቅ በቋሚነት Player ተብሏል
-        let drawnHistory = [];
-        let myCardNums = [];
+        let mySelectedSlots = [];
+        let myCardsData = {}; // {slotNum: [numbers]}
+        let drawnBalls = [];
+        let isGameLive = false;
 
-        // አፑ ሲከፈት በቀጥታ Slot እንዲያሳይ
-        function initApp() {
+        function init() {
             renderSlots();
         }
 
@@ -131,82 +136,93 @@
             const grid = document.getElementById('grid-500');
             grid.innerHTML = "";
             for(let i=1; i<=500; i++) {
-                grid.innerHTML += `
-                    <div class="slot" id="slot-${i}" onclick="selectSlot(${i})">
-                        ${i}
-                        <span class="u-name" id="u-${i}"></span>
-                    </div>`;
+                grid.innerHTML += `<div class="slot" id="slot-${i}" onclick="toggleSlot(${i})">${i}</div>`;
             }
-
             window.listenToSlots((taken) => {
-                for(let s in taken) {
-                    const el = document.getElementById('slot-' + s);
-                    const nameEl = document.getElementById('u-' + s);
-                    if(el) {
-                        el.classList.add('taken');
-                        nameEl.innerText = taken[s];
-                    }
+                for(let s in taken) { 
+                    let el = document.getElementById('slot-'+s);
+                    if(el) el.classList.add('taken');
                 }
             });
         }
 
-        async function selectSlot(num) {
-            const el = document.getElementById('slot-' + num);
-            if(el.classList.contains('taken')) return alert("ይህ ቦታ ተይዟል!");
-            
-            if(confirm(num + " ቁጥርን መያዝ ትፈልጋለህ?")) {
-                await window.occupySlot(num, currentUser);
-                startBingo(num);
+        function toggleSlot(n) {
+            if(isGameLive) return;
+            let el = document.getElementById('slot-'+n);
+            if(el.classList.contains('taken')) return;
+
+            if(mySelectedSlots.includes(n)) {
+                mySelectedSlots = mySelectedSlots.filter(s => s !== n);
+                el.classList.remove('selected');
+            } else {
+                if(mySelectedSlots.length >= 2) return alert("ከ 2 በላይ መምረጥ አይችሉም!");
+                mySelectedSlots.push(n);
+                el.classList.add('selected');
             }
+            document.getElementById('select-count').innerText = `${mySelectedSlots.length} / 2`;
+            document.getElementById('start-btn').style.display = mySelectedSlots.length > 0 ? 'block' : 'none';
         }
 
-        function startBingo(slotNum) {
+        async function startCountdown() {
+            document.getElementById('countdown').style.display = 'flex';
+            let sec = 30;
+            let interval = setInterval(() => {
+                sec--;
+                document.getElementById('timer-val').innerText = sec;
+                if(sec <= 0) {
+                    clearInterval(interval);
+                    launchGame();
+                }
+            }, 1000);
+        }
+
+        function launchGame() {
+            document.getElementById('countdown').style.display = 'none';
             document.getElementById('slot-screen').style.display = 'none';
             document.getElementById('game-ui').style.display = 'block';
-            document.getElementById('ui-player').innerText = "@" + currentUser;
-            document.getElementById('ui-slot').innerText = slotNum;
+            isGameLive = true;
 
+            // Generate 2 Cards
+            const container = document.getElementById('my-cards-area');
+            container.innerHTML = "";
+            mySelectedSlots.forEach(slot => {
+                let nums = generateBingoCard();
+                myCardsData[slot] = nums;
+                renderCard(slot, nums);
+            });
+
+            // Setup Main Board
             const fb = document.getElementById('full-board');
             fb.innerHTML = "";
             for(let i=1; i<=75; i++) fb.innerHTML += `<div class="num" id="n-${i}">${i}</div>`;
 
-            myCardNums = [];
-            while(myCardNums.length < 25) {
-                let r = Math.floor(Math.random() * 75) + 1;
-                if(!myCardNums.includes(r)) myCardNums.push(r);
-            }
-
-            const pg = document.getElementById('personal-grid');
-            pg.innerHTML = "";
-            myCardNums.forEach((n, i) => {
-                if(i === 12) {
-                    pg.innerHTML += `<div class="num p-cell marked" id="p-free">★</div>`;
-                } else {
-                    pg.innerHTML += `<div class="num p-cell" id="p-${n}">${n}</div>`;
-                }
-            });
-
+            // Start Ball Listening
             window.listenToGame((data) => {
-                drawnHistory = data.history || [];
-                document.getElementById('ball-val').innerText = data.ball || "--";
-                document.getElementById('ui-called').innerText = drawnHistory.length;
-                drawnHistory.forEach(num => {
-                    if(document.getElementById('n-' + num)) document.getElementById('n-' + num).classList.add('active');
-                    if(document.getElementById('p-' + num)) document.getElementById('p-' + num).classList.add('marked');
-                });
-            });
-            
-            // Auto Game Loop
-            setInterval(() => {
-                if(drawnHistory.length < 75) {
-                    let next = Math.floor(Math.random() * 75) + 1;
-                    if(!drawnHistory.includes(next)) {
-                        drawnHistory.push(next);
-                        window.saveGameState(next, drawnHistory, "LIVE");
-                    }
+                if(data.ball) {
+                    document.getElementById('current-ball').innerText = data.ball;
+                    document.getElementById('ui-last-ball').innerText = data.ball;
+                    drawnBalls = data.history || [];
+                    document.getElementById('ui-called').innerText = drawnBalls.length;
+                    updateUI();
                 }
-            }, 5000);
+            });
+
+            // Simulator (ለሙከራ ያህል እጣ የሚያወጣ)
+            startSimulation();
         }
-    </script>
-</body>
-</html>
+
+        function generateBingoCard() {
+            let nums = [];
+            while(nums.length < 25) {
+                let r = Math.floor(Math.random() * 75) + 1;
+                if(!nums.includes(r)) nums.push(r);
+            }
+            return nums;
+        }
+
+        function renderCard(slot, nums) {
+            let cardHtml = `<div class="cartela">
+                <div style="font-size:10px; color:var(--neon); text-align:center;">SLOT ${slot}</div>
+                <div class="p-grid">`;
+            nums.forEach((n, i) => {
+                let
