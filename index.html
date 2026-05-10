@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - LIVE NETWORK</title>
+    <title>JOBE BINGO - FIXED TIMER</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <script type="module">
@@ -21,12 +21,6 @@
         const db = getFirestore(app);
         window.db = db;
 
-        // የቁጥር መያዣ
-        window.occupySlot = async (slotNum, userName) => {
-            await setDoc(doc(db, "active_slots", "slot_" + slotNum), { name: userName, slot: slotNum, time: Date.now() });
-        };
-
-        // የቁጥሮችን ሁኔታ ማዳመጥ
         window.listenToSlots = (callback) => {
             onSnapshot(collection(db, "active_slots"), (snap) => {
                 let taken = {};
@@ -35,14 +29,6 @@
             });
         };
 
-        // ዋናውን ሰዓት ከ Firebase ማዳመጥ (ይህ ለሁሉም ተጫዋች እኩል ይቆጥራል)
-        window.listenToGlobalTimer = (callback) => {
-            onSnapshot(doc(db, "live_bingo", "timer"), (snap) => {
-                if(snap.exists()) callback(snap.data().seconds);
-            });
-        };
-
-        // የጨዋታውን ሂደት ማዳመጥ
         window.listenToGame = (callback) => {
             onSnapshot(doc(db, "live_bingo", "current"), (snap) => { if(snap.exists()) callback(snap.data()); });
         };
@@ -53,17 +39,17 @@
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Header Stats */
+        /* Header UI */
         .header-box { display: flex; justify-content: space-around; padding: 12px; background: #0a1117; border-bottom: 1px solid #1c2b3a; gap: 8px; }
         .stat { background: rgba(255,255,255,0.02); padding: 8px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #1c2b3a; }
         .stat label { display: block; font-size: 8px; color: var(--dark-text); text-transform: uppercase; margin-bottom: 3px; }
         .stat span { font-size: 13px; font-weight: bold; color: var(--neon); }
-        .stat.timer-box span { color: #ff4d4d; font-family: monospace; font-size: 16px; }
+        .stat.timer-box span { color: #ff4d4d; font-family: monospace; font-size: 18px; }
 
-        /* Slot Selection */
+        /* Slot Screen */
         #slot-screen { display: flex; flex-direction: column; height: 100vh; }
         .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 12px; overflow-y: auto; flex-grow: 1; align-content: start; }
-        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; transition: 0.2s; }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; transition: 0.2s; }
         .slot.selected { border-color: var(--orange); background: rgba(255, 126, 33, 0.2); color: white; }
         .slot.taken { background: var(--neon); color: #000; border-color: var(--neon); font-weight: bold; }
 
@@ -86,11 +72,11 @@
         .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; color: white; }
         .c-cell.marked { background: var(--neon); color: black; font-weight: bold; animation: pop 0.3s; }
 
-        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.15);} 100% {transform: scale(1);} }
-        #bingo-msg { position: fixed; inset: 0; background: rgba(0,255,204,0.9); z-index: 9999; display: none; align-items: center; justify-content: center; font-size: 50px; font-weight: 900; color: #000; }
+        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.1);} 100% {transform: scale(1);} }
+        #bingo-msg { position: fixed; inset: 0; background: rgba(0,255,204,0.95); z-index: 9999; display: none; align-items: center; justify-content: center; font-size: 60px; font-weight: 900; color: #000; }
     </style>
 </head>
-<body onload="initApp()">
+<body onload="init()">
 
     <div id="bingo-msg">BINGO!</div>
 
@@ -98,9 +84,9 @@
         <div class="header-box">
             <div class="stat"><label>PLAYER</label><span>@User</span></div>
             <div class="stat"><label>SELECTED</label><span id="sel-count">0 / 2</span></div>
-            <div class="stat timer-box"><label>CLOSES IN</label><span id="global-timer">00:00</span></div>
+            <div class="stat timer-box"><label>CLOSES IN</label><span id="global-timer">00:30</span></div>
         </div>
-        <div style="padding: 10px; font-size: 10px; color: var(--dark-text); text-align: center;">ቢበዛ 2 ቁጥር ይምረጡ። ሰዓቱ ሲያልቅ ጨዋታው በራሱ ይጀምራል።</div>
+        <div style="padding: 10px; font-size: 11px; color: var(--dark-text); text-align: center;">ቢበዛ 2 ቁጥር ይምረጡ። ሰዓቱ ሲያልቅ ጨዋታው ይጀምራል።</div>
         <div class="slot-grid" id="slot-container"></div>
     </div>
 
@@ -108,7 +94,7 @@
         <div class="header-box">
             <div class="stat"><label>MY SLOTS</label><span id="ui-my-slots">--</span></div>
             <div class="stat"><label>CALLED</label><span id="ui-called">0</span></div>
-            <div class="stat"><label>WALLET</label><span>0.00</span></div>
+            <div class="stat"><label>STATUS</label><span style="color:var(--orange)">LIVE</span></div>
         </div>
         <div class="game-layout">
             <div class="board-side">
@@ -117,7 +103,7 @@
             <div class="play-side">
                 <div class="ball-display">
                     <div class="ball-val" id="big-ball">--</div>
-                    <div style="font-size:8px; color:var(--neon); letter-spacing:2px;">LIVE BALL</div>
+                    <div style="font-size:8px; color:var(--neon); letter-spacing:2px;">CURRENT BALL</div>
                 </div>
                 <div class="cartela-pair" id="cards-holder"></div>
             </div>
@@ -129,9 +115,10 @@
         let cardData = {};
         let drawnBalls = [];
         let isGameStarted = false;
+        let timeLeft = 30; // 30 ሰከንድ Countdown
 
-        function initApp() {
-            // የግሪድ ቁጥሮችን መሥራት
+        function init() {
+            // ቁጥሮችን መሥራት
             const grid = document.getElementById('slot-container');
             for(let i=1; i<=120; i++) {
                 let div = document.createElement('div');
@@ -142,6 +129,9 @@
                 grid.appendChild(div);
             }
 
+            // ሰዓቱን ማስጀመር
+            startCountdown();
+
             // የሌሎች ተጫዋቾችን ምርጫ ማዳመጥ
             window.listenToSlots((taken) => {
                 for(let s in taken) {
@@ -149,19 +139,25 @@
                     if(el) el.classList.add('taken');
                 }
             });
+        }
 
-            // ዋናውን የFirebase ሰዓት ማዳመጥ (አውቶማቲክ ኢንተርቫል)
-            window.listenToGlobalTimer((seconds) => {
-                const timerEl = document.getElementById('global-timer');
-                let m = Math.floor(seconds / 60);
-                let s = seconds % 60;
-                timerEl.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        function startCountdown() {
+            const timerEl = document.getElementById('global-timer');
+            let timer = setInterval(() => {
+                timeLeft--;
+                let s = timeLeft < 10 ? `0${timeLeft}` : timeLeft;
+                timerEl.innerText = `00:${s}`;
 
-                // ሰዓቱ 0 ሲደርስ እና ተጫዋቹ ቢያንስ አንድ ቁጥር መርጦ ከሆነ ጨዋታው ይጀምራል
-                if(seconds === 0 && mySelected.length > 0 && !isGameStarted) {
-                    launchBingo();
+                if(timeLeft <= 0) {
+                    clearInterval(timer);
+                    if(mySelected.length > 0) {
+                        launchBingo();
+                    } else {
+                        alert("ምንም ቁጥር አልመረጡም! ገጹን Refresh አድርገው ይሞክሩ።");
+                        location.reload();
+                    }
                 }
-            });
+            }, 1000);
         }
 
         function selectNumber(n) {
@@ -175,7 +171,6 @@
                 if(mySelected.length >= 2) return;
                 mySelected.push(n);
                 el.classList.add('selected');
-                window.occupySlot(n, "User"); // ወደ Firebase መላክ
             }
             document.getElementById('sel-count').innerText = `${mySelected.length} / 2`;
         }
@@ -186,12 +181,12 @@
             document.getElementById('game-ui').style.display = 'flex';
             document.getElementById('ui-my-slots').innerText = mySelected.join(", ");
 
-            // የግራ ሰሌዳ (1-75)
+            // የግራ ሰሌዳ
             const mb = document.getElementById('main-board');
             mb.innerHTML = "";
             for(let i=1; i<=75; i++) mb.innerHTML += `<div class="b-num" id="bn-${i}">${i}</div>`;
 
-            // ካርቴላዎችን ማዘጋጀት
+            // ካርቴላዎችን ማመንጨት
             const holder = document.getElementById('cards-holder');
             holder.innerHTML = "";
             mySelected.forEach(slot => {
@@ -202,7 +197,7 @@
                 }
                 cardData[slot] = nums;
                 
-                let html = `<div class="cartela"><div class="c-grid">`;
+                let html = `<div class="cartela"><div style="color:var(--neon); font-size:10px; margin-bottom:4px;">CARTELA ${slot}</div><div class="c-grid">`;
                 nums.forEach((v, idx) => {
                     if(idx === 12) html += `<div class="c-cell marked">★</div>`;
                     else html += `<div class="c-cell" id="cell-${slot}-${v}">${v}</div>`;
@@ -211,14 +206,13 @@
                 holder.innerHTML += html;
             });
 
-            // የኳስ እጣዎችን ማዳመጥ
+            // የእጣ ቁጥሮችን ማዳመጥ (ከ Firebase)
             window.listenToGame((data) => {
                 if(data.ball) {
                     drawnBalls = data.history || [];
                     document.getElementById('big-ball').innerText = data.ball;
                     document.getElementById('ui-called').innerText = drawnBalls.length;
                     
-                    // በሰሌዳ እና በካርቴላ ላይ አውቶማቲክ ማርክ ማድረጊያ
                     document.getElementById(`bn-${data.ball}`)?.classList.add('active');
                     mySelected.forEach(slot => {
                         document.getElementById(`cell-${slot}-${data.ball}`)?.classList.add('marked');
@@ -226,15 +220,31 @@
                     });
                 }
             });
+
+            // ለሙከራ ኳስ የሚያወጣ Simulator (አድሚን ከሌለህ ይሄ ይሰራላሃል)
+            runDemo();
         }
 
         function checkWinner(slot) {
             let cardNums = cardData[slot];
             let matched = cardNums.filter(n => drawnBalls.includes(n));
-            if(matched.length >= 24) { // ኮከቧን ሳይጨምር 24 ቁጥሮች
+            if(matched.length >= 24) {
                 document.getElementById('bingo-msg').style.display = 'flex';
                 setTimeout(() => location.reload(), 6000);
             }
+        }
+
+        function runDemo() {
+            let p = Array.from({length: 75}, (_, i) => i + 1);
+            let h = [];
+            let simTimer = setInterval(() => {
+                if(p.length === 0) clearInterval(simTimer);
+                let idx = Math.floor(Math.random() * p.length);
+                let ball = p.splice(idx, 1)[0];
+                h.push(ball);
+                // Firebase ላይ እጣውን ይልካል
+                setDoc(doc(window.db, "live_bingo", "current"), { ball, history: h });
+            }, 3000);
         }
     </script>
 </body>
