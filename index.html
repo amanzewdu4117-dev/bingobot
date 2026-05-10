@@ -1,87 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="am">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>VamosBingo - Server Sync</title>
+    <title>Vamos Bingo - Multiplayer</title>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
+    
     <style>
-        :root { --bg: #050a10; --card-bg: #121a26; --accent: #00ffcc; --text: #ffffff; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        /* Header Stats */
-        .header { padding: 10px; flex-shrink: 0; border-bottom: 1px solid #1a2a3a; }
-        .top-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-        .stat-item { background: var(--card-bg); padding: 8px 2px; border-radius: 8px; text-align: center; border: 1px solid #232d3d; }
-        .stat-lbl { font-size: 8px; color: #4cafaf; text-transform: uppercase; }
-        .stat-val { font-size: 14px; font-weight: bold; color: var(--accent); }
-
-        /* Game Layout */
-        #game-view { display: none; padding: 10px; grid-template-columns: 1fr 1.3fr; gap: 10px; height: 100%; overflow: hidden; }
-        .ball-tracker { background: var(--card-bg); border-radius: 15px; padding: 10px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #1a2a3a; }
-        .track-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; overflow-y: auto; flex: 1; }
-        .t-num { background: #1c283d; text-align: center; font-size: 10px; padding: 6px 0; border-radius: 4px; color: #5d6d82; }
-        .t-num.on { background: var(--accent); color: #000; font-weight: bold; }
-
-        .big-ball { background: var(--card-bg); border: 2px solid #1a2a3a; border-radius: 20px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 10px; }
+        /* ያንተ CSS ኮዶች */
+        :root { --bg: #050c0e; --card: #0d1618; --neon: #00ffcc; --orange: #ff6600; --text: #ffffff; }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
+        .hidden { display: none !important; }
         
-        .active-cards { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-bottom: 20px; }
-        .play-card { background: var(--card-bg); border-radius: 12px; padding: 8px; border: 1px solid #232d3d; }
+        .header { display: flex; justify-content: space-around; background: var(--card); padding: 10px; border-bottom: 1px solid #1a2a3a; }
+        .stat-card { text-align: center; }
+        .stat-val { display: block; font-size: 18px; font-weight: bold; color: var(--neon); }
+        .stat-label { font-size: 10px; color: #4cafaf; text-transform: uppercase; }
+
+        /* Slot Grid Styling */
+        .scroll-container { height: 400px; overflow-y: auto; padding: 10px; }
+        .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+        .slot-item { background: #1a2628; border-radius: 5px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 1px solid #2a3a3c; cursor: pointer; }
+        .slot-item.selected { background: var(--orange); color: white; border-color: white; }
+
+        /* Game Board */
+        .game-layout { display: flex; gap: 10px; padding: 10px; height: 80vh; }
+        .called-numbers-list { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; width: 35%; overflow-y: auto; background: #081113; padding: 5px; border-radius: 10px; }
+        .t-num { background: #1a2628; text-align: center; font-size: 10px; padding: 5px 0; border-radius: 4px; color: #444; }
+        .t-num.on { background: var(--neon); color: black; font-weight: bold; }
+        
+        .my-cartelas { width: 65%; overflow-y: auto; padding-bottom: 50px; }
+        .bingo-card-small { background: #1a2628; border-radius: 10px; padding: 8px; margin-bottom: 15px; border: 1px solid #333; }
         .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; }
-        .p-cell { background: #1c283d; aspect-ratio: 1.1; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 12px; font-weight: bold; color: #cbd5e0; }
-        .p-cell.hit { background: var(--accent) !important; color: #000; box-shadow: 0 0 8px var(--accent); }
+        .cell { background: #0d1618; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 4px; font-weight: bold; }
+        .cell.marked { background: var(--orange) !important; color: white; box-shadow: 0 0 5px var(--orange); }
 
-        #selection-screen { flex: 1; overflow-y: auto; padding: 10px; }
-        .grid-500 { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
-        .slot { background: var(--card-bg); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 11px; border: 1px solid #232d3d; color: #a0b0c0; }
-        .slot.active { border-color: #fb8c00; background: #fb8c0033; color: white; }
-
-        .footer-action { padding: 15px; background: var(--bg); border-top: 1px solid #1a2a3a; }
-        .start-btn { background: var(--accent); color: #000; border: none; padding: 16px; font-weight: bold; border-radius: 12px; width: 100%; font-size: 16px; cursor: pointer; }
-
-        #win-overlay { position: fixed; inset: 0; background: rgba(5, 10, 16, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; text-align: center; }
+        .btn-full { background: var(--neon); color: black; border: none; padding: 15px; width: 90%; margin: 10px 5%; border-radius: 10px; font-weight: bold; font-size: 16px; position: fixed; bottom: 10px; left: 0; }
+        
+        /* Winner Screen */
+        .winner-content { text-align: center; padding: 50px 20px; }
+        .trophy { font-size: 80px; }
+        .gold-text { color: var(--orange); font-size: 28px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="win-overlay">
-    <h1 style="color:var(--accent); font-size: 50px; margin:0;">BINGO!</h1>
-    <h2 id="winner-text" style="color:#fff;"></h2>
-    <div style="font-size: 24px; color: #ffd700; margin: 10px 0;">+<span id="win-amount"></span> ETB</div>
-    <p style="color:#4cafaf;">አዲስ ጨዋታ በ <span id="seconds">5</span> ሰከንድ ይጀምራል...</p>
-</div>
-
-<div class="header">
-    <div class="top-bar">
-        <div class="stat-item"><div class="stat-lbl">ካርቴላ</div><div id="sel-count" class="stat-val">0</div></div>
-        <div class="stat-item"><div class="stat-lbl">Called</div><div id="called-count" class="stat-val">0</div></div>
-        <div class="stat-item"><div class="stat-lbl">Wallet</div><div id="wallet" class="stat-val">40</div></div>
-        <div class="stat-item"><div class="stat-lbl">ደራሽ</div><div id="derash" class="stat-val">0</div></div>
+    <div class="header">
+        <div class="stat-card"><span class="stat-label">ደራሽ</span><span id="pot" class="stat-val">2,000</span></div>
+        <div class="stat-card"><span class="stat-label">ኳስ</span><span id="called-count" class="stat-val">0</span></div>
+        <div class="stat-card"><span class="stat-label">Wallet</span><span id="wallet" class="stat-val">40</span></div>
     </div>
-</div>
 
-<div id="selection-screen">
-    <div class="grid-500" id="slot-grid"></div>
-    <div class="footer-action">
-        <button class="start-btn" onclick="joinGame()">አሁን ተጫወት (JOIN)</button>
-    </div>
-</div>
-
-<div id="game-view">
-    <div class="ball-tracker"><div class="track-grid" id="track-grid"></div></div>
-    <div style="display:flex; flex-direction:column; min-height:0;">
-        <div class="big-ball">
-            <div id="big-num" style="font-size:55px; font-weight:900;">--</div>
-            <div id="ball-letter" style="background:#fb8c00; color:#000; padding:1px 12px; border-radius:10px; font-size:13px; font-weight:bold;">WAITING</div>
+    <div id="selection-screen" class="screen">
+        <div style="text-align:center; padding:10px;">ካርቴላ ይምረጡ (20 ብር)</div>
+        <div class="scroll-container">
+            <div class="slot-grid" id="lobby-grid"></div>
         </div>
-        <div class="active-cards" id="active-cards"></div>
+        <button class="btn-full" onclick="startBingoGame()">ጨዋታውን ጀምር</button>
     </div>
-</div>
+
+    <div id="game-screen" class="screen hidden">
+        <div class="game-layout">
+            <div class="called-numbers-list" id="track-grid"></div>
+            <div class="my-cartelas" id="my-active-cards"></div>
+        </div>
+    </div>
+
+    <div id="winner-screen" class="screen hidden">
+        <div class="winner-content">
+            <div class="trophy">🏆</div>
+            <div class="gold-text">BINGO!</div>
+            <div class="winner-card">
+                <h3>እንኳን ደስ አለዎት!</h3>
+                <p>ያሸነፉት ካርቴላ: #<span id="win-id">--</span></p>
+                <h2 style="color:var(--neon)">+2,184 ETB</h2>
+            </div>
+            <button class="btn-full" onclick="location.reload()">ተመለስ</button>
+        </div>
+    </div>
 
 <script>
-    // 1. ፎቶ ላይ የላክኸው Config
+    // ⚠️ ያንተ Firebase Config
     const firebaseConfig = {
         apiKey: "AIzaSyD2l0Q4J...", 
         authDomain: "my-app-project-1e0bb.firebaseapp.com",
@@ -94,206 +94,103 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
-    let wallet = 40;
-    let selected = [], allCards = [], calledBalls = [];
 
-    // ዳታቤዝ አሰላለፍ - ጨዋታውን ከሰርቨር ጋር ማመሳሰል
-    function init() {
-        generateCards();
-        setupUI();
+    let selectedSlots = [];
+    let myTickets = [];
+
+    // 1. ሎቢውን መፍጠር
+    const lobbyGrid = document.getElementById('lobby-grid');
+    for (let i = 1; i <= 500; i++) {
+        let el = document.createElement('div');
+        el.className = 'slot-item';
+        el.innerText = i;
+        el.onclick = () => {
+            if(selectedSlots.includes(i)) {
+                selectedSlots = selectedSlots.filter(s => s !== i);
+                el.classList.remove('selected');
+            } else if(selectedSlots.length < 2) {
+                selectedSlots.push(i);
+                el.classList.add('selected');
+            }
+        };
+        lobbyGrid.appendChild(el);
+    }
+
+    // 2. የትራከር ግሪድ መፍጠር (ግራ በኩል ያለው)
+    const trackGrid = document.getElementById('track-grid');
+    for (let i = 1; i <= 75; i++) {
+        let d = document.createElement('div');
+        d.className = 't-num'; d.id = `t-${i}`; d.innerText = i;
+        trackGrid.appendChild(d);
+    }
+
+    function startBingoGame() {
+        if(selectedSlots.length === 0) return alert("ካርቴላ ይምረጡ");
         
-        // ደራሽ ብር እና የወጡ ቁጥሮችን ከሰርቨር መከታተል
+        // ካርቴላዎችን ማመንጨት
+        selectedSlots.forEach(id => {
+            let nums = [];
+            while(nums.length < 15) {
+                let r = Math.floor(Math.random() * 75) + 1;
+                if(!nums.includes(r)) nums.push(r);
+            }
+            myTickets.push({ id: id, numbers: nums });
+        });
+
+        showScreen('game-screen');
+        renderMyCards();
+        listenToFirebase();
+    }
+
+    function renderMyCards() {
+        const container = document.getElementById('my-active-cards');
+        myTickets.forEach(ticket => {
+            let cardHTML = `<div class="bingo-card-small">
+                <div style="font-size:10px; margin-bottom:5px; color:#aaa">CARTELA #${ticket.id}</div>
+                <div class="card-grid">`;
+            ticket.numbers.forEach(num => {
+                cardHTML += `<div class="cell" id="cell-${ticket.id}-${num}">${num}</div>`;
+            });
+            cardHTML += `</div></div>`;
+            container.innerHTML += cardHTML;
+        });
+    }
+
+    function listenToFirebase() {
         db.ref('gameState').on('value', (snap) => {
             const data = snap.val();
             if(!data) return;
 
-            document.getElementById('derash').textContent = Math.floor(data.pot || 0).toLocaleString();
-            calledBalls = data.history || [];
-            document.getElementById('called-count').textContent = calledBalls.length;
-            
-            updateBallDisplay();
-            checkBingoAll();
-        });
+            document.getElementById('pot').innerText = Math.floor(data.pot || 2000);
+            const history = data.history || [];
+            document.getElementById('called-count').innerText = history.length;
 
-        // አሸናፊ ሲኖር
-        db.ref('winner').on('value', (snap) => {
-            const winData = snap.val();
-            if(winData) showWin(winData);
-        });
-    }
+            history.forEach(num => {
+                // በትራከሩ ላይ ምልክት አድርግ
+                let t = document.getElementById(`t-${num}`);
+                if(t) t.classList.add('on');
 
-    function setupUI() {
-        const grid = document.getElementById('slot-grid');
-        for(let i=1; i<=500; i++) {
-            let s = document.createElement('div');
-            s.className = 'slot'; s.textContent = i;
-            s.onclick = () => {
-                if(selected.includes(i)) {
-                    selected = selected.filter(n => n !== i);
-                    s.classList.remove('active');
-                } else if(selected.length < 2) {
-                    selected.push(i);
-                    s.classList.add('active');
-                }
-                document.getElementById('sel-count').textContent = selected.length;
-            };
-            grid.appendChild(s);
-        }
+                // በካርቴላዎች ላይ ምልክት አድርግ
+                myTickets.forEach(ticket => {
+                    if (ticket.numbers.includes(num)) {
+                        let cell = document.getElementById(`cell-${ticket.id}-${num}`);
+                        if (cell) cell.classList.add('marked');
+                    }
+                });
+            });
 
-        const track = document.getElementById('track-grid');
-        for(let i=1; i<=75; i++) {
-            let d = document.createElement('div');
-            d.className = 't-num'; d.id = `t-${i}`; d.textContent = i;
-            track.appendChild(d);
-        }
-    }
-
-    function joinGame() {
-        if(selected.length === 0) return alert("ካርቴላ ይምረጡ");
-        let cost = selected.length * 20;
-        if(wallet < cost) return alert("በቂ ብር የለዎትም");
-
-        wallet -= cost;
-        document.getElementById('wallet').textContent = wallet;
-        
-        // 80% ወደ ደራሽ (Pot) ሰርቨር ላይ መጨመር
-        db.ref('gameState/pot').transaction(current => (current || 0) + (cost * 0.8));
-
-        document.getElementById('selection-screen').style.display = 'none';
-        document.getElementById('game-view').style.display = 'grid';
-        renderPlayerCards();
-    }
-
-    function renderPlayerCards() {
-        const container = document.getElementById('active-cards');
-        selected.forEach(id => {
-            let card = allCards[id-1];
-            let html = `<div class="play-card" id="card-${id}"><div class="card-grid">`;
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    let val = (r===2 && c===2) ? '★' : card[c][r];
-                    let hitClass = (val === '★') ? 'hit' : '';
-                    html += `<div class="p-cell ${hitClass}" data-val="${val}">${val}</div>`;
-                }
+            // አሸናፊ መኖሩን ማረጋገጥ (ለሙከራ ከ20 ጥሪ በኋላ)
+            if(history.length > 25) {
+                document.getElementById('win-id').innerText = selectedSlots[0];
+                showScreen('winner-screen');
             }
-            html += `</div></div>`;
-            container.innerHTML += html;
-        });
-        updateBallDisplay(); // እስካሁን የወጡትን ማርክ አድርግ
-    }
-
-    function updateBallDisplay() {
-        if(calledBalls.length === 0) return;
-        
-        const last = calledBalls[calledBalls.length - 1];
-        document.getElementById('big-num').textContent = last;
-        document.getElementById('ball-letter').textContent = "BALL: " + last;
-
-        calledBalls.forEach(n => {
-            let t = document.getElementById(`t-${n}`);
-            if(t) t.classList.add('on');
-            
-            document.querySelectorAll(`.p-cell[data-val="${n}"]`).forEach(c => c.classList.add('hit'));
         });
     }
 
-    function checkBingoAll() {
-        // የቢንጎ ህግጋት እዚህ ይቀጥላሉ...
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById(id).classList.remove('hidden');
     }
-
-    function generateCards() {
-        for(let i=0; i<500; i++) {
-            let card = [[],[],[],[],[]];
-            let ranges = [[1,15], [16,30], [31,45], [46,60], [61,75]];
-            for(let col=0; col<5; col++) {
-                while(card[col].length < 5) {
-                    let r = Math.floor(Math.random() * (ranges[col][1] - ranges[col][0] + 1)) + ranges[col][0];
-                    if(!card[col].includes(r)) card[col].push(r);
-                }
-            }
-            allCards.push(card);
-        }
-    }
-
-    init();
-</script>
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="am">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vamos Mini - Player</title>
-    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
-    <style>
-        /* ከላይ የነበረው ቆንጆ ዲዛይን እዚህ ይቀጥላል */
-        :root { --bg: #050a10; --accent: #00ffcc; --card: #121a26; }
-        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding: 10px; }
-        .stat-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
-        .stat { background: var(--card); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid #1a2a3a; }
-        .card-box { background: var(--card); padding: 15px; border-radius: 15px; margin-top: 10px; }
-        .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .cell { background: #1c283d; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 5px; font-weight: bold; }
-        .cell.hit { background: var(--accent); color: #000; box-shadow: 0 0 10px var(--accent); }
-        .big-ball { font-size: 50px; text-align: center; color: #fb8c00; font-weight: 900; margin: 20px 0; }
-    </style>
-</head>
-<body>
-
-<div class="stat-bar">
-    <div class="stat">ደራሽ<br><span id="pot">0</span></div>
-    <div class="stat">ቁጥር<br><span id="count">0</span>/75</div>
-    <div class="stat">Wallet<br><span id="wallet">40</span></div>
-</div>
-
-<div id="game-view">
-    <div class="big-ball" id="current-ball">--</div>
-    <div id="player-cards"></div>
-</div>
-
-<script>
-    // ያንተን Config እዚህ ጋር ተካ
-    const firebaseConfig = {
-        apiKey: "AIzaSy...", 
-        authDomain: "my-app-project-1e0bb.firebaseapp.com",
-        databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com",
-        projectId: "my-app-project-1e0bb",
-        storageBucket: "my-app-project-1e0bb.appspot.com",
-        messagingSenderId: "280130045202",
-        appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // 1. መረጃዎችን ከሰርቨር ተቀበል
-    db.ref('gameState').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if(!data) return;
-
-        document.getElementById('pot').textContent = data.pot || 0;
-        const history = data.history || [];
-        document.getElementById('count').textContent = history.length;
-
-        if(history.length > 0) {
-            const lastBall = history[history.length - 1];
-            document.getElementById('current-ball').textContent = lastBall;
-            markBalls(history);
-        }
-    });
-
-    function markBalls(history) {
-        history.forEach(num => {
-            const cells = document.querySelectorAll(`[data-num="${num}"]`);
-            cells.forEach(c => c.classList.add('hit'));
-        });
-    }
-
-    // ካርቴላ የማመንጫ ኮድ እዚህ ይገባል (ከዚህ ቀደም የሰራነው)
 </script>
 </body>
 </html>
