@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - COMPLETE SYSTEM</title>
+    <title>JOBE BINGO PRO</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
@@ -28,40 +28,46 @@
     </script>
 
     <style>
-        :root { --bg: #0b141a; --panel: #111b21; --neon: #00ffcc; --orange: #ff7e21; --text: #ffffff; --dark-blue: #1c2b3a; }
+        :root { --bg: #0b141a; --panel: #111b21; --neon: #00ffcc; --orange: #ff7e21; --text: #ffffff; --border: #1c2b3a; }
         * { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
         body { background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
 
-        /* Shared Header */
-        .header-box { display: flex; justify-content: space-around; padding: 12px; background: #0a1117; border-bottom: 1px solid var(--dark-blue); }
+        /* UI Headers */
+        .header-box { display: flex; justify-content: space-around; padding: 12px; background: #0a1117; border-bottom: 1px solid var(--border); }
         .stat { text-align: center; flex: 1; }
-        .stat label { display: block; font-size: 8px; color: #788da1; text-transform: uppercase; }
+        .stat label { display: block; font-size: 8px; color: #788da1; text-transform: uppercase; margin-bottom: 2px; }
         .stat span { font-size: 15px; font-weight: bold; color: var(--neon); }
 
         /* Phase 1: Slot Selection Screen */
         #selection-screen { display: flex; flex-direction: column; height: 100vh; }
         .slot-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 15px; overflow-y: auto; flex-grow: 1; }
-        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; transition: 0.2s; }
-        .slot.selected { border-color: var(--orange); background: rgba(255, 126, 33, 0.2); color: white; box-shadow: 0 0 8px var(--orange); }
+        .slot { background: #1a252f; aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1px solid #253341; cursor: pointer; color: #7a8a9a; }
+        .slot.selected { border-color: var(--orange); background: rgba(255, 126, 33, 0.2); color: white; box-shadow: 0 0 10px var(--orange); }
+        
+        .start-btn { background: var(--neon); color: black; border: none; padding: 15px; font-weight: bold; font-size: 16px; width: 90%; margin: 10px auto; border-radius: 10px; display: none; cursor: pointer; }
 
         /* Phase 2: Game Screen */
         #game-screen { display: none; height: 100vh; flex-direction: column; }
-        .game-layout { display: grid; grid-template-columns: 100px 1fr; gap: 10px; padding: 10px; height: calc(100vh - 70px); }
-        .board-side { background: var(--panel); border-radius: 10px; padding: 5px; overflow-y: auto; border: 1px solid var(--dark-blue); }
-        .bingo-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
-        .b-num { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; border-radius: 4px; color: #5c7894; }
+        .game-layout { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 10px; height: calc(100vh - 70px); }
+        
+        /* Left Board */
+        .board-side { background: var(--panel); border-radius: 12px; padding: 6px; border: 1px solid var(--border); overflow-y: auto; }
+        .bingo-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .b-num { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 8px; border-radius: 3px; color: #5c7894; }
         .b-num.active { background: var(--orange); color: white; font-weight: bold; }
 
+        /* Right Play Area */
         .play-side { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
         .ball-display { background: #000; border: 2px solid var(--neon); border-radius: 15px; padding: 15px; text-align: center; }
         .ball-val { font-size: 55px; font-weight: 900; color: var(--neon); line-height: 1; }
 
-        .cartela { background: #16212a; padding: 10px; border-radius: 12px; border: 1px solid #253341; margin-bottom: 10px; }
+        /* Cartela Design */
+        .cartela { background: #16212a; padding: 10px; border-radius: 12px; border: 1px solid #253341; margin-bottom: 15px; }
         .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; border-radius: 4px; color: white; }
-        .c-cell.marked { background: var(--neon) !important; color: black !important; font-weight: bold; animation: pop 0.3s; }
+        .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; border-radius: 4px; color: white; transition: 0.3s; }
+        .c-cell.marked { background: var(--neon) !important; color: black !important; font-weight: bold; box-shadow: 0 0 10px var(--neon); animation: pop 0.3s; }
 
-        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
+        @keyframes pop { 0% {transform: scale(1);} 50% {transform: scale(1.15);} 100% {transform: scale(1);} }
     </style>
 </head>
 <body onload="initSelection()">
@@ -70,9 +76,10 @@
         <div class="header-box">
             <div class="stat"><label>PLAYER</label><span>@User</span></div>
             <div class="stat"><label>SELECTED</label><span id="sel-count">0 / 2</span></div>
-            <div class="stat"><label>STARTS IN</label><span id="countdown" style="color:red">00:20</span></div>
+            <div class="stat"><label>STARTS IN</label><span id="countdown" style="color:red">00:15</span></div>
         </div>
         <div class="slot-grid" id="slot-container"></div>
+        <button class="start-btn" id="start-btn" onclick="startGameManual()">ጨዋታ አስጀምር</button>
     </div>
 
     <div id="game-screen">
@@ -94,33 +101,34 @@
     </div>
 
     <script>
-        let mySelectedSlots = [];
-        let cardData = {};
-        let gameHistory = [];
+        let selectedSlots = [];
+        let cardNumbers = {};
+        let drawnHistory = [];
 
         function initSelection() {
             const grid = document.getElementById('slot-container');
             for(let i=1; i<=120; i++) {
                 let div = document.createElement('div');
                 div.className = 'slot';
-                div.id = `slot-${i}`;
+                div.id = `s-${i}`;
                 div.innerText = i;
-                div.onclick = () => toggleSlot(i);
+                div.onclick = () => selectSlot(i);
                 grid.appendChild(div);
             }
-            startTimer(20); // 20 ሰከንድ መምረጫ ጊዜ
+            startTimer(15);
         }
 
-        function toggleSlot(n) {
-            let el = document.getElementById(`slot-${n}`);
-            if(mySelectedSlots.includes(n)) {
-                mySelectedSlots = mySelectedSlots.filter(x => x !== n);
+        function selectSlot(n) {
+            let el = document.getElementById(`s-${n}`);
+            if(selectedSlots.includes(n)) {
+                selectedSlots = selectedSlots.filter(x => x !== n);
                 el.classList.remove('selected');
-            } else if(mySelectedSlots.length < 2) {
-                mySelectedSlots.push(n);
+            } else if(selectedSlots.length < 2) {
+                selectedSlots.push(n);
                 el.classList.add('selected');
             }
-            document.getElementById('sel-count').innerText = `${mySelectedSlots.length} / 2`;
+            document.getElementById('sel-count').innerText = `${selectedSlots.length} / 2`;
+            if(selectedSlots.length > 0) document.getElementById('start-btn').style.display = 'block';
         }
 
         function startTimer(sec) {
@@ -129,30 +137,35 @@
                 document.getElementById('countdown').innerText = `00:${sec < 10 ? '0'+sec : sec}`;
                 if(sec <= 0) {
                     clearInterval(timer);
-                    if(mySelectedSlots.length > 0) startLiveGame();
+                    if(selectedSlots.length > 0) startGameManual();
                     else location.reload();
                 }
             }, 1000);
         }
 
-        function startLiveGame() {
+        function startGameManual() {
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
-            document.getElementById('ui-my-slots').innerText = mySelectedSlots.join(", ");
+            document.getElementById('ui-my-slots').innerText = selectedSlots.join(", ");
 
             // የግራ ሰሌዳ መሥራት
             const mb = document.getElementById('main-board');
             for(let i=1; i<=75; i++) mb.innerHTML += `<div class="b-num" id="bn-${i}">${i}</div>`;
 
-            // ካርቴላዎቹን በራንደም ቁጥር መሙላት
+            // ካርቴላዎቹን በዳታ መሙላት
             const holder = document.getElementById('cards-holder');
-            mySelectedSlots.forEach(slot => {
-                let nums = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, 25);
-                cardData[slot] = nums;
-                let html = `<div class="cartela"><div style="color:var(--neon); font-size:10px; margin-bottom:5px;">CARTELA ${slot}</div><div class="c-grid">`;
+            selectedSlots.forEach(slot => {
+                let nums = [];
+                while(nums.length < 25) {
+                    let r = Math.floor(Math.random() * 75) + 1;
+                    if(!nums.includes(r)) nums.push(r);
+                }
+                cardNumbers[slot] = nums;
+                let html = `<div class="cartela"><div style="color:var(--neon); font-size:10px; margin-bottom:5px; text-align:center;">CARTELA ${slot}</div><div class="c-grid">`;
                 nums.forEach((v, idx) => {
+                    let cellID = `c-${slot}-${v}`;
                     if(idx === 12) html += `<div class="c-cell marked">★</div>`;
-                    else html += `<div class="c-cell" id="c-${slot}-${v}">${v}</div>`;
+                    else html += `<div class="c-cell" id="${cellID}">${v}</div>`;
                 });
                 holder.innerHTML += html + `</div></div>`;
             });
@@ -160,32 +173,33 @@
             // Firebase ማዳመጥ
             window.listenToGame((data) => {
                 if(data.ball) {
-                    gameHistory = data.history || [];
+                    drawnHistory = data.history || [];
                     document.getElementById('big-ball').innerText = data.ball;
-                    document.getElementById('ui-called').innerText = gameHistory.length;
-                    autoMark();
+                    document.getElementById('ui-called').innerText = drawnHistory.length;
+                    
+                    // አውቶማቲክ ማርክ ማድረጊያ
+                    drawnHistory.forEach(num => {
+                        document.getElementById(`bn-${num}`)?.classList.add('active');
+                        selectedSlots.forEach(slot => {
+                            document.getElementById(`c-${slot}-${num}`)?.classList.add('marked');
+                        });
+                    });
                 }
             });
 
-            runBallDraw(); // እጣ ማውጣት ይጀምራል
-        }
-
-        function autoMark() {
-            gameHistory.forEach(num => {
-                document.getElementById(`bn-${num}`)?.classList.add('active');
-                mySelectedSlots.forEach(slot => {
-                    document.getElementById(`c-${slot}-${num}`)?.classList.add('marked');
-                });
-            });
+            runBallDraw();
         }
 
         async function runBallDraw() {
             let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
             let hist = [];
-            for(let b of pool) {
-                hist.push(b);
-                await setDoc(doc(window.db, "live_bingo", "current"), { ball: b, history: hist });
-                await new Promise(r => setTimeout(r, 3000));
+            for(let ball of pool) {
+                hist.push(ball);
+                await setDoc(doc(window.db, "live_bingo", "current"), { 
+                    ball: ball, 
+                    history: hist 
+                });
+                await new Promise(r => setTimeout(r, 3000)); // እጣ በየ 3 ሰከንዱ
             }
         }
     </script>
