@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - 800 SLOTS FULL SYSTEM</title>
+    <title>JOBE BINGO - AUTO START SYSTEM</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
@@ -43,7 +43,7 @@
         .stat-val.green { color: var(--neon); }
         .stat-val.red { color: #ff4d4d; }
 
-        /* Selection Phase (800 Slots Scrollable) */
+        /* Selection Screen (800 Slots) */
         #selection-screen { display: flex; flex-direction: column; height: 100vh; }
         .slot-container { background: var(--panel); margin: 12px; border-radius: 20px; padding: 15px; flex-grow: 1; display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
         .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; overflow-y: auto; padding-bottom: 20px; }
@@ -51,7 +51,10 @@
         .slot.selected { border-color: var(--neon); background: rgba(0, 255, 204, 0.1); color: var(--neon); box-shadow: 0 0 10px rgba(0, 255, 204, 0.2); }
         .slot.selected::after { content: "@User"; position: absolute; font-size: 7px; bottom: 8px; font-weight: bold; }
 
-        /* Game Phase */
+        /* Waiting Message */
+        .wait-msg { padding: 20px; text-align: center; color: var(--text-gray); font-size: 13px; font-style: italic; background: #0d161d; }
+
+        /* Game Screen */
         #game-screen { display: none; height: 100vh; flex-direction: column; }
         .game-layout { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 10px; height: calc(100vh - 85px); }
         .board-side { background: var(--panel); border-radius: 15px; padding: 8px; border: 1px solid var(--border); overflow-y: auto; }
@@ -70,10 +73,6 @@
         .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; border-radius: 5px; color: white; }
         .c-cell.marked { background: var(--neon) !important; color: black !important; font-weight: bold; }
 
-        .footer-action { padding: 15px; background: #0d161d; border-top: 1px solid var(--border); }
-        .btn-start { background: var(--neon); color: black; border: none; width: 100%; padding: 16px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; }
-
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-thumb { background: #253341; border-radius: 10px; }
     </style>
@@ -84,16 +83,13 @@
         <div class="header-stats">
             <div class="stat-box"><div class="stat-label">Player</div><div class="stat-val green">@User</div></div>
             <div class="stat-box"><div class="stat-label">Selected</div><div class="stat-val green" id="sel-count">0 / 2</div></div>
-            <div class="stat-box"><div class="stat-label">Closes In</div><div class="stat-val red" id="timer-label">00:45</div></div>
+            <div class="stat-box"><div class="stat-label">Starts In</div><div class="stat-val red" id="timer-label">00:30</div></div>
         </div>
         <div class="slot-container">
             <div style="font-size:12px; color:var(--text-gray); margin-bottom:12px; font-weight:bold;">SLOT NETWORK (800)</div>
-            <div class="slot-grid" id="slot-grid">
-                </div>
+            <div class="slot-grid" id="slot-grid"></div>
         </div>
-        <div class="footer-action">
-            <button class="btn-start" onclick="manualStart()">እጣ አስጀምር</button>
-        </div>
+        <div class="wait-msg">ጊዜው ሲያልቅ ጨዋታው በራሱ ይጀምራል...</div>
     </div>
 
     <div id="game-screen">
@@ -117,7 +113,7 @@
 
     <script>
         let myChoices = [];
-        let timeRemaining = 45; // 45 ሰከንድ
+        let timeRemaining = 30; // 30 ሰከንድ መቁጠሪያ
         let countdown;
 
         function initApp() {
@@ -147,13 +143,21 @@
                 let m = Math.floor(timeRemaining/60).toString().padStart(2,'0');
                 let s = (timeRemaining%60).toString().padStart(2,'0');
                 document.getElementById('timer-label').innerText = `${m}:${s}`;
-                if(timeRemaining <= 0) { clearInterval(countdown); manualStart(); }
+                
+                if(timeRemaining <= 0) { 
+                    clearInterval(countdown); 
+                    autoStartGame(); 
+                }
             }, 1000);
         }
 
-        async function manualStart() {
-            if(myChoices.length === 0) return alert("እባክዎ መጀመሪያ ካርቴላ ይምረጡ!");
-            clearInterval(countdown);
+        async function autoStartGame() {
+            // ምንም ካልተመረጠ ለሙከራ 1 እና 2ን ይውሰድ (ወይም ማስጠንቀቂያ መስጠት ይቻላል)
+            if(myChoices.length === 0) {
+                alert("ምንም ካርቴላ አልመረጡም! እባክዎ ገጹን Refresh አድርገው በጊዜ ይምረጡ።");
+                location.reload();
+                return;
+            }
 
             // ዳታቤዝ Reset
             await setDoc(doc(window.db, "live_bingo", "current"), { ball: null, history: [] });
