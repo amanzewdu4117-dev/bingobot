@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JOBE BINGO - FIXED AUTO-START</title>
+    <title>JOBE BINGO - LIVE DRAW SYSTEM</title>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDE-pMh_07nshv79477-QG-o2qfF28G2M8",
@@ -20,9 +20,8 @@
         const db = getFirestore(app);
         window.db = db;
 
-        // የላይቭ ዳታ ማዳመጫ
         window.listenToGame = (callback) => {
-            return onSnapshot(doc(db, "live_bingo", "current"), (snap) => { 
+            onSnapshot(doc(db, "live_bingo", "current"), (snap) => { 
                 if(snap.exists()) callback(snap.data()); 
             });
         };
@@ -41,32 +40,34 @@
         .stat-val.green { color: var(--neon); }
         .stat-val.red { color: #ff4d4d; }
 
-        /* Selection Phase */
+        /* Selection Screen */
         #selection-screen { display: flex; flex-direction: column; height: 100vh; }
-        .slot-container { background: var(--panel); margin: 12px; border-radius: 20px; padding: 15px; flex-grow: 1; display: flex; flex-direction: column; border: 1px solid var(--border); overflow: hidden; }
-        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; overflow-y: auto; padding-bottom: 20px; }
+        .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; overflow-y: auto; padding: 15px; flex-grow: 1; }
         .slot { aspect-ratio: 1; background: #1a252f; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #5c7894; border: 2px solid #253341; cursor: pointer; position: relative; }
         .slot.selected { border-color: var(--neon); background: rgba(0, 255, 204, 0.1); color: var(--neon); }
         .slot.selected::after { content: "@User"; position: absolute; font-size: 7px; bottom: 8px; font-weight: bold; }
 
-        /* Game Phase */
+        /* Game Screen */
         #game-screen { display: none; height: 100vh; flex-direction: column; }
-        .game-layout { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 10px; height: calc(100vh - 85px); }
+        .game-layout { display: grid; grid-template-columns: 110px 1fr; gap: 10px; padding: 10px; height: calc(100vh - 85px); }
         .board-side { background: var(--panel); border-radius: 15px; padding: 8px; border: 1px solid var(--border); overflow-y: auto; }
         .bingo-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-        .b-num { background: #1a252f; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 4px; color: #4a5d6e; }
-        .b-num.active { background: var(--orange); color: white; box-shadow: 0 0 8px var(--orange); }
+        .b-num { background: #1a252f; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 9px; border-radius: 4px; color: #4a5d6e; }
+        .b-num.active { background: var(--orange); color: white; font-weight: bold; box-shadow: 0 0 8px var(--orange); }
 
         .play-side { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
         .ball-display { background: #000; border: 2.5px solid var(--neon); border-radius: 20px; padding: 15px; text-align: center; }
-        .ball-val { font-size: 70px; font-weight: 900; color: var(--neon); line-height: 1; }
+        .ball-val { font-size: 65px; font-weight: 900; color: var(--neon); line-height: 1; }
         
+        .history-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+        .dot { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--neon); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--neon); }
+
         .cartela { background: #16212a; padding: 12px; border-radius: 15px; border: 1px solid #253341; margin-bottom: 15px; }
         .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
-        .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 15px; border-radius: 5px; color: white; }
+        .c-cell { background: #1d2938; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 14px; border-radius: 5px; color: white; }
         .c-cell.marked { background: var(--neon) !important; color: black !important; font-weight: bold; }
 
-        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #253341; border-radius: 10px; }
     </style>
 </head>
@@ -76,29 +77,25 @@
         <div class="header-stats">
             <div class="stat-box"><div class="stat-label">Player</div><div class="stat-val green">@User</div></div>
             <div class="stat-box"><div class="stat-label">Selected</div><div class="stat-val green" id="sel-count">0 / 2</div></div>
-            <div class="stat-box"><div class="stat-label">Starts In</div><div class="stat-val red" id="timer-label">00:10</div></div>
+            <div class="stat-box"><div class="stat-label">Closes In</div><div class="stat-val red" id="timer-label">00:20</div></div>
         </div>
-        <div class="slot-container">
-            <div class="slot-grid" id="slot-grid"></div>
-        </div>
-        <div style="padding:15px; text-align:center; font-size:12px; color:var(--text-gray); font-style: italic;">
-            ጊዜው ሲያልቅ ጨዋታው በራሱ ይጀምራል...
-        </div>
+        <div class="slot-grid" id="slot-grid"></div>
+        <div style="padding:15px; text-align:center; font-size:11px; color:var(--text-gray);">ጊዜው ሲያልቅ እጣ ማውጣት ይጀምራል...</div>
     </div>
 
     <div id="game-screen">
         <div class="header-stats">
             <div class="stat-box"><div class="stat-label">My Slots</div><div class="stat-val green" id="ui-slots">--</div></div>
             <div class="stat-box"><div class="stat-label">Called</div><div class="stat-val green" id="ui-called">0</div></div>
-            <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:var(--orange)">LIVE</div></div>
+            <div class="stat-box"><div class="stat-label">Status</div><div class="stat-val" style="color:var(--orange)">LIVE DRAW</div></div>
         </div>
         <div class="game-layout">
             <div class="board-side"><div id="main-board" class="bingo-board"></div></div>
             <div class="play-side">
                 <div class="ball-display">
-                    <div id="history-row" style="display:flex; justify-content:center; gap:5px; margin-bottom:10px;"></div>
+                    <div class="history-dots" id="history-row"></div>
                     <div class="ball-val" id="big-ball">--</div>
-                    <div style="font-size:10px; color:var(--neon); margin-top:5px;">CURRENT BALL</div>
+                    <div style="font-size:10px; color:var(--neon); margin-top:5px; letter-spacing:2px;">CURRENT BALL</div>
                 </div>
                 <div id="cards-container"></div>
             </div>
@@ -107,7 +104,7 @@
 
     <script>
         let myChoices = [];
-        let timeRemaining = 10; // ለሙከራ 10 ሰከንድ (ወደ 30 መቀየር ትችላለህ)
+        let timeLeft = 20;
         let timer;
 
         function initApp() {
@@ -133,50 +130,41 @@
 
         function startTimer() {
             timer = setInterval(() => {
-                timeRemaining--;
-                let s = timeRemaining.toString().padStart(2, '0');
-                document.getElementById('timer-label').innerText = `00:${s}`;
-
-                if (timeRemaining <= 0) {
+                timeLeft--;
+                document.getElementById('timer-label').innerText = `00:${timeLeft.toString().padStart(2, '0')}`;
+                if (timeLeft <= 0) {
                     clearInterval(timer);
-                    autoStartGame();
+                    startBingoGame();
                 }
             }, 1000);
         }
 
-        async function autoStartGame() {
-            // 1. ምርጫ መኖሩን ማረጋገጥ
+        async function startBingoGame() {
             if (myChoices.length === 0) {
-                alert("ምንም ካርቴላ አልመረጡም! ገጹን Refresh አድርገው ይምረጡ።");
+                alert("እባክዎ ካርቴላ ይምረጡ!");
                 location.reload();
                 return;
             }
 
-            // 2. ገጽ መቀየር
             document.getElementById('selection-screen').style.display = 'none';
             document.getElementById('game-screen').style.display = 'flex';
             document.getElementById('ui-slots').innerText = myChoices.join(", ");
 
-            // 3. ቦርዱን ማዘጋጀት
-            setupBoard();
+            setupUI();
 
-            // 4. Firebase ዳታ ማጽዳት (አዲስ ጨዋታ ለመጀመር)
-            try {
-                await setDoc(doc(window.db, "live_bingo", "current"), { ball: null, history: [] });
-                
-                // 5. እጣ ማውጣት መጀመር
-                startLiveDraw();
-                
-                // 6. ዳታውን ማዳመጥ
-                window.listenToGame((data) => {
-                    updateUI(data);
-                });
-            } catch (e) {
-                console.error("Firebase Error:", e);
-            }
+            // Firebaseን Reset አድርጎ እጣ መጀመር
+            await setDoc(doc(window.db, "live_bingo", "current"), { ball: null, history: [], status: "drawing" });
+            
+            // ዳታውን ማዳመጥ
+            window.listenToGame((data) => {
+                updateGameUI(data);
+            });
+
+            // እጣ ማውጣት መጀመር (Draw Loop)
+            runDrawLoop();
         }
 
-        function setupBoard() {
+        function setupUI() {
             const mb = document.getElementById('main-board');
             mb.innerHTML = "";
             for(let i=1; i<=75; i++) mb.innerHTML += `<div class="b-num" id="bn-${i}">${i}</div>`;
@@ -185,7 +173,7 @@
             container.innerHTML = "";
             myChoices.forEach(s => {
                 let nums = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5).slice(0, 25);
-                let html = `<div class="cartela"><div style="color:var(--neon); font-size:11px; text-align:center; margin-bottom:5px;">CARTELA ${s}</div><div class="c-grid">`;
+                let html = `<div class="cartela"><div style="color:var(--neon); font-size:10px; text-align:center; margin-bottom:5px;">CARTELA ${s}</div><div class="c-grid">`;
                 nums.forEach((v, idx) => {
                     if(idx === 12) html += `<div class="c-cell marked">★</div>`;
                     else html += `<div class="c-cell" id="c-${s}-${v}">${v}</div>`;
@@ -194,24 +182,40 @@
             });
         }
 
-        function updateUI(data) {
+        function updateGameUI(data) {
             const hist = data.history || [];
             document.getElementById('big-ball').innerText = data.ball || "--";
             document.getElementById('ui-called').innerText = hist.length;
 
+            // የታሪክ ማሳያ (Last 5)
+            const hRow = document.getElementById('history-row');
+            hRow.innerHTML = "";
+            [...hist].reverse().slice(0, 5).forEach(n => {
+                hRow.innerHTML += `<div class="dot">${n}</div>`;
+            });
+
+            // ቦርዱን ማብራት
             hist.forEach(n => {
                 document.getElementById(`bn-${n}`)?.classList.add('active');
-                myChoices.forEach(s => document.getElementById(`c-${s}-${n}`)?.classList.add('marked'));
+                myChoices.forEach(s => {
+                    document.getElementById(`c-${s}-${n}`)?.classList.add('marked');
+                });
             });
         }
 
-        async function startLiveDraw() {
+        async function runDrawLoop() {
             let pool = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
             let history = [];
+            
             for (let ball of pool) {
                 history.push(ball);
-                await setDoc(doc(window.db, "live_bingo", "current"), { ball: ball, history: history });
-                await new Promise(r => setTimeout(r, 4000));
+                try {
+                    await setDoc(doc(window.db, "live_bingo", "current"), { 
+                        ball: ball, 
+                        history: history 
+                    });
+                } catch(e) { console.error(e); }
+                await new Promise(r => setTimeout(r, 4000)); // በየ 4 ሴኮንዱ እጣ ይወጣል
             }
         }
     </script>
