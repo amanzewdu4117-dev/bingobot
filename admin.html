@@ -7,26 +7,44 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { font-family: sans-serif; background: #0f172a; color: white; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 20px; }
+        h2 { border-bottom: 2px solid #00ffcc; padding-bottom: 10px; color: #00ffcc; }
+        
         .request-card { 
-            background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; 
-            border-left: 5px solid #00ffcc; display: flex; justify-content: space-between; align-items: center;
+            background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 15px; 
+            border-left: 6px solid #ff9d00; display: flex; flex-direction: column; gap: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        .info b { color: #00ffcc; }
-        .amount { font-size: 20px; color: #ff9d00; font-weight: bold; }
-        .btn-group button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-left: 10px; }
-        .approve-btn { background: #00ffcc; color: #000; }
-        .reject-btn { background: #ff3e3e; color: #fff; }
-        .full-msg { font-size: 11px; color: #8899a6; margin-top: 5px; background: #000; padding: 5px; border-radius: 5px; }
+        
+        .info-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+        .user-name { font-weight: bold; font-size: 16px; color: #00ffcc; }
+        .amount-tag { background: #ff9d00; color: #000; padding: 5px 12px; border-radius: 20px; font-weight: 900; font-size: 18px; }
+        
+        .details { font-size: 13px; color: #cbd5e1; }
+        .details b { color: #94a3b8; }
+        
+        .full-msg { 
+            background: #000; padding: 10px; border-radius: 6px; font-size: 11px; 
+            color: #64748b; font-family: monospace; overflow-x: auto; white-space: pre-wrap;
+        }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
+        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        
+        .approve-btn { background: #00ffcc; color: #011210; }
+        .approve-btn:hover { background: #00e6b8; transform: scale(1.02); }
+        
+        .reject-btn { background: #ef4444; color: white; }
+        .reject-btn:hover { background: #dc2626; }
     </style>
 </head>
 <body>
 
-    <h2>የዲፖዚት ጥያቄዎች ማስተዳደሪያ (Admin)</h2>
+    <h2>የዲፖዚት ጥያቄዎች (Pending Requests)</h2>
     <div id="requests-list">በመጫን ላይ...</div>
 
 <script>
-    // Firebase Setup (ተመሳሳይ Config ይጠቀሙ)
+    // Firebase Config (ከ index.html ጋር ተመሳሳይ መሆኑን ያረጋግጡ)
     const firebaseConfig = { 
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
         databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -36,11 +54,12 @@
 
     const requestsDiv = document.getElementById('requests-list');
 
-    // ጥያቄዎችን ከFirebase ማንበብ
+    // 1. ጥያቄዎችን በቅጽበት መከታተል
     db.ref('deposit_requests').on('value', snap => {
         requestsDiv.innerHTML = "";
+        
         if (!snap.exists()) {
-            requestsDiv.innerHTML = "ምንም የዲፖዚት ጥያቄ የለም።";
+            requestsDiv.innerHTML = "<p style='color:#64748b; text-align:center;'>ምንም አዲስ የዲፖዚት ጥያቄ የለም።</p>";
             return;
         }
 
@@ -51,44 +70,56 @@
             const card = document.createElement('div');
             card.className = 'request-card';
             card.innerHTML = `
-                <div class="info">
-                    <div><b>ተጫዋች:</b> ${req.userName} (ID: ${req.userId})</div>
-                    <div><b>Transaction ID:</b> ${req.receipt}</div>
-                    <div class="amount">መጠን: ${req.amount} ETB</div>
-                    <div class="full-msg">ሙሉ መልእክት: ${req.full_msg || "የለም"}</div>
+                <div class="info-row">
+                    <div class="user-name">${req.userName}</div>
+                    <div class="amount-tag">${req.amount} ETB</div>
                 </div>
+                <div class="details">
+                    <div><b>User ID:</b> ${req.userId}</div>
+                    <div><b>Transaction ID:</b> <span style="color:#fff; letter-spacing:1px;">${req.receipt}</span></div>
+                    <div><b>ሰዓት:</b> ${new Date(req.timestamp).toLocaleString()}</div>
+                </div>
+                <div class="full-msg">የመልእክቱ ይዘት፦\n${req.full_msg || "የለም"}</div>
                 <div class="btn-group">
-                    <button class="approve-btn" onclick="approveRequest('${reqId}', '${req.userId}', ${req.amount})">አጽድቅ</button>
-                    <button class="reject-btn" onclick="deleteRequest('${reqId}')">ሰርዝ</button>
+                    <button class="approve-btn" onclick="approveRequest('${reqId}', '${req.userId}', '${req.amount}')">አጽድቅ (Approve)</button>
+                    <button class="reject-btn" onclick="deleteRequest('${reqId}')">ሰርዝ (Reject)</button>
                 </div>
             `;
             requestsDiv.appendChild(card);
         });
     });
 
-    // ማጽደቂያ ተግባር
+    // 2. ማጽደቅ እና ብር መሙላት
     function approveRequest(reqId, uId, amount) {
-        if(!confirm(amount + " ብር ወደ ተጫዋቹ አካውንት ለመጨመር እርግጠኛ ነዎት?")) return;
+        if(!confirm(`${amount} ብር ወደ ተጫዋቹ አካውንት ይጨመር?`)) return;
+
+        const amountNum = parseFloat(amount);
+        if(isNaN(amountNum)) {
+            alert("ስህተት: የብሩ መጠን ቁጥር አይደለም!");
+            return;
+        }
 
         const userRef = db.ref('users/' + uId + '/balance');
         
-        // 1. የተጫዋቹን ነባር ባላንስ አንብብና አዲሱን ጨምር
-        userRef.transaction(currentBalance => {
-            return (currentBalance || 0) + parseFloat(amount);
+        // በዳታቤዝ ውስጥ ያለውን ባላንስ ይጨምራል
+        userRef.transaction(current => {
+            return (current || 0) + amountNum;
         }, (error, committed) => {
             if (committed) {
-                // 2. ከተሳካ ጥያቄውን ከዝርዝር አጥፋ
-                deleteRequest(reqId);
-                alert("ሂሳብ በተሳካ ሁኔታ ተሞልቷል!");
+                // ከተሳካ ጥያቄውን ያስወግዳል
+                db.ref('deposit_requests/' + reqId).remove();
+                alert("ተሳክቷል! ብሩ ተሞልቷል።");
             } else {
                 alert("ስህተት ተፈጥሯል: " + error);
             }
         });
     }
 
-    // ጥያቄን የመሰረዝ ተግባር
+    // 3. ጥያቄውን መሰረዝ
     function deleteRequest(reqId) {
-        db.ref('deposit_requests/' + reqId).remove();
+        if(confirm("ጥያቄውን መሰረዝ ይፈልጋሉ?")) {
+            db.ref('deposit_requests/' + reqId).remove();
+        }
     }
 </script>
 </body>
