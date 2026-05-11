@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Jobe Bingo - All-in-One</title>
+    <title>Vamos Bingo - Professional Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -21,85 +21,84 @@
             margin: 0; overflow: hidden; height: 100vh;
         }
 
-        /* ገጾችን ለመቀያየር */
         .screen { display: none; height: 100vh; width: 100vw; position: absolute; }
         .active-screen { display: block !important; }
 
-        /* --- Dashboard (አንተ የፈለግኸው መጀመሪያ የሚመጣ ገጽ) --- */
-        .menu-header { text-align: center; padding: 30px 15px; background: linear-gradient(to bottom, #0d161f, #050a0f); }
-        .balance-card { background: #15222e; margin: 15px 30px; padding: 15px; border-radius: 15px; border: 1px solid rgba(0,255,204,0.2); text-align: center; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; overflow-y: auto; height: calc(100vh - 250px); }
-        
+        /* --- 1. Dashboard Style (አዲሱ መግቢያ) --- */
+        .menu-header { text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #0d161f, #050a0f); }
+        .balance-card { background: #15222e; margin: 20px 30px; padding: 15px; border-radius: 15px; border: 1px solid rgba(0,255,204,0.2); text-align: center; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
         .menu-btn { 
-            background: var(--panel-bg); border: 1px solid #1a2a38; color: white; 
-            padding: 15px 5px; border-radius: 12px; font-size: 13px; font-weight: bold; 
+            background: var(--panel-bg); border: 1px solid #1a2a38; color: white; padding: 20px 10px; 
+            border-radius: 15px; font-size: 13px; font-weight: bold; transition: 0.2s;
             display: flex; flex-direction: column; align-items: center; gap: 8px;
-            transition: 0.2s;
         }
-        .menu-btn:active { transform: scale(0.95); background: rgba(0, 255, 204, 0.1); }
-        .btn-icon { font-size: 24px; }
+        .menu-btn:active { transform: scale(0.95); border-color: var(--accent); }
 
-        /* --- Bingo UI (ጨዋታው) --- */
-        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; padding: 10px; }
-        .stat-card { background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); padding: 5px; border-radius: 8px; text-align: center; }
-        .stat-label { font-size: 8px; color: var(--text-gray); }
-        .stat-value { font-size: 12px; font-weight: bold; color: var(--accent); }
-        
-        .slots-container { height: calc(100vh - 280px); overflow-y: auto; padding: 10px; }
-        .slots-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; background: var(--panel-bg); padding: 10px; border-radius: 15px; }
-        .slot { aspect-ratio: 1; background: #15222e; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #4e6a85; border: 1px solid #1f3344; }
-        .slot.selected { background: rgba(0, 255, 204, 0.2); color: var(--accent); border: 1px solid var(--accent); }
-
-        .footer-nav { position: fixed; bottom: 0; width: 100%; background: #03070a; padding: 10px; border-top: 1px solid #1a2a38; display: flex; gap: 10px; overflow-x: auto; }
-        .mini-card { width: 100px; flex-shrink: 0; background: #0b141d; padding: 5px; border-radius: 8px; border: 1px solid #1e2d3a; font-size: 8px; }
-
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0003c; color: #fff; padding: 10px 20px; border-radius: 20px; z-index: 1000; display: none; }
+        /* --- 2. Bingo Lobby & Game Style (አንተ የላክኸው) --- */
+        .top-profile { padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 40px; height: 40px; background: var(--b-clr); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 10px rgba(0,210,255,0.4); }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 10px; }
+        .stat-card { background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); padding: 6px; border-radius: 10px; text-align: center; }
+        .stat-label { font-size: 8px; color: var(--text-gray); text-transform: uppercase; }
+        .stat-value { font-size: 13px; font-weight: 900; color: var(--accent); }
+        .scroll-container { height: calc(100vh - 260px); overflow-y: auto; padding: 10px; }
+        .slots-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; background: var(--panel-bg); padding: 12px; border-radius: 18px; border: 1px solid #1a2a38; }
+        .slot { aspect-ratio: 1; background: #15222e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #4e6a85; border: 1px solid #1f3344; transition: 0.2s; }
+        .slot.selected { background: rgba(0, 255, 204, 0.15); color: var(--accent); border: 2px solid var(--accent); box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); transform: scale(1.05); }
+        .footer-preview { position: fixed; bottom: 0; width: 100%; background: #03070a; padding: 12px; border-top: 2px solid #1a2a38; box-sizing: border-box; }
+        .card-scroller { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; min-height: 80px; }
+        .bingo-card { background: #0b141d; border: 2px solid #1e2d3a; border-radius: 12px; width: 115px; flex-shrink: 0; padding: 5px; }
+        .b-head-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 4px; }
+        .h-cell { height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border-radius: 3px; }
+        .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .c-cell { aspect-ratio: 1; background: #050a10; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border: 1px solid #162431; }
+        .c-cell.hit { background: var(--accent); color: #000; }
+        .c-cell.free-space { background: linear-gradient(135deg, var(--orange), #ff5e00); font-size: 8px; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(255, 157, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0); } }
     </style>
 </head>
 <body>
 
-    <div id="toast">በቂ የገንዘብ መጠን የለዎትም!</div>
-
-    <div id="dash-screen" class="screen active-screen">
+    <div id="main-menu" class="screen active-screen">
         <div class="menu-header">
-            <h2 id="u-name" style="margin: 0; color: var(--accent);">Loading...</h2>
-            <p style="font-size: 11px; color: var(--text-gray);">እንኳን ወደ ጆቤ ቢንጎ በደህና መጡ!</p>
+            <div class="user-avatar" id="m-avatar" style="margin: 0 auto 10px; width: 60px; height: 60px;">A</div>
+            <h2 id="m-username" style="margin: 0;">Loading...</h2>
         </div>
-        
         <div class="balance-card">
-            <div style="font-size: 10px; color: var(--text-gray);">የአሁኑ ቀሪ ሂሳብ</div>
-            <div style="font-size: 28px; font-weight: 900; color: var(--accent);"><span id="main-wallet">0.00</span> ETB</div>
+            <div style="font-size: 10px; color: var(--text-gray);">TOTAL BALANCE</div>
+            <div style="font-size: 26px; font-weight: 900; color: var(--accent);"><span id="dash-wallet">0.00</span> ETB</div>
         </div>
-
         <div class="menu-grid">
-            <button class="menu-btn" onclick="openGame()"><span class="btn-icon">🕹️</span> Play</button>
-            <button class="menu-btn" onclick="showMsg('Deposit')"><span class="btn-icon">💰</span> Deposit</button>
-            <button class="menu-btn" onclick="showMsg('Balance')"><span class="btn-icon">💳</span> Balance</button>
-            <button class="menu-btn" onclick="showMsg('Withdrawal')"><span class="btn-icon">💸</span> Withdrawal</button>
-            <button class="menu-btn" onclick="showMsg('Invite')"><span class="btn-icon">🔗</span> Invite</button>
-            <button class="menu-btn" onclick="showMsg('Instruction')"><span class="btn-icon">📖</span> Instruction</button>
-            <button class="menu-btn" onclick="showMsg('Support')"><span class="btn-icon">🆘</span> Support</button>
-            <button class="menu-btn" onclick="tele.close()"><span class="btn-icon">❌</span> Exit</button>
+            <button class="menu-btn" onclick="switchScreen('lobby-screen')"><span>🎮</span> Play Bingo</button>
+            <button class="menu-btn" onclick="handleAction('Deposit')"><span>💰</span> Deposit</button>
+            <button class="menu-btn" onclick="handleAction('Withdraw')"><span>💳</span> Withdraw</button>
+            <button class="menu-btn" onclick="handleAction('Invite')"><span>👥</span> Invite</button>
+            <button class="menu-btn" onclick="handleAction('Support')"><span>🆘</span> Support</button>
+            <button class="menu-btn" onclick="tele.close()"><span>❌</span> Exit</button>
         </div>
     </div>
 
     <div id="lobby-screen" class="screen">
-        <div style="padding: 10px; display: flex; align-items: center; gap: 10px;">
-            <button onclick="goHome()" style="background:none; border:none; color:white; font-size:20px;">←</button>
-            <div style="font-size: 14px; font-weight: bold;">ካርቴላ ይምረጡ</div>
+        <div class="top-profile" onclick="switchScreen('main-menu')">
+            <div class="user-avatar">←</div>
+            <div>
+                <div id="lobby-user" style="font-size: 13px; font-weight: bold;">@Player</div>
+                <div style="color:var(--text-gray); font-size: 10px;">Wallet: <span id="lobby-wallet">0.00</span> ETB</div>
+            </div>
         </div>
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-label">Wallet</div><div id="lob-wallet" class="stat-value">0.00</div></div>
+            <div class="stat-card" style="border-color:var(--accent)"><div class="stat-label">Timer</div><div id="timer" class="stat-value">15s</div></div>
             <div class="stat-card"><div class="stat-label">Selected</div><div id="sel-count" class="stat-value">0</div></div>
-            <div class="stat-card"><div class="stat-label">Cost</div><div id="total-cost" class="stat-value">0</div></div>
-            <div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Time</div><div id="timer" class="stat-value">15s</div></div>
+            <div class="stat-card"><div class="stat-label">Price</div><div class="stat-value">10 ETB</div></div>
+            <div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Jackpot</div><div class="stat-value" style="color:var(--orange)">2.5k</div></div>
         </div>
-        <div class="slots-container"><div id="slots-box" class="slots-grid"></div></div>
-        <div class="footer-nav" id="preview-box"></div>
+        <div class="scroll-container"><div class="slots-grid" id="slots-box"></div></div>
+        <div class="footer-preview"><div class="card-scroller" id="preview-box"></div></div>
     </div>
 
 <script>
-    // --- 1. Firebase Config (ከምስልህ የተወሰደ) ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
         authDomain: "my-app-project-1e0bb.firebaseapp.com",
@@ -112,44 +111,41 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 2. Telegram Integration ---
+    // --- TELEGRAM DATA ---
     const tele = window.Telegram.WebApp;
     tele.ready();
-    const user = tele.initDataUnsafe.user || { id: "test_user", first_name: "Amanuel" };
-    document.getElementById('u-name').innerText = user.first_name;
+    const user = tele.initDataUnsafe.user || { id: "12345", first_name: "User" };
 
     let wallet = 0;
     let selected = [];
-    const price = 10;
+    const cardPrice = 10;
 
-    // ብርን ከዳታቤዝ መጫን
+    // Sync Data
     db.ref('users/' + user.id).on('value', (snap) => {
-        const data = snap.val();
-        wallet = data ? data.balance : 500.00; // አዲስ ተጠቃሚ ከሆነ 500 ቦነስ
-        if(!data) db.ref('users/' + user.id).set({ name: user.first_name, balance: wallet });
+        const val = snap.val();
+        wallet = val ? val.balance : 500.00;
+        if(!val) db.ref('users/' + user.id).set({ name: user.first_name, balance: wallet });
         updateUI();
     });
 
     function updateUI() {
-        document.getElementById('main-wallet').innerText = wallet.toFixed(2);
-        document.getElementById('lob-wallet').innerText = wallet.toFixed(2);
+        document.getElementById('m-username').innerText = user.first_name;
+        document.getElementById('lobby-user').innerText = "@" + user.first_name;
+        document.getElementById('dash-wallet').innerText = wallet.toFixed(2);
+        document.getElementById('lobby-wallet').innerText = wallet.toFixed(2);
     }
 
-    // --- 3. Navigation ---
-    function openGame() {
-        document.getElementById('dash-screen').classList.remove('active-screen');
-        document.getElementById('lobby-screen').classList.add('active-screen');
-        initSlots();
-    }
-    function goHome() {
-        document.getElementById('lobby-screen').classList.remove('active-screen');
-        document.getElementById('dash-screen').classList.add('active-screen');
-    }
-    function showMsg(type) {
-        alert(type + " አማራጭ በቅርቡ ይከፈታል!");
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+        if(id === 'lobby-screen') initSlots();
     }
 
-    // --- 4. Bingo Logic ---
+    function handleAction(type) {
+        alert(type + " ገጽ በቅርቡ ይከፈታል!");
+    }
+
+    // --- LOBBY LOGIC ---
     function initSlots() {
         const box = document.getElementById('slots-box');
         box.innerHTML = '';
@@ -157,32 +153,19 @@
             let s = document.createElement('div');
             s.className = 'slot' + (selected.includes(i) ? ' selected' : '');
             s.innerText = i;
-            s.onclick = () => toggleSlot(i);
+            s.onclick = () => {
+                if(selected.includes(i)) {
+                    selected = selected.filter(x => x !== i);
+                    db.ref('users/'+user.id).update({ balance: wallet + cardPrice });
+                } else if(wallet >= cardPrice && selected.length < 3) {
+                    selected.push(i);
+                    db.ref('users/'+user.id).update({ balance: wallet - cardPrice });
+                }
+                document.getElementById('sel-count').innerText = selected.length;
+                initSlots();
+            };
             box.appendChild(s);
         }
-    }
-
-    function toggleSlot(id) {
-        if(selected.includes(id)) {
-            selected = selected.filter(x => x !== id);
-            db.ref('users/' + user.id).update({ balance: wallet + price });
-        } else {
-            if(wallet >= price && selected.length < 3) {
-                selected.push(id);
-                db.ref('users/' + user.id).update({ balance: wallet - price });
-            } else if(wallet < price) {
-                showToast();
-            }
-        }
-        document.getElementById('sel-count').innerText = selected.length;
-        document.getElementById('total-cost').innerText = selected.length * price;
-        initSlots();
-    }
-
-    function showToast() {
-        const t = document.getElementById('toast');
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
     }
 </script>
 </body>
