@@ -3,31 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aman Bingo - Admin Panel</title>
+    <title>Aman Bingo - Realtime Admin</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { background: #050a12; color: #fff; font-family: sans-serif; padding: 20px; }
-        h2 { color: #00ffcc; text-align: center; }
+        :root { --bg: #050a12; --panel: #111b27; --accent: #00ffcc; --orange: #ff9d00; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        h2 { color: var(--accent); text-align: center; border-bottom: 2px solid var(--panel); padding-bottom: 10px; }
+        
+        #requests-list { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+        
         .request-card { 
-            background: #111b27; border: 1px solid #1e2d3d; 
-            padding: 15px; border-radius: 12px; margin-bottom: 15px; 
+            background: var(--panel); border: 2px solid #1e2d3d; 
+            padding: 20px; border-radius: 15px; position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            animation: fadeIn 0.5s ease;
         }
-        .user-info { color: #ff9d00; font-weight: bold; font-size: 18px; }
-        .receipt { background: #000; padding: 5px; color: #00ffcc; font-family: monospace; }
-        .btn-group { margin-top: 10px; display: flex; gap: 10px; }
-        button { border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; flex: 1; }
-        .approve { background: #00ff85; color: #000; }
-        .reject { background: #ff3e3e; color: #fff; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .user-name { color: var(--orange); font-size: 20px; font-weight: 900; margin-bottom: 5px; }
+        .details { font-size: 14px; color: #8899a6; margin: 5px 0; }
+        .receipt-box { 
+            background: #000; padding: 10px; border-radius: 8px; 
+            color: var(--accent); font-family: monospace; font-size: 18px;
+            margin: 10px 0; border: 1px dashed var(--accent);
+        }
+        
+        .action-area { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
+        input[type="number"] {
+            flex: 1; background: #050a12; border: 1px solid #3d4d5d;
+            padding: 12px; border-radius: 8px; color: #fff; font-size: 16px;
+        }
+        .btn-approve { 
+            background: var(--accent); color: #000; border: none; 
+            padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;
+        }
+        .btn-reject { background: #ff3e3e; color: #fff; border: none; padding: 12px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <h2>የዲፖዚት ማጽደቂያ ገጽ (Admin)</h2>
-    <div id="requests-list">በመጫን ላይ...</div>
+    <h2>የዲፖዚት ማጽደቂያ (Realtime)</h2>
+    <div id="requests-list">ጥያቄዎችን በመጠበቅ ላይ... ⏳</div>
 
 <script>
-    // 1. Firebase Configuration (ያንተኑ መረጃ ተጠቀም)
     const firebaseConfig = { 
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
         databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -35,57 +54,52 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 2. የዲፖዚት ጥያቄዎችን አምጣ
+    // ቶሎ እንዲደርስ በ 'value' ፋንታ 'child_added' ወይም 'value' በሪል ታይም መጠቀም
     db.ref('deposit_requests').on('value', snap => {
         const list = document.getElementById('requests-list');
         list.innerHTML = "";
         
-        if(!snap.exists()) {
-            list.innerHTML = "<center>ምንም አዲስ ጥያቄ የለም</center>";
-            return;
-        }
+        let hasPending = false;
 
         snap.forEach(child => {
             const data = child.val();
             if(data.status === "pending") {
-                const card = `
-                    <div class="request-card">
-                        <div class="user-info">ተጫዋች፡ ${data.userName}</div>
-                        <p>ID: ${data.userId}</p>
-                        <p>የላከው ቁጥር፡ <span class="receipt">${data.receipt}</span></p>
-                        <div style="margin-bottom:10px;">የሚሞላው መጠን፡ <input type="number" id="amt-${child.key}" placeholder="ብር መጠን" style="width:100px;"></div>
-                        <div class="btn-group">
-                            <button class="approve" onclick="approveDeposit('${child.key}', '${data.userId}')">አጽድቅ (Approve)</button>
-                            <button class="reject" onclick="rejectDeposit('${child.key}')">ሰርዝ</button>
-                        </div>
+                hasPending = true;
+                const card = document.createElement('div');
+                card.className = 'request-card';
+                card.innerHTML = `
+                    <div class="user-name">👤 ${data.userName}</div>
+                    <div class="details">User ID: ${data.userId}</div>
+                    <div class="receipt-box">${data.receipt}</div>
+                    <div class="action-area">
+                        <input type="number" id="amt-${child.key}" placeholder="የብር መጠን">
+                        <button class="btn-approve" onclick="approve('${child.key}', '${data.userId}')">አጽድቅ</button>
+                        <button class="btn-reject" onclick="reject('${child.key}')">✖</button>
                     </div>
                 `;
-                list.innerHTML += card;
+                list.prepend(card); // አዲሱ ጥያቄ ከላይ እንዲመጣ
             }
         });
+
+        if(!hasPending) {
+            list.innerHTML = "<center style='color:#4e6a85; margin-top:50px;'>አዲስ የዲፖዚት ጥያቄ የለም።</center>";
+        }
     });
 
-    // 3. ዲፖዚት አጽድቅ (Approve)
-    function approveDeposit(reqId, userId) {
-        const amount = document.getElementById('amt-' + reqId).value;
-        if(!amount || amount <= 0) {
-            alert("እባክዎን የሚሞላውን የብር መጠን ያስገቡ!");
-            return;
-        }
+    function approve(reqId, uId) {
+        const amt = document.getElementById('amt-' + reqId).value;
+        if(!amt) return alert("እባክህ መጠን አስገባ!");
 
-        // ሀ. የተጫዋቹን ባላንስ ጨምር
-        const userRef = db.ref('users/' + userId + '/balance');
-        userRef.transaction(current => (current || 0) + parseFloat(amount))
+        // ባላንስ መጨመር
+        db.ref('users/' + uId + '/balance').transaction(curr => (curr || 0) + parseFloat(amt))
         .then(() => {
-            // ለ. የጥያቄውን ስታተስ ቀይር (ወደ ዳታቤዝ እንዳይመለስ)
-            db.ref('deposit_requests/' + reqId).update({ status: "approved", approvedAmount: amount });
-            alert("በተሳካ ሁኔታ ተሞልቷል! ✅");
+            db.ref('deposit_requests/' + reqId).update({ status: "approved" });
+            alert("ተቀብለሃል! ✅");
         });
     }
 
-    // 4. ዲፖዚት ሰርዝ (Reject)
-    function rejectDeposit(reqId) {
-        if(confirm("እርግጠኛ ነህ ይህንን ጥያቄ መሰረዝ ትፈልጋለህ?")) {
+    function reject(reqId) {
+        if(confirm("ይሰረዝ?")) {
             db.ref('deposit_requests/' + reqId).update({ status: "rejected" });
         }
     }
