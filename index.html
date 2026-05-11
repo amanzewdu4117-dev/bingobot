@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vamos Bingo - Professional Edition</title>
+    <title>Vamos Bingo - Full System</title>
     
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
@@ -11,11 +11,8 @@
 
     <style>
         :root {
-            --bg-dark: #050a0f;
-            --panel-bg: #0d161f;
-            --accent: #00ffcc;
-            --orange: #ff9d00;
-            --text-gray: #7d8b99;
+            --bg-dark: #050a0f; --panel-bg: #0d161f; --accent: #00ffcc;
+            --orange: #ff9d00; --text-gray: #7d8b99;
             --b-clr: #00d2ff; --i-clr: #9d50bb; --n-clr: #f0003c; --g-clr: #00f260; --o-clr: #ff9d00;
         }
 
@@ -24,113 +21,113 @@
             margin: 0; overflow: hidden; height: 100vh;
         }
 
-        /* Header & Stats */
+        .screen { display: none; height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; }
+        .active-screen { display: block !important; }
+
+        /* --- Dashboard Style --- */
+        .menu-header { text-align: center; padding: 40px 20px; background: linear-gradient(to bottom, #0d161f, #050a0f); }
+        .user-avatar-lg { width: 80px; height: 80px; border-radius: 50%; border: 3px solid var(--accent); margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; background: #1a2a38; font-size: 30px; overflow: hidden; }
+        .balance-card { background: #15222e; margin: 20px 30px; padding: 15px; border-radius: 15px; border: 1px solid rgba(0,255,204,0.2); }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 20px; }
+        .menu-btn { background: var(--panel-bg); border: 1px solid #1a2a38; color: white; padding: 20px 10px; border-radius: 15px; font-size: 13px; font-weight: bold; transition: 0.2s; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .menu-btn:active { transform: scale(0.95); border-color: var(--accent); }
+
+        /* --- Bingo Lobby & Game Style --- */
         .top-profile { padding: 10px 15px; display: flex; align-items: center; gap: 10px; }
-        .user-avatar { width: 40px; height: 40px; background: var(--b-clr); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; box-shadow: 0 0 10px rgba(0,210,255,0.4); }
-        
+        .user-avatar-sm { width: 35px; height: 35px; background: var(--b-clr); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 10px; }
-        .stat-card { 
-            background: var(--panel-bg); 
-            border: 1px solid rgba(255,255,255,0.1); 
-            padding: 6px; border-radius: 10px; text-align: center;
-        }
+        .stat-card { background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.1); padding: 6px; border-radius: 10px; text-align: center; }
         .stat-label { font-size: 8px; color: var(--text-gray); text-transform: uppercase; }
-        .stat-value { font-size: 13px; font-weight: 900; color: var(--accent); }
+        .stat-value { font-size: 12px; font-weight: 900; color: var(--accent); }
+        .scroll-container { height: calc(100vh - 280px); overflow-y: auto; padding: 10px; }
+        .slots-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; background: var(--panel-bg); padding: 12px; border-radius: 18px; }
+        .slot { aspect-ratio: 1; background: #15222e; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #4e6a85; border: 1px solid #1f3344; }
+        .slot.selected { background: rgba(0, 255, 204, 0.15); color: var(--accent); border: 2px solid var(--accent); }
+        .footer-preview { position: fixed; bottom: 0; width: 100%; background: #03070a; padding: 12px; border-top: 2px solid #1a2a38; }
+        .card-scroller { display: flex; gap: 10px; overflow-x: auto; min-height: 80px; }
 
-        /* Lobby Slots */
-        .scroll-container { height: calc(100vh - 260px); overflow-y: auto; padding: 10px; }
-        .slots-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; background: var(--panel-bg); padding: 12px; border-radius: 18px; border: 1px solid #1a2a38; }
-        .slot { 
-            aspect-ratio: 1; background: #15222e; border-radius: 8px; 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 11px; font-weight: bold; color: #4e6a85; cursor: pointer;
-            border: 1px solid #1f3344; transition: 0.2s;
-        }
-        .slot.selected { 
-            background: rgba(0, 255, 204, 0.15); 
-            color: var(--accent); border: 2px solid var(--accent); 
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3); transform: scale(1.05);
-        }
-
-        /* Footer Preview */
-        .footer-preview { position: fixed; bottom: 0; width: 100%; background: #03070a; padding: 12px; border-top: 2px solid #1a2a38; box-sizing: border-box; }
-        .card-scroller { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; min-height: 80px; }
-
-        /* Bingo Card Styling */
-        .bingo-card { background: #0b141d; border: 2px solid #1e2d3a; border-radius: 12px; width: 115px; flex-shrink: 0; padding: 5px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .b-head-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 4px; }
-        .h-cell { height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; border-radius: 3px; color: #fff; }
-        .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
-        .c-cell { aspect-ratio: 1; background: #050a10; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; border-radius: 3px; border: 1px solid #162431; }
+        /* Bingo Card */
+        .bingo-card { background: #0b141d; border: 2px solid #1e2d3a; border-radius: 12px; width: 110px; flex-shrink: 0; padding: 5px; }
+        .b-head-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
+        .h-cell { height: 15px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 900; border-radius: 2px; }
+        .c-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-top: 4px; }
+        .c-cell { aspect-ratio: 1; background: #050a10; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 1px solid #162431; }
         .c-cell.hit { background: var(--accent); color: #000; }
-        .c-cell.free-space { background: linear-gradient(135deg, var(--orange), #ff5e00); color: #fff; font-size: 8px; font-weight: 900; border: 1px solid #fff; animation: pulse 1.5s infinite; }
+        .c-cell.free-space { background: var(--orange); font-size: 7px; }
 
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0.7); } 70% { box-shadow: 0 0 0 5px rgba(255, 157, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 157, 0, 0); } }
-
-        /* Game Board */
-        .game-view { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; height: calc(100vh - 85px); }
-        .board-75 { background: var(--panel-bg); border-radius: 15px; padding: 10px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; height: 100%; border: 1px solid #1a2a38; }
-        .b-col { display: flex; flex-direction: column; gap: 2px; height: 100%; }
-        .num-box { flex: 1; background: #081017; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #3a4b5c; font-weight: bold; }
         .num-box.active { background: var(--orange); color: #000; box-shadow: 0 0 10px var(--orange); }
-
-        /* Win Overlay */
-        #win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .win-banner { font-size: 60px; font-weight: 900; color: var(--accent); text-shadow: 0 0 30px var(--accent); }
-
-        .hidden { display: none !important; }
-        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0003c; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: bold; z-index: 1000; display: none; }
+        #win-overlay { position: fixed; top:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0003c; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; z-index: 1000; display: none; }
     </style>
 </head>
 <body>
 
     <div id="toast">በቂ የገንዘብ መጠን የለዎትም!</div>
 
-    <div id="lobby-screen">
-        <div class="top-profile">
-            <div class="user-avatar" id="user-pfp">@</div>
-            <div class="user-info">
-                <div id="user-name" style="font-size: 13px; font-weight: bold;">Loading...</div>
+    <div id="main-menu" class="screen active-screen">
+        <div class="menu-header">
+            <div class="user-avatar-lg" id="menu-avatar">A</div>
+            <h2 id="menu-username" style="margin: 5px 0;">Loading...</h2>
+            <div class="balance-card">
+                <div style="font-size: 10px; color: var(--text-gray);">TOTAL BALANCE</div>
+                <div style="font-size: 26px; font-weight: 900; color: var(--accent);"><span id="dash-wallet">0.00</span> ETB</div>
+            </div>
+        </div>
+        <div class="menu-grid">
+            <button class="menu-btn" onclick="switchScreen('lobby-screen')"><span>🎮</span> Play Bingo</button>
+            <button class="menu-btn" onclick="handleDeposit()"><span>💰</span> Deposit</button>
+            <button class="menu-btn" onclick="handleWithdraw()"><span>💳</span> Withdraw</button>
+            <button class="menu-btn" onclick="alert('Invite link coming soon!')"><span>👥</span> Invite</button>
+            <button class="menu-btn" onclick="alert('Rule: 1 Card = 10 ETB')"><span>📘</span> Info</button>
+            <button class="menu-btn" onclick="tele.close()"><span>❌</span> Exit</button>
+        </div>
+    </div>
+
+    <div id="lobby-screen" class="screen">
+        <div class="top-profile" onclick="switchScreen('main-menu')">
+            <div class="user-avatar-sm">←</div>
+            <div>
+                <div id="lobby-user" style="font-size: 12px; font-weight: bold;">@User</div>
                 <div style="color:var(--text-gray); font-size: 9px;">Wallet: <span id="wallet-display">0.00</span> ETB</div>
             </div>
         </div>
         <div class="stats-grid">
             <div class="stat-card" style="border-color:var(--accent)"><div class="stat-label">Starts In</div><div id="timer" class="stat-value">10s</div></div>
             <div class="stat-card"><div class="stat-label">Cards</div><div id="selected-count" class="stat-value">0</div></div>
-            <div class="stat-card"><div class="stat-label">Cost (10 ETB)</div><div id="total-cost" class="stat-value">0.00</div></div>
+            <div class="stat-card"><div class="stat-label">Cost</div><div id="total-cost" class="stat-value">0.00</div></div>
             <div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Jackpot</div><div class="stat-value" style="color:var(--orange)">2,450</div></div>
         </div>
         <div class="scroll-container"><div class="slots-grid" id="slots-container"></div></div>
         <div class="footer-preview"><div class="card-scroller" id="preview-area"></div></div>
     </div>
 
-    <div id="game-screen" class="hidden">
+    <div id="game-screen" class="screen">
         <div class="stats-grid" style="padding-top: 10px;">
-            <div class="stat-card"><div class="stat-label">Cartela</div><div id="g-cartela" class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Cards</div><div id="g-count" class="stat-value">0</div></div>
             <div class="stat-card"><div class="stat-label">Called</div><div id="g-called" class="stat-value">0</div></div>
             <div class="stat-card"><div class="stat-label">Wallet</div><div id="g-wallet" class="stat-value">0.00</div></div>
             <div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Win</div><div class="stat-value" style="color:var(--orange)">0</div></div>
         </div>
-        <div class="game-view">
-            <div class="board-75" id="main-board"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; height: 75vh;">
+            <div id="main-board" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; background: var(--panel-bg); padding: 5px; border-radius: 10px;"></div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <div style="background: #000; height: 110px; border-radius: 20px; border: 2px solid #1a2a38; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                    <div id="ball-num" style="font-size: 50px; font-weight: 900; color: var(--orange);">--</div>
-                    <div id="ball-let" style="font-size: 11px; background: var(--b-clr); padding: 2px 12px; border-radius: 5px;">WAIT</div>
+                <div style="background: #000; height: 100px; border-radius: 15px; border: 2px solid #1a2a38; display: flex; align-items: center; justify-content: center; flex-direction: column;">
+                    <div id="ball-num" style="font-size: 40px; font-weight: 900; color: var(--orange);">--</div>
+                    <div id="ball-let" style="font-size: 10px; background: var(--b-clr); padding: 2px 10px; border-radius: 4px;">WAIT</div>
                 </div>
-                <div id="game-cards-area" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; align-items: center;"></div>
+                <div id="game-cards-area" style="overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 8px;"></div>
             </div>
         </div>
     </div>
 
-    <div id="win-overlay" class="hidden">
-        <div class="win-banner">BINGO!</div>
-        <div id="winner-info" style="color: #fff; margin: 20px;"></div>
-        <div style="color:var(--text-gray)">Next game in <span id="reset-timer">5</span>s</div>
+    <div id="win-overlay" style="display: none;">
+        <h1 style="font-size: 50px; color: var(--accent);">BINGO!</h1>
+        <div id="winner-info" style="margin: 20px;"></div>
+        <button onclick="location.reload()" style="padding: 10px 30px; border-radius: 20px; border: none; background: var(--accent); font-weight: bold;">Back to Lobby</button>
     </div>
 
 <script>
-    // --- 1. Firebase Config ---
+    // --- FIREBASE CONFIG ---
     const firebaseConfig = {
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
         authDomain: "my-app-project-1e0bb.firebaseapp.com",
@@ -140,39 +137,59 @@
         messagingSenderId: "280130045202",
         appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- 2. Telegram Auth ---
+    // --- TELEGRAM & USER DATA ---
     const tele = window.Telegram.WebApp;
     tele.ready();
     const tUser = tele.initDataUnsafe.user;
-    const userId = tUser ? tUser.id : "guest_123";
+    const userId = tUser ? tUser.id : "guest_user";
     const userName = tUser ? tUser.first_name : "Player";
 
-    document.getElementById('user-name').innerText = "@" + userName;
-    if(tUser && tUser.photo_url) {
-        document.getElementById('user-pfp').innerHTML = `<img src="${tUser.photo_url}" style="width:100%; border-radius:10px;">`;
-    }
-
-    // --- 3. Wallet Logic (Firebase Sync) ---
     let wallet = 0;
-    const cardPrice = 10.00;
+    const cardPrice = 10;
     let selected = [];
     let cartelaData = {};
 
-    db.ref('users/' + userId).on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            wallet = data.balance;
+    // Sync User Data
+    db.ref('users/' + userId).on('value', (snap) => {
+        const val = snap.val();
+        if(val) {
+            wallet = val.balance;
         } else {
-            wallet = 500.00; // ለሙከራ ያህል አዲስ ተጠቃሚ 500 ብር እንዲኖረው
+            wallet = 500.00; // Starting bonus
             db.ref('users/' + userId).set({ name: userName, balance: wallet });
         }
-        updateLobbyUI();
+        updateUI();
     });
 
+    function updateUI() {
+        document.getElementById('menu-username').innerText = "@" + userName;
+        document.getElementById('dash-wallet').innerText = wallet.toFixed(2);
+        document.getElementById('wallet-display').innerText = wallet.toFixed(2);
+        document.getElementById('g-wallet').innerText = wallet.toFixed(2);
+        document.getElementById('lobby-user').innerText = "@" + userName;
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active-screen'));
+        document.getElementById(id).classList.add('active-screen');
+        if(id === 'lobby-screen') initSlots();
+    }
+
+    // --- DEPOSIT & WITHDRAW ---
+    function handleDeposit() {
+        const amt = prompt("የሚሞሉትን የብር መጠን ያስገቡ:");
+        if(amt) alert("በቴሌብር 0910564117 ላይ " + amt + " ETB ልከው ደረሰኝ በቦቱ ይላኩ።");
+    }
+    function handleWithdraw() {
+        const amt = prompt("የሚያወጡትን የብር መጠን ያስገቡ:");
+        if(amt && amt <= wallet) alert("ጥያቄዎ ቀርቧል። በ 24 ሰአት ውስጥ ይላክለታል።");
+        else alert("በቂ ብር የለዎትም!");
+    }
+
+    // --- BINGO LOGIC ---
     const config = {
         letters: ['B','I','N','G','O'],
         colors: ['#00d2ff','#9d50bb','#f0003c','#00f260','#ff9d00'],
@@ -182,50 +199,33 @@
     function initSlots() {
         const container = document.getElementById('slots-container');
         container.innerHTML = '';
-        for(let i=1; i<=500; i++) {
+        for(let i=1; i<=100; i++) {
             let s = document.createElement('div');
-            s.className = 'slot'; s.innerText = i;
-            s.onclick = () => handleSelection(i, s);
+            s.className = 'slot' + (selected.includes(i) ? ' selected' : '');
+            s.innerText = i;
+            s.onclick = () => {
+                if(selected.includes(i)) {
+                    selected = selected.filter(x => x !== i);
+                    db.ref('users/'+userId).update({ balance: wallet + cardPrice });
+                } else if(wallet >= cardPrice && selected.length < 3) {
+                    selected.push(i);
+                    cartelaData[i] = generateGrid();
+                    db.ref('users/'+userId).update({ balance: wallet - cardPrice });
+                }
+                updateLobby();
+            };
             container.appendChild(s);
         }
-        startLobbyTimer();
+        startTimer();
     }
 
-    function handleSelection(id, element) {
-        if(selected.includes(id)) {
-            selected = selected.filter(x => x !== id);
-            delete cartelaData[id];
-            // ብር መመለስ
-            db.ref('users/' + userId).update({ balance: wallet + cardPrice });
-            element.classList.remove('selected');
-        } else {
-            if(wallet >= cardPrice) {
-                if(selected.length < 3) {
-                    selected.push(id);
-                    cartelaData[id] = generateGrid();
-                    // ብር መቀነስ
-                    db.ref('users/' + userId).update({ balance: wallet - cardPrice });
-                    element.classList.add('selected');
-                }
-            } else { showToast(); }
-        }
-    }
-
-    function showToast() {
-        const t = document.getElementById('toast');
-        t.style.display = 'block';
-        setTimeout(() => t.style.display = 'none', 2000);
-    }
-
-    function updateLobbyUI() {
-        document.getElementById('wallet-display').innerText = wallet.toFixed(2);
-        document.getElementById('g-wallet').innerText = wallet.toFixed(2);
+    function updateLobby() {
         document.getElementById('selected-count').innerText = selected.length;
         document.getElementById('total-cost').innerText = (selected.length * cardPrice).toFixed(2);
-        
         const prev = document.getElementById('preview-area');
         prev.innerHTML = '';
         selected.forEach(id => prev.innerHTML += createCardHTML(id, cartelaData[id]));
+        initSlots(); // Refresh selection visual
     }
 
     function generateGrid() {
@@ -242,7 +242,7 @@
     }
 
     function createCardHTML(id, grid) {
-        let html = `<div class="bingo-card" id="card-${id}"><div style="font-size:9px; text-align:center; color:var(--orange); font-weight:bold;">#${id}</div><div class="b-head-row">`;
+        let html = `<div class="bingo-card" id="card-${id}"><div style="font-size:8px; color:var(--orange);">#${id}</div><div class="b-head-row">`;
         config.letters.forEach((l, i) => html += `<div class="h-cell" style="background:${config.colors[i]}">${l}</div>`);
         html += `</div><div class="c-grid">`;
         grid.flat().forEach(cell => {
@@ -252,94 +252,65 @@
         return html + `</div></div>`;
     }
 
-    function startLobbyTimer() {
-        let sec = 10;
-        document.getElementById('timer').innerText = sec + "s";
-        let lobbyTimer = setInterval(() => {
-            sec--; document.getElementById('timer').innerText = sec + "s";
+    let timerStarted = false;
+    function startTimer() {
+        if(timerStarted) return;
+        timerStarted = true;
+        let sec = 15;
+        let t = setInterval(() => {
+            sec--;
+            document.getElementById('timer').innerText = sec + "s";
             if(sec <= 0) {
-                clearInterval(lobbyTimer);
-                if(selected.length > 0) startPlay();
-                else startLobbyTimer();
+                clearInterval(t);
+                if(selected.length > 0) startGame();
+                else { timerStarted = false; startTimer(); }
             }
         }, 1000);
     }
 
-    function startPlay() {
-        document.getElementById('lobby-screen').classList.add('hidden');
-        document.getElementById('game-screen').classList.remove('hidden');
+    function startGame() {
+        switchScreen('game-screen');
         const board = document.getElementById('main-board');
         board.innerHTML = '';
         for(let c=0; c<5; c++) {
-            let col = document.createElement('div'); col.className = 'b-col';
-            col.innerHTML = `<div style="background:${config.colors[c]}; font-size:11px; font-weight:900; text-align:center; border-radius:3px; height:25px; display:flex; align-items:center; justify-content:center; margin-bottom:4px;">${config.letters[c]}</div>`;
+            let col = document.createElement('div');
+            col.style.display = 'flex'; col.style.flexDirection = 'column'; col.style.gap = '2px';
             for(let i=config.ranges[c][0]; i<=config.ranges[c][1]; i++) {
-                col.innerHTML += `<div class="num-box" id="dot-${i}">${i}</div>`;
+                col.innerHTML += `<div id="dot-${i}" style="flex:1; background:#081017; font-size:9px; display:flex; align-items:center; justify-content:center; color:#3a4b5c;">${i}</div>`;
             }
             board.appendChild(col);
         }
-        const gCards = document.getElementById('game-cards-area');
-        gCards.innerHTML = '';
-        selected.forEach(id => gCards.innerHTML += createCardHTML(id, cartelaData[id]));
-        runEngine();
-    }
-
-    function runEngine() {
+        document.getElementById('game-cards-area').innerHTML = '';
+        selected.forEach(id => document.getElementById('game-cards-area').innerHTML += createCardHTML(id, cartelaData[id]));
+        
         let balls = Array.from({length: 75}, (_, i) => i + 1);
-        let called = 0;
-        let playInterval = setInterval(() => {
-            if(balls.length === 0) return clearInterval(playInterval);
+        let count = 0;
+        let gameInt = setInterval(() => {
+            if(balls.length === 0) return clearInterval(gameInt);
             let n = balls.splice(Math.floor(Math.random()*balls.length), 1)[0];
-            called++;
-            let cIdx = Math.floor((n-1)/15);
+            count++;
             document.getElementById('ball-num').innerText = n;
-            document.getElementById('ball-let').innerText = config.letters[cIdx];
-            document.getElementById('ball-let').style.background = config.colors[cIdx];
-            document.getElementById('g-called').innerText = called;
-            
-            if(document.getElementById(`dot-${n}`)) document.getElementById(`dot-${n}`).classList.add('active');
+            document.getElementById('g-called').innerText = count;
+            if(document.getElementById(`dot-${n}`)) document.getElementById(`dot-${n}`).style.background = var(--orange);
             
             selected.forEach(id => {
-                let grid = cartelaData[id];
-                grid.forEach(row => row.forEach(cell => { if(cell.num === n) cell.hit = true; }));
+                cartelaData[id].flat().forEach(cell => { if(cell.num === n) cell.hit = true; });
                 document.querySelectorAll(`#card-${id} .c-cell[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-                if(checkWin(grid)) endGame(id);
+                if(checkWin(cartelaData[id])) {
+                    clearInterval(gameInt);
+                    document.getElementById('win-overlay').style.display = 'flex';
+                    document.getElementById('winner-info').innerText = "Card #" + id + " WON!";
+                    db.ref('users/'+userId).update({ balance: wallet + (selected.length * 50) });
+                }
             });
-        }, 1500);
+        }, 1000);
     }
 
     function checkWin(grid) {
         for(let r=0; r<5; r++) if(grid[r].every(c => c.hit)) return true;
         for(let c=0; c<5; c++) { let win=true; for(let r=0; r<5; r++) if(!grid[r][c].hit) win=false; if(win) return true; }
-        let d1=true, d2=true;
-        for(let i=0; i<5; i++) { if(!grid[i][i].hit) d1=false; if(!grid[i][4-i].hit) d2=false; }
-        return d1 || d2;
+        return false;
     }
-
-    function endGame(winnerId) {
-        // አሸናፊው ሲኖር 5 እጥፍ ብር መሸለም
-        const reward = selected.length * cardPrice * 5;
-        db.ref('users/' + userId).update({ balance: wallet + reward });
-
-        document.getElementById('winner-info').innerText = `ካርቴላ #${winnerId} አሸንፏል! ሽልማት: ${reward} ETB`;
-        document.getElementById('win-overlay').classList.remove('hidden');
-        let c = 5;
-        let rInt = setInterval(() => {
-            c--; document.getElementById('reset-timer').innerText = c;
-            if(c <= 0) { clearInterval(rInt); resetGame(); }
-        }, 1000);
-    }
-
-    function resetGame() {
-        selected = []; cartelaData = {};
-        document.getElementById('win-overlay').classList.add('hidden');
-        document.getElementById('game-screen').classList.add('hidden');
-        document.getElementById('lobby-screen').classList.remove('hidden');
-        initSlots();
-        updateLobbyUI();
-    }
-
-    initSlots();
 </script>
 </body>
 </html>
