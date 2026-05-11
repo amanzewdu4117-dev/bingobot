@@ -3,48 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aman Bingo - Admin Panel</title>
+    <title>Aman Bingo - Smart Admin</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: white; padding: 20px; }
-        h2 { border-bottom: 2px solid #00ffcc; padding-bottom: 10px; color: #00ffcc; }
-        
+        body { font-family: 'Segoe UI', sans-serif; background: #050a12; color: white; padding: 15px; }
         .request-card { 
-            background: #1e293b; border-radius: 12px; padding: 18px; margin-bottom: 15px; 
-            border-left: 6px solid #ff9d00; display: flex; flex-direction: column; gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            background: #111b27; border-radius: 12px; padding: 15px; margin-bottom: 10px; 
+            border: 1px solid #1e2d3d; border-left: 5px solid #ff9d00;
         }
-        
-        .info-row { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-        .user-name { font-weight: bold; font-size: 16px; color: #00ffcc; }
-        .amount-tag { background: #ff9d00; color: #000; padding: 5px 12px; border-radius: 20px; font-weight: 900; font-size: 18px; }
-        
-        .details { font-size: 13px; color: #cbd5e1; }
-        .details b { color: #94a3b8; }
-        
-        .full-msg { 
-            background: #000; padding: 10px; border-radius: 6px; font-size: 11px; 
-            color: #64748b; font-family: monospace; overflow-x: auto; white-space: pre-wrap;
-        }
-
-        .btn-group { display: flex; gap: 10px; margin-top: 5px; }
-        button { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        
-        .approve-btn { background: #00ffcc; color: #011210; }
-        .approve-btn:hover { background: #00e6b8; transform: scale(1.02); }
-        
-        .reject-btn { background: #ef4444; color: white; }
-        .reject-btn:hover { background: #dc2626; }
+        .verified { border-left-color: #00ffcc !important; }
+        .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: #1e2d3d; color: #8899a6; }
+        .amt-text { color: #ff9d00; font-size: 20px; font-weight: bold; }
+        .btn-approve { background: #00ffcc; color: #000; border: none; padding: 10px; border-radius: 5px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .sms-log { font-size: 11px; color: #4e6a85; background: #000; padding: 5px; border-radius: 5px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <h2>የዲፖዚት ጥያቄዎች (Pending Requests)</h2>
+    <h2 style="color: #00ffcc;">የዲፖዚት ጥያቄዎች</h2>
     <div id="requests-list">በመጫን ላይ...</div>
 
 <script>
-    // Firebase Config (ከ index.html ጋር ተመሳሳይ መሆኑን ያረጋግጡ)
     const firebaseConfig = { 
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
         databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -54,72 +34,62 @@
 
     const requestsDiv = document.getElementById('requests-list');
 
-    // 1. ጥያቄዎችን በቅጽበት መከታተል
+    // 1. የዲፖዚት ጥያቄዎችን ማንበብ
     db.ref('deposit_requests').on('value', snap => {
         requestsDiv.innerHTML = "";
-        
-        if (!snap.exists()) {
-            requestsDiv.innerHTML = "<p style='color:#64748b; text-align:center;'>ምንም አዲስ የዲፖዚት ጥያቄ የለም።</p>";
-            return;
-        }
-
         snap.forEach(child => {
             const req = child.val();
-            const reqId = child.key;
-
+            const isVerified = req.amount !== "Checking...";
+            
             const card = document.createElement('div');
-            card.className = 'request-card';
+            card.className = `request-card ${isVerified ? 'verified' : ''}`;
             card.innerHTML = `
-                <div class="info-row">
-                    <div class="user-name">${req.userName}</div>
-                    <div class="amount-tag">${req.amount} ETB</div>
+                <div style="display:flex; justify-content:space-between;">
+                    <b>${req.userName}</b>
+                    <span class="status-badge">${req.status}</span>
                 </div>
-                <div class="details">
-                    <div><b>User ID:</b> ${req.userId}</div>
-                    <div><b>Transaction ID:</b> <span style="color:#fff; letter-spacing:1px;">${req.receipt}</span></div>
-                    <div><b>ሰዓት:</b> ${new Date(req.timestamp).toLocaleString()}</div>
-                </div>
-                <div class="full-msg">የመልእክቱ ይዘት፦\n${req.full_msg || "የለም"}</div>
-                <div class="btn-group">
-                    <button class="approve-btn" onclick="approveRequest('${reqId}', '${req.userId}', '${req.amount}')">አጽድቅ (Approve)</button>
-                    <button class="reject-btn" onclick="deleteRequest('${reqId}')">ሰርዝ (Reject)</button>
-                </div>
+                <div style="margin: 8px 0;">ID: <span style="color:#00ffcc">${req.receipt}</span></div>
+                <div class="amt-text">${req.amount} ${isVerified ? 'ETB' : ''}</div>
+                <button class="btn-approve" onclick="approve('${child.key}', '${req.userId}', '${req.amount}')" ${!isVerified ? 'disabled style="opacity:0.5"' : ''}>አጽድቅ (Approve)</button>
             `;
             requestsDiv.appendChild(card);
         });
     });
 
-    // 2. ማጽደቅ እና ብር መሙላት
-    function approveRequest(reqId, uId, amount) {
-        if(!confirm(`${amount} ብር ወደ ተጫዋቹ አካውንት ይጨመር?`)) return;
-
-        const amountNum = parseFloat(amount);
-        if(isNaN(amountNum)) {
-            alert("ስህተት: የብሩ መጠን ቁጥር አይደለም!");
-            return;
-        }
-
-        const userRef = db.ref('users/' + uId + '/balance');
+    // 2. SMS Listener (ከስልክህ የሚመጣውን SMS አመሳስል)
+    db.ref('bank_sms_logs').on('child_added', (smsSnap) => {
+        const sms = smsSnap.val().body;
         
-        // በዳታቤዝ ውስጥ ያለውን ባላንስ ይጨምራል
-        userRef.transaction(current => {
-            return (current || 0) + amountNum;
-        }, (error, committed) => {
-            if (committed) {
-                // ከተሳካ ጥያቄውን ያስወግዳል
+        // Transaction ID እና Amount መፈለጊያ
+        const idMatch = sms.match(/[A-Z0-9]{10,15}/i);
+        const amtMatch = sms.match(/([0-9,]+(\.[0-9]{2})?)\s?(ETB|ብር|birr)/i);
+
+        if (idMatch && amtMatch) {
+            const tId = idMatch[0];
+            const realAmt = amtMatch[1].replace(/,/g, '');
+
+            // በ deposit_requests ውስጥ ይሄ ID ካለ በራሱ Amount ይሞላል
+            db.ref('deposit_requests').orderByChild('receipt').equalTo(tId).once('value', (reqs) => {
+                reqs.forEach(r => {
+                    db.ref('deposit_requests/' + r.key).update({
+                        amount: realAmt,
+                        status: "Verified ✅"
+                    });
+                });
+            });
+        }
+    });
+
+    function approve(reqId, uId, amt) {
+        if(!confirm(amt + " ብር ለመሙላት እርግጠኛ ነዎት?")) return;
+        
+        const userBalRef = db.ref('users/' + uId + '/balance');
+        userBalRef.transaction(curr => (curr || 0) + parseFloat(amt), (err, ok) => {
+            if(ok) {
                 db.ref('deposit_requests/' + reqId).remove();
-                alert("ተሳክቷል! ብሩ ተሞልቷል።");
-            } else {
-                alert("ስህተት ተፈጥሯል: " + error);
+                alert("ተሳክቷል!");
             }
         });
-    }
-
-    // 3. ጥያቄውን መሰረዝ
-    function deleteRequest(reqId) {
-        if(confirm("ጥያቄውን መሰረዝ ይፈልጋሉ?")) {
-            db.ref('deposit_requests/' + reqId).remove();
-        }
     }
 </script>
 </body>
