@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aman Bingo - Admin Panel</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { background: #050a12; color: #fff; font-family: sans-serif; padding: 20px; }
+        h2 { color: #00ffcc; text-align: center; }
+        .request-card { 
+            background: #111b27; border: 1px solid #1e2d3d; 
+            padding: 15px; border-radius: 12px; margin-bottom: 15px; 
+        }
+        .user-info { color: #ff9d00; font-weight: bold; font-size: 18px; }
+        .receipt { background: #000; padding: 5px; color: #00ffcc; font-family: monospace; }
+        .btn-group { margin-top: 10px; display: flex; gap: 10px; }
+        button { border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; flex: 1; }
+        .approve { background: #00ff85; color: #000; }
+        .reject { background: #ff3e3e; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <h2>የዲፖዚት ማጽደቂያ ገጽ (Admin)</h2>
+    <div id="requests-list">በመጫን ላይ...</div>
+
+<script>
+    // 1. Firebase Configuration (ያንተኑ መረጃ ተጠቀም)
+    const firebaseConfig = { 
+        apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
+        databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // 2. የዲፖዚት ጥያቄዎችን አምጣ
+    db.ref('deposit_requests').on('value', snap => {
+        const list = document.getElementById('requests-list');
+        list.innerHTML = "";
+        
+        if(!snap.exists()) {
+            list.innerHTML = "<center>ምንም አዲስ ጥያቄ የለም</center>";
+            return;
+        }
+
+        snap.forEach(child => {
+            const data = child.val();
+            if(data.status === "pending") {
+                const card = `
+                    <div class="request-card">
+                        <div class="user-info">ተጫዋች፡ ${data.userName}</div>
+                        <p>ID: ${data.userId}</p>
+                        <p>የላከው ቁጥር፡ <span class="receipt">${data.receipt}</span></p>
+                        <div style="margin-bottom:10px;">የሚሞላው መጠን፡ <input type="number" id="amt-${child.key}" placeholder="ብር መጠን" style="width:100px;"></div>
+                        <div class="btn-group">
+                            <button class="approve" onclick="approveDeposit('${child.key}', '${data.userId}')">አጽድቅ (Approve)</button>
+                            <button class="reject" onclick="rejectDeposit('${child.key}')">ሰርዝ</button>
+                        </div>
+                    </div>
+                `;
+                list.innerHTML += card;
+            }
+        });
+    });
+
+    // 3. ዲፖዚት አጽድቅ (Approve)
+    function approveDeposit(reqId, userId) {
+        const amount = document.getElementById('amt-' + reqId).value;
+        if(!amount || amount <= 0) {
+            alert("እባክዎን የሚሞላውን የብር መጠን ያስገቡ!");
+            return;
+        }
+
+        // ሀ. የተጫዋቹን ባላንስ ጨምር
+        const userRef = db.ref('users/' + userId + '/balance');
+        userRef.transaction(current => (current || 0) + parseFloat(amount))
+        .then(() => {
+            // ለ. የጥያቄውን ስታተስ ቀይር (ወደ ዳታቤዝ እንዳይመለስ)
+            db.ref('deposit_requests/' + reqId).update({ status: "approved", approvedAmount: amount });
+            alert("በተሳካ ሁኔታ ተሞልቷል! ✅");
+        });
+    }
+
+    // 4. ዲፖዚት ሰርዝ (Reject)
+    function rejectDeposit(reqId) {
+        if(confirm("እርግጠኛ ነህ ይህንን ጥያቄ መሰረዝ ትፈልጋለህ?")) {
+            db.ref('deposit_requests/' + reqId).update({ status: "rejected" });
+        }
+    }
+</script>
+</body>
+</html>
