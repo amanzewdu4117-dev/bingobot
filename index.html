@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vamos Bingo - 10 ETB Edition</title>
+    <title>Vamos Bingo - Professional Edition</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <style>
         :root {
             --bg-dark: #050a0f;
@@ -74,7 +79,6 @@
         .win-banner { font-size: 60px; font-weight: 900; color: var(--accent); text-shadow: 0 0 30px var(--accent); }
 
         .hidden { display: none !important; }
-
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #f0003c; color: #fff; padding: 10px 20px; border-radius: 30px; font-size: 12px; font-weight: bold; z-index: 1000; display: none; }
     </style>
 </head>
@@ -84,10 +88,10 @@
 
     <div id="lobby-screen">
         <div class="top-profile">
-            <div class="user-avatar">@</div>
+            <div class="user-avatar" id="user-pfp">@</div>
             <div class="user-info">
-                <div style="font-size: 13px; font-weight: bold;">@Amanuuu1</div>
-                <div style="color:var(--text-gray); font-size: 9px;">Wallet: <span id="wallet-display">500.00</span> ETB</div>
+                <div id="user-name" style="font-size: 13px; font-weight: bold;">Loading...</div>
+                <div style="color:var(--text-gray); font-size: 9px;">Wallet: <span id="wallet-display">0.00</span> ETB</div>
             </div>
         </div>
         <div class="stats-grid">
@@ -104,7 +108,7 @@
         <div class="stats-grid" style="padding-top: 10px;">
             <div class="stat-card"><div class="stat-label">Cartela</div><div id="g-cartela" class="stat-value">0</div></div>
             <div class="stat-card"><div class="stat-label">Called</div><div id="g-called" class="stat-value">0</div></div>
-            <div class="stat-card"><div class="stat-label">Wallet</div><div id="g-wallet" class="stat-value">500.00</div></div>
+            <div class="stat-card"><div class="stat-label">Wallet</div><div id="g-wallet" class="stat-value">0.00</div></div>
             <div class="stat-card" style="border-color:var(--orange)"><div class="stat-label">Win</div><div class="stat-value" style="color:var(--orange)">0</div></div>
         </div>
         <div class="game-view">
@@ -126,11 +130,48 @@
     </div>
 
 <script>
-    let wallet = 500.00; 
-    const cardPrice = 10.00; // ዋጋው ወደ 10 ብር ተቀይሯል
+    // --- 1. Firebase Config ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
+        authDomain: "my-app-project-1e0bb.firebaseapp.com",
+        databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com",
+        projectId: "my-app-project-1e0bb",
+        storageBucket: "my-app-project-1e0bb.firebasestorage.app",
+        messagingSenderId: "280130045202",
+        appId: "1:280130045202:web:9b5f5bcfb4220489905fcb"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // --- 2. Telegram Auth ---
+    const tele = window.Telegram.WebApp;
+    tele.ready();
+    const tUser = tele.initDataUnsafe.user;
+    const userId = tUser ? tUser.id : "guest_123";
+    const userName = tUser ? tUser.first_name : "Player";
+
+    document.getElementById('user-name').innerText = "@" + userName;
+    if(tUser && tUser.photo_url) {
+        document.getElementById('user-pfp').innerHTML = `<img src="${tUser.photo_url}" style="width:100%; border-radius:10px;">`;
+    }
+
+    // --- 3. Wallet Logic (Firebase Sync) ---
+    let wallet = 0;
+    const cardPrice = 10.00;
     let selected = [];
     let cartelaData = {};
-    let playInterval, lobbyTimer;
+
+    db.ref('users/' + userId).on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            wallet = data.balance;
+        } else {
+            wallet = 500.00; // ለሙከራ ያህል አዲስ ተጠቃሚ 500 ብር እንዲኖረው
+            db.ref('users/' + userId).set({ name: userName, balance: wallet });
+        }
+        updateLobbyUI();
+    });
 
     const config = {
         letters: ['B','I','N','G','O'],
@@ -154,21 +195,20 @@
         if(selected.includes(id)) {
             selected = selected.filter(x => x !== id);
             delete cartelaData[id];
-            wallet += cardPrice;
+            // ብር መመለስ
+            db.ref('users/' + userId).update({ balance: wallet + cardPrice });
             element.classList.remove('selected');
         } else {
             if(wallet >= cardPrice) {
                 if(selected.length < 3) {
                     selected.push(id);
                     cartelaData[id] = generateGrid();
-                    wallet -= cardPrice;
+                    // ብር መቀነስ
+                    db.ref('users/' + userId).update({ balance: wallet - cardPrice });
                     element.classList.add('selected');
                 }
-            } else {
-                showToast();
-            }
+            } else { showToast(); }
         }
-        updateLobbyUI();
     }
 
     function showToast() {
@@ -215,7 +255,7 @@
     function startLobbyTimer() {
         let sec = 10;
         document.getElementById('timer').innerText = sec + "s";
-        lobbyTimer = setInterval(() => {
+        let lobbyTimer = setInterval(() => {
             sec--; document.getElementById('timer').innerText = sec + "s";
             if(sec <= 0) {
                 clearInterval(lobbyTimer);
@@ -247,7 +287,7 @@
     function runEngine() {
         let balls = Array.from({length: 75}, (_, i) => i + 1);
         let called = 0;
-        playInterval = setInterval(() => {
+        let playInterval = setInterval(() => {
             if(balls.length === 0) return clearInterval(playInterval);
             let n = balls.splice(Math.floor(Math.random()*balls.length), 1)[0];
             called++;
@@ -277,8 +317,11 @@
     }
 
     function endGame(winnerId) {
-        clearInterval(playInterval);
-        document.getElementById('winner-info').innerText = `ካርቴላ #${winnerId} አሸንፏል!`;
+        // አሸናፊው ሲኖር 5 እጥፍ ብር መሸለም
+        const reward = selected.length * cardPrice * 5;
+        db.ref('users/' + userId).update({ balance: wallet + reward });
+
+        document.getElementById('winner-info').innerText = `ካርቴላ #${winnerId} አሸንፏል! ሽልማት: ${reward} ETB`;
         document.getElementById('win-overlay').classList.remove('hidden');
         let c = 5;
         let rInt = setInterval(() => {
