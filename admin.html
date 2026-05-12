@@ -12,11 +12,11 @@
             background: #111b27; border-radius: 12px; padding: 15px; margin-bottom: 10px; 
             border: 1px solid #1e2d3d; border-left: 5px solid #ff9d00;
         }
-        .verified { border-left-color: #00ffcc !important; }
+        .verified { border-left-color: #00ffcc !important; border-width: 2px; }
         .status-badge { font-size: 10px; padding: 3px 8px; border-radius: 10px; background: #1e2d3d; color: #8899a6; }
         .amt-text { color: #ff9d00; font-size: 20px; font-weight: bold; }
-        .btn-approve { background: #00ffcc; color: #000; border: none; padding: 10px; border-radius: 5px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .sms-log { font-size: 11px; color: #4e6a85; background: #000; padding: 5px; border-radius: 5px; margin-top: 5px; }
+        .btn-approve { background: #00ffcc; color: #000; border: none; padding: 12px; border-radius: 5px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; background: #4e6a85; }
     </style>
 </head>
 <body>
@@ -25,6 +25,7 @@
     <div id="requests-list">በመጫን ላይ...</div>
 
 <script>
+    // Firebase Configuration
     const firebaseConfig = { 
         apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
         databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -37,57 +38,91 @@
     // 1. የዲፖዚት ጥያቄዎችን ማንበብ
     db.ref('deposit_requests').on('value', snap => {
         requestsDiv.innerHTML = "";
+        if (!snap.exists()) {
+            requestsDiv.innerHTML = "ምንም የዲፖዚት ጥያቄ የለም።";
+            return;
+        }
+
         snap.forEach(child => {
             const req = child.val();
-            const isVerified = req.amount !== "Checking...";
+            // 'amount' ወይም 'amt' መሆኑን ማረጋገጥ (undefined እንዳይል)
+            const displayAmt = req.amount || req.amt || "0";
+            const isVerified = (req.status === "Verified ✅" || req.amount > 0);
+            const receiptId = req.receipt || req.transactionId || "ID የለም";
             
             const card = document.createElement('div');
             card.className = `request-card ${isVerified ? 'verified' : ''}`;
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between;">
-                    <b>${req.userName}</b>
-                    <span class="status-badge">${req.status}</span>
+                    <b>${req.userName || 'ተጫዋች'}</b>
+                    <span class="status-badge">${req.status || 'Pending'}</span>
                 </div>
-                <div style="margin: 8px 0;">ID: <span style="color:#00ffcc">${req.receipt}</span></div>
-                <div class="amt-text">${req.amount} ${isVerified ? 'ETB' : ''}</div>
-                <button class="btn-approve" onclick="approve('${child.key}', '${req.userId}', '${req.amount}')" ${!isVerified ? 'disabled style="opacity:0.5"' : ''}>አጽድቅ (Approve)</button>
+                <div style="margin: 8px 0;">ID: <span style="color:#00ffcc">${receiptId}</span></div>
+                <div class="amt-text">${displayAmt} ETB</div>
+                <button class="btn-approve ${!isVerified ? 'btn-disabled' : ''}" 
+                        onclick="approve('${child.key}', '${req.userId}', '${displayAmt}', '${receiptId}')">
+                    አጽድቅ (Approve)
+                </button>
             `;
             requestsDiv.appendChild(card);
         });
     });
 
-    // 2. SMS Listener (ከስልክህ የሚመጣውን SMS አመሳስል)
+    // 2. SMS Listener - አውቶማቲክ ማረጋገጫ
     db.ref('bank_sms_logs').on('child_added', (smsSnap) => {
-        const sms = smsSnap.val().body;
+        const smsData = smsSnap.val();
+        const smsText = smsData.message || smsData.body || ""; // ሁለቱንም አማራጭ እንዲያይ
         
-        // Transaction ID እና Amount መፈለጊያ
-        const idMatch = sms.match(/[A-Z0-9]{10,15}/i);
-        const amtMatch = sms.match(/([0-9,]+(\.[0-9]{2})?)\s?(ETB|ብር|birr)/i);
+        // Transaction ID (10-15 ቁምፊዎች) እና የብር መጠን መፈለጊያ
+        const idMatch = smsText.match(/[A-Z0-9]{10,15}/i);
+        const amtMatch = smsText.match(/([0-9,]+(\.[0-9]{2})?)\s?(ETB|ብር|birr)/i);
 
         if (idMatch && amtMatch) {
             const tId = idMatch[0];
             const realAmt = amtMatch[1].replace(/,/g, '');
 
-            // በ deposit_requests ውስጥ ይሄ ID ካለ በራሱ Amount ይሞላል
-            db.ref('deposit_requests').orderByChild('receipt').equalTo(tId).once('value', (reqs) => {
+            // በ deposit_requests ውስጥ ይሄ ID ካለ ማዘመን
+            db.ref('deposit_requests').once('value', (reqs) => {
                 reqs.forEach(r => {
-                    db.ref('deposit_requests/' + r.key).update({
-                        amount: realAmt,
-                        status: "Verified ✅"
-                    });
+                    const rData = r.val();
+                    if (rData.receipt === tId || rData.transactionId === tId) {
+                        db.ref('deposit_requests/' + r.key).update({
+                            amount: realAmt,
+                            status: "Verified ✅"
+                        });
+                    }
                 });
             });
         }
     });
 
-    function approve(reqId, uId, amt) {
-        if(!confirm(amt + " ብር ለመሙላት እርግጠኛ ነዎት?")) return;
+    // 3. የማጽደቂያ ተግባር
+    async function approve(reqId, uId, amt, receiptId) {
+        // መጀመሪያ ዳታቤዝ ውስጥ መኖሩን በድጋሚ ማረጋገጥ
+        const smsSnap = await db.ref('bank_sms_logs').once('value');
+        let foundInSms = false;
+        
+        if (smsSnap.exists()) {
+            Object.values(smsSnap.val()).forEach(log => {
+                const msg = log.message || log.body || "";
+                if (msg.includes(receiptId)) foundInSms = true;
+            });
+        }
+
+        if (!foundInSms) {
+            alert("❌ ስህተት፡ ይህ ትራንዛክሽን በባንክ መልእክቶች ውስጥ አልተገኘም! እባክዎ በስልክዎ የደረሰውን SMS ያረጋግጡ።");
+            return;
+        }
+
+        if(!confirm(amt + " ብር ለተጫዋቹ ለመሙላት እርግጠኛ ነዎት?")) return;
         
         const userBalRef = db.ref('users/' + uId + '/balance');
         userBalRef.transaction(curr => (curr || 0) + parseFloat(amt), (err, ok) => {
             if(ok) {
                 db.ref('deposit_requests/' + reqId).remove();
-                alert("ተሳክቷል!");
+                alert("✅ በተሳካ ሁኔታ ተጸድቋል!");
+            } else {
+                alert("❌ ችግር አጋጥሟል፣ እባክዎ ደግመው ይሞክሩ።");
             }
         });
     }
