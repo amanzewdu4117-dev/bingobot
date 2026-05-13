@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aman Bingo Pro - Preview Edition</title>
+    <title>Aman Bingo Pro - Winner Edition</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -40,9 +40,6 @@
         .mini-grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
         .mini-cell { font-size: 8px; background: #111b27; color: #fff; text-align: center; padding: 2px 0; border-radius: 2px; }
 
-        /* Game Colors */
-        .cl-b { color: var(--b-clr); } .cl-i { color: var(--i-clr); } .cl-n { color: var(--n-clr); } .cl-g { color: var(--g-clr); } .cl-o { color: var(--o-clr); }
-
         /* Game Layout */
         .game-container { display: flex; gap: 6px; padding: 6px; flex: 1; overflow: hidden; }
         .board-side { flex: 1.8; background: var(--panel); border-radius: 8px; padding: 6px; border: 1px solid #1e2d3a; display: flex; flex-direction: column; }
@@ -57,6 +54,21 @@
         .card-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
         .card-cell { background: #15222e; border: 1px solid #1e2d3a; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border-radius: 2px; }
         .card-cell.hit { background: linear-gradient(135deg, var(--accent), #0099ff); color: #000; border: none; }
+
+        .cl-b { color: var(--b-clr); } .cl-i { color: var(--i-clr); } .cl-n { color: var(--n-clr); } .cl-g { color: var(--g-clr); } .cl-o { color: var(--o-clr); }
+
+        /* Winner Overlay */
+        #winner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 10, 18, 0.95); z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .win-title { font-size: 48px; font-weight: 900; color: var(--accent); margin: 0; text-shadow: 0 0 20px var(--accent); }
+        .win-msg { font-size: 18px; margin: 10px 0; color: #fff; }
+        .win-card-id { color: var(--orange); font-size: 24px; font-weight: bold; }
+        .restart-timer { margin-top: 30px; font-size: 14px; color: #556677; }
 
         .footer-panel { background: #0d1621; border-top: 1px solid var(--accent); height: 40px; display: flex; justify-content: space-around; align-items: center; }
     </style>
@@ -88,7 +100,6 @@
                 <div id="ball-num" style="font-size: 34px; font-weight: 900; color: #fff;">--</div>
             </div>
         </div>
-
         <div class="game-container">
             <div class="board-side">
                 <div style="display:grid; grid-template-columns: repeat(5,1fr); padding-bottom:5px; text-align:center; font-weight:900; font-size:12px;">
@@ -98,12 +109,19 @@
             </div>
             <div class="cards-side" id="active-cards-area"></div>
         </div>
-
         <div class="footer-panel">
             <div style="text-align:center; font-size:11px; color:var(--accent); font-weight:bold;">BALLS: <span id="balls-count">0</span>/75</div>
             <div style="color:var(--orange); font-weight:bold; font-size:10px;">LIVE GAME</div>
             <div style="text-align:center; font-size:11px; color:var(--accent); font-weight:bold;">STATUS: <span id="game-info">PLAYING</span></div>
         </div>
+    </div>
+
+    <!-- Winner Overlay -->
+    <div id="winner-overlay" class="hidden">
+        <h1 class="win-title">BINGO!</h1>
+        <div class="win-msg">አሸንፈዋል!</div>
+        <div class="win-msg">የአሸናፊ ካርቴላ ቁጥር: <span class="win-card-id" id="winner-card-num">#0</span></div>
+        <div class="restart-timer">አዲስ ጨዋታ በ <span id="reload-timer">5</span> ሰከንድ ውስጥ ይጀምራል...</div>
     </div>
 
 <script>
@@ -205,7 +223,6 @@
                         <div class="cl-b">B</div><div class="cl-i">I</div><div class="cl-n">N</div><div class="cl-g">G</div><div class="cl-o">O</div>
                     </div>
                     <div class="card-grid">`;
-            
             for(let r=0; r<5; r++) {
                 for(let c=0; c<5; c++) {
                     if(r==2 && c==2) html += `<div class="card-cell hit" style="font-size:6px">FREE</div>`;
@@ -261,11 +278,25 @@
 
             if(win && !isGameOver) {
                 isGameOver = true;
-                confetti();
-                document.getElementById('game-info').innerText = "BINGO!";
-                setTimeout(() => { location.reload(); }, 5000);
+                showWinner(id);
             }
         });
+    }
+
+    function showWinner(cardId) {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        document.getElementById('winner-card-num').innerText = "#" + cardId;
+        document.getElementById('winner-overlay').classList.remove('hidden');
+        
+        let count = 5;
+        const timer = setInterval(() => {
+            count--;
+            document.getElementById('reload-timer').innerText = count;
+            if(count <= 0) {
+                clearInterval(timer);
+                location.reload();
+            }
+        }, 1000);
     }
 
     initSelection();
