@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Aman Bingo Pro - Winner Edition</title>
+    <title>Aman Bingo Pro - Persistent Edition</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -22,14 +22,12 @@
 
         .top-status-bar { display: flex; justify-content: space-between; align-items: center; padding: 5px 12px; background: #000; border-bottom: 1px solid #1e2d3d; height: 35px; }
 
-        /* Selection Page */
         #selection-page { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
         .header { padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; background: var(--panel); border-bottom: 1px solid #1e2d3a; }
         #slots-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 15px; padding-bottom: 130px; }
         .slot-btn { height: 45px; background: #15222e; border: 1px solid #1f3344; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; }
         .slot-btn.selected { border-color: var(--accent); color: var(--accent); background: rgba(0, 255, 204, 0.1); }
 
-        /* Preview Bar */
         #selected-preview-bar {
             background: #0d1621; border-top: 2px solid var(--accent);
             padding: 10px; display: flex; gap: 12px; overflow-x: auto;
@@ -40,14 +38,12 @@
         .mini-grid-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; }
         .mini-cell { font-size: 8px; background: #111b27; color: #fff; text-align: center; padding: 2px 0; border-radius: 2px; }
 
-        /* Game Layout */
         .game-container { display: flex; gap: 6px; padding: 6px; flex: 1; overflow: hidden; }
         .board-side { flex: 1.8; background: var(--panel); border-radius: 8px; padding: 6px; border: 1px solid #1e2d3a; display: flex; flex-direction: column; }
         .board-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; overflow-y: auto; flex: 1; }
         .num-cell { background: #1a2634; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 4px; color: #778899; border: 1px solid #253547; }
         .num-cell.called { background: var(--orange); color: #000; font-weight: bold; }
 
-        /* Cards Side */
         .cards-side { flex: 1.2; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; }
         .active-card { background: #0d1621; border: 1px solid #1e2d3a; border-radius: 8px; padding: 8px; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         .card-header-letters { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin-bottom: 5px; text-align: center; font-weight: 900; font-size: 10px; }
@@ -57,7 +53,6 @@
 
         .cl-b { color: var(--b-clr); } .cl-i { color: var(--i-clr); } .cl-n { color: var(--n-clr); } .cl-g { color: var(--g-clr); } .cl-o { color: var(--o-clr); }
 
-        /* Winner Overlay */
         #winner-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(5, 10, 18, 0.95); z-index: 1000;
@@ -80,7 +75,6 @@
         <div style="color: var(--accent); font-weight: bold; font-size: 12px;"><span id="main-balance">0.00</span> ETB</div>
     </div>
 
-    <!-- Selection -->
     <div id="selection-page">
         <div class="header">
             <div style="font-size: 12px; color: #aaa;">እስከ 3 ካርቴላ ይምረጡ</div>
@@ -92,7 +86,6 @@
         </div>
     </div>
 
-    <!-- Game -->
     <div id="game-page" class="hidden">
         <div style="padding: 5px;">
             <div style="height: 50px; background: #000; border: 1.5px solid var(--accent); border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 15px;">
@@ -116,7 +109,6 @@
         </div>
     </div>
 
-    <!-- Winner Overlay -->
     <div id="winner-overlay" class="hidden">
         <h1 class="win-title">BINGO!</h1>
         <div class="win-msg">አሸንፈዋል!</div>
@@ -131,7 +123,30 @@
     const tg = window.Telegram.WebApp;
     const userId = (tg.initDataUnsafe?.user?.id || "dev").toString();
 
-    let selected = [], cardData = {}, calledNumbers = new Set(), isGameOver = false;
+    let selected = [], cardData = {}, calledNumbers = [], isGameOver = false, engineStarted = false;
+
+    // ጨዋታውን ከLocalStorage ለመጫን
+    function loadGameState() {
+        const saved = localStorage.getItem('bingo_state_' + userId);
+        if (saved) {
+            const state = JSON.parse(saved);
+            selected = state.selected;
+            cardData = state.cardData;
+            calledNumbers = state.calledNumbers;
+            return true;
+        }
+        return false;
+    }
+
+    // የጨዋታውን ሁኔታ ለማስቀመጥ
+    function saveGameState() {
+        const state = {
+            selected: selected,
+            cardData: cardData,
+            calledNumbers: calledNumbers
+        };
+        localStorage.setItem('bingo_state_' + userId, JSON.stringify(state));
+    }
 
     db.ref('users/' + userId).on('value', snap => {
         document.getElementById('main-balance').innerText = (snap.val()?.balance || 0).toLocaleString();
@@ -178,6 +193,11 @@
     }
 
     function initSelection() {
+        if (loadGameState() && calledNumbers.length > 0) {
+            switchToGame(true);
+            return;
+        }
+
         const grid = document.getElementById('slots-grid');
         for(let i=1; i<=500; i++) {
             let btn = document.createElement('div');
@@ -204,16 +224,18 @@
             if(timeLeft <= 0) { 
                 clearInterval(t); 
                 if(selected.length === 0) { selected.push(1); cardData[1] = generateCard(); }
-                switchToGame(); 
+                saveGameState();
+                switchToGame(false); 
             }
         }, 1000);
     }
 
-    function switchToGame() {
+    function switchToGame(isResume) {
         document.getElementById('selection-page').classList.add('hidden');
         document.getElementById('game-page').classList.remove('hidden');
         
         const area = document.getElementById('active-cards-area');
+        area.innerHTML = "";
         selected.forEach(id => {
             const data = cardData[id];
             let html = `
@@ -226,39 +248,61 @@
             for(let r=0; r<5; r++) {
                 for(let c=0; c<5; c++) {
                     if(r==2 && c==2) html += `<div class="card-cell hit" style="font-size:6px">FREE</div>`;
-                    else html += `<div class="card-cell" data-val="${data[c][r]}">${data[c][r]}</div>`;
+                    else {
+                        const val = data[c][r];
+                        const isHit = calledNumbers.includes(val) ? " hit" : "";
+                        html += `<div class="card-cell${isHit}" data-val="${val}">${val}</div>`;
+                    }
                 }
             }
             area.innerHTML += html + `</div></div>`;
         });
         
         const board = document.getElementById('game-board');
+        board.innerHTML = "";
         for(let r=0; r<15; r++) {
             for(let c=0; c<5; c++) {
                 let n = (c * 15) + r + 1;
-                board.innerHTML += `<div class="num-cell" id="bn-${n}">${n}</div>`;
+                const isCalled = calledNumbers.includes(n) ? " called" : "";
+                board.innerHTML += `<div class="num-cell${isCalled}" id="bn-${n}">${n}</div>`;
             }
         }
+
+        if (isResume && calledNumbers.length > 0) {
+            const lastN = calledNumbers[calledNumbers.length - 1];
+            updateBallDisplay(lastN);
+            document.getElementById('balls-count').innerText = calledNumbers.length;
+        }
+
         runEngine();
     }
 
+    function updateBallDisplay(n) {
+        let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+        const colors = {'B':'var(--b-clr)','I':'var(--i-clr)','N':'var(--n-clr)','G':'var(--g-clr)','O':'var(--o-clr)'};
+        document.getElementById('ball-num').innerText = n;
+        document.getElementById('ball-let').innerText = letter;
+        document.getElementById('ball-let').style.color = colors[letter];
+    }
+
     function runEngine() {
-        let balls = Array.from({length: 75}, (_, i) => i + 1);
+        if (engineStarted) return;
+        engineStarted = true;
+
+        let allBalls = Array.from({length: 75}, (_, i) => i + 1);
+        let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
+
         const engine = setInterval(() => {
-            if(isGameOver || balls.length == 0) return clearInterval(engine);
-            let n = balls.splice(Math.floor(Math.random()*balls.length), 1)[0];
-            calledNumbers.add(n);
+            if(isGameOver || remainingBalls.length == 0) return clearInterval(engine);
             
-            let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-            const colors = {'B':'var(--b-clr)','I':'var(--i-clr)','N':'var(--n-clr)','G':'var(--g-clr)','O':'var(--o-clr)'};
+            let n = remainingBalls.splice(Math.floor(Math.random()*remainingBalls.length), 1)[0];
+            calledNumbers.push(n);
+            saveGameState();
             
-            document.getElementById('ball-num').innerText = n;
-            document.getElementById('ball-let').innerText = letter;
-            document.getElementById('ball-let').style.color = colors[letter];
-            
+            updateBallDisplay(n);
             document.getElementById(`bn-${n}`)?.classList.add('called');
             document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-            document.getElementById('balls-count').innerText = calledNumbers.size;
+            document.getElementById('balls-count').innerText = calledNumbers.length;
             checkWin();
         }, 3000);
     }
@@ -267,7 +311,11 @@
         selected.forEach(id => {
             const data = cardData[id];
             let hits = Array(5).fill().map(() => Array(5).fill(false));
-            for(let c=0; c<5; c++) for(let r=0; r<5; r++) if((r==2 && c==2) || calledNumbers.has(data[c][r])) hits[c][r] = true;
+            for(let c=0; c<5; c++) {
+                for(let r=0; r<5; r++) {
+                    if((r==2 && c==2) || calledNumbers.includes(data[c][r])) hits[c][r] = true;
+                }
+            }
             
             let win = false;
             for(let i=0; i<5; i++) {
@@ -284,6 +332,7 @@
     }
 
     function showWinner(cardId) {
+        localStorage.removeItem('bingo_state_' + userId); // ጨዋታው ሲያልቅ ዳታውን እናጠፋለን
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         document.getElementById('winner-card-num').innerText = "#" + cardId;
         document.getElementById('winner-overlay').classList.remove('hidden');
