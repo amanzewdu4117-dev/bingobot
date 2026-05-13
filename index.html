@@ -124,26 +124,28 @@
     const userId = (tg.initDataUnsafe?.user?.id || "dev").toString();
 
     let selected = [], cardData = {}, calledNumbers = [], isGameOver = false, engineStarted = false;
+    let selectionFinished = false;
 
-    // ጨዋታውን ከLocalStorage ለመጫን
+    // ጨዋታውን ከቆመበት ለማስቀጠል መረጃዎችን መጫኛ
     function loadGameState() {
         const saved = localStorage.getItem('bingo_state_' + userId);
         if (saved) {
             const state = JSON.parse(saved);
-            selected = state.selected;
-            cardData = state.cardData;
-            calledNumbers = state.calledNumbers;
+            selected = state.selected || [];
+            cardData = state.cardData || {};
+            calledNumbers = state.calledNumbers || [];
+            selectionFinished = state.selectionFinished || false;
             return true;
         }
         return false;
     }
 
-    // የጨዋታውን ሁኔታ ለማስቀመጥ
     function saveGameState() {
         const state = {
             selected: selected,
             cardData: cardData,
-            calledNumbers: calledNumbers
+            calledNumbers: calledNumbers,
+            selectionFinished: selectionFinished
         };
         localStorage.setItem('bingo_state_' + userId, JSON.stringify(state));
     }
@@ -193,7 +195,10 @@
     }
 
     function initSelection() {
-        if (loadGameState() && calledNumbers.length > 0) {
+        loadGameState();
+        
+        // ምርጫው አልቆ ጨዋታው ተጀምሮ ከነበረ በቀጥታ ወደ ጨዋታው ውሰደው
+        if (selectionFinished) {
             switchToGame(true);
             return;
         }
@@ -203,6 +208,8 @@
             let btn = document.createElement('div');
             btn.className = "slot-btn";
             btn.innerText = i;
+            if(selected.includes(i)) btn.classList.add('selected');
+            
             btn.onclick = () => {
                 if(selected.includes(i)) {
                     selected = selected.filter(x => x !== i);
@@ -213,17 +220,27 @@
                     btn.classList.add('selected');
                 }
                 updatePreview();
+                saveGameState();
             };
             grid.appendChild(btn);
         }
+        updatePreview();
+
+        // የሰዓት መቆጣጠሪያ (በ refresh ጊዜ እንዳይጠፋ)
+        let savedTime = localStorage.getItem('bingo_timer_' + userId);
+        let timeLeft = savedTime ? parseInt(savedTime) : 15;
         
-        let timeLeft = 15;
+        document.getElementById('timer').innerText = timeLeft;
+
         const t = setInterval(() => {
             timeLeft--; 
             document.getElementById('timer').innerText = timeLeft;
+            localStorage.setItem('bingo_timer_' + userId, timeLeft);
+
             if(timeLeft <= 0) { 
                 clearInterval(t); 
-                if(selected.length === 0) { selected.push(1); cardData[1] = generateCard(); }
+                localStorage.removeItem('bingo_timer_' + userId);
+                selectionFinished = true;
                 saveGameState();
                 switchToGame(false); 
             }
@@ -236,27 +253,32 @@
         
         const area = document.getElementById('active-cards-area');
         area.innerHTML = "";
-        selected.forEach(id => {
-            const data = cardData[id];
-            let html = `
-                <div class="active-card">
-                    <div style="font-size: 8px; color: #556677; margin-bottom: 4px;">CARD #${id}</div>
-                    <div class="card-header-letters">
-                        <div class="cl-b">B</div><div class="cl-i">I</div><div class="cl-n">N</div><div class="cl-g">G</div><div class="cl-o">O</div>
-                    </div>
-                    <div class="card-grid">`;
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    if(r==2 && c==2) html += `<div class="card-cell hit" style="font-size:6px">FREE</div>`;
-                    else {
-                        const val = data[c][r];
-                        const isHit = calledNumbers.includes(val) ? " hit" : "";
-                        html += `<div class="card-cell${isHit}" data-val="${val}">${val}</div>`;
+
+        if (selected.length === 0) {
+            area.innerHTML = `<div style="color: #4e6a85; font-size: 11px; text-align: center; margin-top: 30px;">ምንም የተመረጠ ካርቴላ የለም።</div>`;
+        } else {
+            selected.forEach(id => {
+                const data = cardData[id];
+                let html = `
+                    <div class="active-card">
+                        <div style="font-size: 8px; color: #556677; margin-bottom: 4px;">CARD #${id}</div>
+                        <div class="card-header-letters">
+                            <div class="cl-b">B</div><div class="cl-i">I</div><div class="cl-n">N</div><div class="cl-g">G</div><div class="cl-o">O</div>
+                        </div>
+                        <div class="card-grid">`;
+                for(let r=0; r<5; r++) {
+                    for(let c=0; c<5; c++) {
+                        if(r==2 && c==2) html += `<div class="card-cell hit" style="font-size:6px">FREE</div>`;
+                        else {
+                            const val = data[c][r];
+                            const isHit = calledNumbers.includes(val) ? " hit" : "";
+                            html += `<div class="card-cell${isHit}" data-val="${val}">${val}</div>`;
+                        }
                     }
                 }
-            }
-            area.innerHTML += html + `</div></div>`;
-        });
+                area.innerHTML += html + `</div></div>`;
+            });
+        }
         
         const board = document.getElementById('game-board');
         board.innerHTML = "";
@@ -290,6 +312,7 @@
         engineStarted = true;
 
         let allBalls = Array.from({length: 75}, (_, i) => i + 1);
+        // ቀደም ብለው የወጡትን ቁጥሮች መቀነስ
         let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
 
         const engine = setInterval(() => {
@@ -308,6 +331,8 @@
     }
 
     function checkWin() {
+        if (selected.length === 0) return;
+        
         selected.forEach(id => {
             const data = cardData[id];
             let hits = Array(5).fill().map(() => Array(5).fill(false));
@@ -332,7 +357,10 @@
     }
 
     function showWinner(cardId) {
-        localStorage.removeItem('bingo_state_' + userId); // ጨዋታው ሲያልቅ ዳታውን እናጠፋለን
+        // ጨዋታው ሲያልቅ ዳታውን አጽዳ
+        localStorage.removeItem('bingo_state_' + userId);
+        localStorage.removeItem('bingo_timer_' + userId);
+        
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         document.getElementById('winner-card-num').innerText = "#" + cardId;
         document.getElementById('winner-overlay').classList.remove('hidden');
