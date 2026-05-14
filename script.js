@@ -1,4 +1,4 @@
-// script.js - Full Automated AI Version (With 5 AI Players)
+// script.js - Automated 5 AI Players with Count Display
 const firebaseConfig = { 
     apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
     databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -46,13 +46,13 @@ function generateCard() {
     return card;
 }
 
-// 3. AI ምርጫ (5 AI ተጫዋቾች በራሳቸው እንዲመርጡ)
+// 3. AI ምርጫ እና የግሪድ ዝግጅት
 function initSelection() {
     loadGameState();
     
     // 5 ቦቶች ገና ሲከፈት በራሳቸው እንዲመርጡ
     if (selected.length === 0) {
-        while(selected.length < 5) { // እዚህ ጋር ነው 5 የተደረገው
+        while(selected.length < 5) {
             let randomSlot = Math.floor(Math.random() * 500) + 1;
             if(!selected.includes(randomSlot)) {
                 selected.push(randomSlot);
@@ -76,19 +76,19 @@ function initSelection() {
         btn.className = "slot-btn";
         btn.innerText = i;
         
-        // AI የመረጣቸው በቢጫ እንዲታዩ
+        // AI የመረጣቸው ምልክት እንዲደረግባቸው
         if(selected.includes(i)) {
             btn.classList.add('selected');
-            btn.style.backgroundColor = "#ffae00"; 
-            btn.style.color = "#000";
+            btn.style.borderColor = "var(--orange)";
+            btn.style.color = "var(--orange)";
         }
         
         btn.onclick = () => {
             if(selected.includes(i)) {
                 selected = selected.filter(x => x !== i);
                 btn.classList.remove('selected');
-                btn.style.backgroundColor = "";
-            } else if(selected.length < 10) { // አንተም እስከ 5 ካርቴላ መጨመር ትችላለህ
+                btn.style.borderColor = "";
+            } else if(selected.length < 10) { 
                 selected.push(i);
                 cardData[i] = generateCard();
                 btn.classList.add('selected');
@@ -100,7 +100,7 @@ function initSelection() {
     }
     updatePreview();
 
-    let timeLeft = 10;
+    let timeLeft = 15;
     const timerEl = document.getElementById('timer');
     const t = setInterval(() => {
         if(timeLeft <= 0) { 
@@ -114,40 +114,78 @@ function initSelection() {
     }, 1000);
 }
 
-// 4. የጨዋታ ገጽ ሽግግር
+// 4. የተመረጡ ካርቴላዎችን ብዛት እና ዝርዝር ማሳያ
+function updatePreview() {
+    const bar = document.getElementById('selected-preview-bar');
+    if (!bar) return;
+
+    // የቁጥር ማሳያ ክፍል
+    let headerHtml = `
+        <div style="width: 100%; text-align: center; margin-bottom: 10px; padding: 8px; background: rgba(255, 157, 0, 0.15); border-radius: 10px; border: 1px solid var(--orange);">
+            <span style="color: var(--orange); font-weight: 900; font-size: 14px;">
+                ጠቅላላ የተመረጡ ካርቴላዎች: ${selected.length}
+            </span>
+        </div>
+    `;
+
+    if (selected.length === 0) {
+        bar.innerHTML = headerHtml + '<div style="font-size: 11px; color: #4e6a85; width: 100%; text-align: center; padding-top: 10px;">ምንም አልተመረጠም</div>';
+        return;
+    }
+
+    bar.innerHTML = headerHtml;
+    
+    selected.forEach(id => {
+        const data = cardData[id];
+        let html = `
+            <div class="mini-card-detail" style="min-width: 80px; margin-right: 8px; border-color: var(--orange);">
+                <div style="font-size: 8px; font-weight: bold; color: var(--orange); margin-bottom: 2px;">ID: #${id}</div>
+                <div class="mini-card-header">
+                    <span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span>
+                </div>
+                <div class="mini-grid-preview">`;
+        for (let r = 0; r < 5; r++) {
+            for (let c = 0; c < 5; c++) {
+                let val = (r === 2 && c === 2) ? "F" : data[c][r];
+                html += `<div class="mini-cell" style="font-size: 7px; padding: 1px 0;">${val}</div>`;
+            }
+        }
+        bar.innerHTML += html + `</div></div>`;
+    });
+}
+
+// 5. የጨዋታ ገጽ እና AI Auto-Play
 function switchToGame(isResume) {
-    const selPage = document.getElementById('selection-page');
-    const gamePage = document.getElementById('game-page');
-    if(selPage) selPage.classList.add('hidden');
-    if(gamePage) gamePage.classList.remove('hidden');
+    document.getElementById('selection-page').classList.add('hidden');
+    document.getElementById('game-page').classList.remove('hidden');
     
     const area = document.getElementById('active-cards-area');
-    if(area) {
-        area.innerHTML = "";
-        selected.forEach(id => {
-            const data = cardData[id];
-            let html = `
-                <div class="active-card">
-                    <div style="font-size: 9px; color: #ffae00; margin-bottom: 4px; font-weight:bold;">AI CARD #${id}</div>
-                    <div class="card-grid">`;
-            for(let r=0; r<5; r++) {
-                for(let c=0; c<5; c++) {
-                    if(r==2 && c==2) html += `<div class="card-cell hit" style="background:#ffae00; color:#000">FREE</div>`;
-                    else {
-                        const val = data[c][r];
-                        const isHit = calledNumbers.includes(val) ? ' hit" style="background:#ffae00; color:#000"' : '"';
-                        html += `<div class="card-cell${isHit} data-val="${val}">${val}</div>`;
-                    }
+    area.innerHTML = "";
+    
+    selected.forEach(id => {
+        const data = cardData[id];
+        let html = `
+            <div class="active-card">
+                <div style="font-size: 9px; color: var(--orange); margin-bottom: 4px; font-weight:bold;">CARD #${id}</div>
+                <div class="card-grid">`;
+        for(let r=0; r<5; r++) {
+            for(let c=0; c<5; c++) {
+                if(r==2 && c==2) html += `<div class="card-cell hit" style="background:var(--orange); color:#000; font-size:6px">FREE</div>`;
+                else {
+                    const val = data[c][r];
+                    const isHit = calledNumbers.includes(val) ? ' hit" style="background:var(--orange); color:#000"' : '"';
+                    html += `<div class="card-cell${isHit} data-val="${val}">${val}</div>`;
                 }
             }
-            area.innerHTML += html + `</div></div>`;
-        });
-    }
+        }
+        area.innerHTML += html + `</div></div>`;
+    });
     
     const board = document.getElementById('game-board');
-    if(board) {
-        board.innerHTML = "";
-        for(let n=1; n<=75; n++) {
+    board.innerHTML = "";
+    for(let r=0; r<15; r++) {
+        for(let c=0; c<5; c++) {
+            let n = (c * 15) + r + 1;
             const isCalled = calledNumbers.includes(n) ? " called" : "";
             board.innerHTML += `<div class="num-cell${isCalled}" id="bn-${n}">${n}</div>`;
         }
@@ -155,7 +193,6 @@ function switchToGame(isResume) {
     runEngine();
 }
 
-// 5. AI Auto-Play Engine
 function runEngine() {
     if (engineStarted) return;
     engineStarted = true;
@@ -171,31 +208,27 @@ function runEngine() {
         saveGameState();
         
         updateBallDisplay(n);
-        
-        const boardCell = document.getElementById(`bn-${n}`);
-        if(boardCell) boardCell.classList.add('called');
+        const cell = document.getElementById(`bn-${n}`);
+        if(cell) cell.classList.add('called');
 
-        // AI Auto-Hit: ሁሉም ቦቶች በራሳቸው ቁጥራቸውን ይመታሉ
-        const targetCells = document.querySelectorAll(`[data-val="${n}"]`);
-        targetCells.forEach(cell => {
-            cell.classList.add('hit'); 
-            cell.style.backgroundColor = "#ffae00"; 
-            cell.style.color = "#000";
+        // AI Auto-Hit logic
+        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => {
+            el.classList.add('hit');
+            el.style.background = "var(--orange)";
+            el.style.color = "#000";
         });
 
-        if(document.getElementById('balls-count')) 
-            document.getElementById('balls-count').innerText = calledNumbers.length;
-        
+        document.getElementById('balls-count').innerText = calledNumbers.length;
         checkWin();
     }, 3000); 
 }
 
 function updateBallDisplay(n) {
     let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-    const bNum = document.getElementById('ball-num');
-    const bLet = document.getElementById('ball-let');
-    if(bNum) bNum.innerText = n;
-    if(bLet) bLet.innerText = letter;
+    const colors = {'B':'var(--b-clr)','I':'var(--i-clr)','N':'var(--n-clr)','G':'var(--g-clr)','O':'var(--o-clr)'};
+    document.getElementById('ball-num').innerText = n;
+    document.getElementById('ball-let').innerText = letter;
+    document.getElementById('ball-let').style.color = colors[letter];
 }
 
 function checkWin() {
@@ -216,20 +249,34 @@ function checkWin() {
 
         if(win && !isGameOver) {
             isGameOver = true;
-            alert("BINGO! AI Card #" + id + " Won!");
-            localStorage.removeItem('bingo_state_' + userId);
-            location.reload();
+            showWinner(id);
         }
     });
 }
 
-function updatePreview() {
-    const bar = document.getElementById('selected-preview-bar');
-    if (!bar) return;
-    bar.innerHTML = "";
-    selected.forEach(id => {
-        bar.innerHTML += `<div style="display:inline-block; margin:5px; padding:5px; background:#1a2b3c; border-radius:5px; font-size:10px;">AI Card #${id}</div>`;
-    });
+function showWinner(cardId) {
+    localStorage.removeItem('bingo_state_' + userId);
+    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    document.getElementById('winner-card-num').innerText = "#" + cardId;
+    document.getElementById('winner-overlay').classList.remove('hidden');
+    
+    let count = 5;
+    const timer = setInterval(() => {
+        count--;
+        document.getElementById('reload-timer').innerText = count;
+        if(count <= 0) {
+            clearInterval(timer);
+            location.reload();
+        }
+    }, 1000);
 }
 
-window.onload = initSelection;
+function resetGame() {
+    localStorage.removeItem('bingo_state_' + userId);
+    location.reload();
+}
+
+window.onload = () => {
+    initSelection();
+    tg.expand();
+};
