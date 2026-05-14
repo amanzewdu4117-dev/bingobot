@@ -66,6 +66,18 @@
         .restart-timer { margin-top: 30px; font-size: 14px; color: #556677; }
 
         .footer-panel { background: #0d1621; border-top: 1px solid var(--accent); height: 40px; display: flex; justify-content: space-around; align-items: center; }
+        
+        /* Reset Button Style */
+        .reset-btn {
+            background: var(--orange);
+            color: #000;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -104,7 +116,7 @@
         </div>
         <div class="footer-panel">
             <div style="text-align:center; font-size:11px; color:var(--accent); font-weight:bold;">BALLS: <span id="balls-count">0</span>/75</div>
-            <div style="color:var(--orange); font-weight:bold; font-size:10px;">LIVE GAME</div>
+            <button class="reset-btn" onclick="resetGame()">አዲስ ጀምር</button>
             <div style="text-align:center; font-size:11px; color:var(--accent); font-weight:bold;">STATUS: <span id="game-info">PLAYING</span></div>
         </div>
     </div>
@@ -126,7 +138,11 @@
     let selected = [], cardData = {}, calledNumbers = [], isGameOver = false, engineStarted = false;
     let selectionFinished = false;
 
-    // ጨዋታውን ከቆመበት ለማስቀጠል መረጃዎችን መጫኛ
+    function resetGame() {
+        localStorage.removeItem('bingo_state_' + userId);
+        location.reload();
+    }
+
     function loadGameState() {
         const saved = localStorage.getItem('bingo_state_' + userId);
         if (saved) {
@@ -151,7 +167,8 @@
     }
 
     db.ref('users/' + userId).on('value', snap => {
-        document.getElementById('main-balance').innerText = (snap.val()?.balance || 0).toLocaleString();
+        const bal = document.getElementById('main-balance');
+        if(bal) bal.innerText = (snap.val()?.balance || 0).toLocaleString();
     });
 
     function generateCard() {
@@ -196,8 +213,6 @@
 
     function initSelection() {
         loadGameState();
-        
-        // ምርጫው አልቆ ጨዋታው ተጀምሮ ከነበረ በቀጥታ ወደ ጨዋታው ውሰደው
         if (selectionFinished) {
             switchToGame(true);
             return;
@@ -226,20 +241,14 @@
         }
         updatePreview();
 
-        // የሰዓት መቆጣጠሪያ (በ refresh ጊዜ እንዳይጠፋ)
-        let savedTime = localStorage.getItem('bingo_timer_' + userId);
-        let timeLeft = savedTime ? parseInt(savedTime) : 15;
-        
+        let timeLeft = 15;
         document.getElementById('timer').innerText = timeLeft;
 
         const t = setInterval(() => {
             timeLeft--; 
             document.getElementById('timer').innerText = timeLeft;
-            localStorage.setItem('bingo_timer_' + userId, timeLeft);
-
             if(timeLeft <= 0) { 
                 clearInterval(t); 
-                localStorage.removeItem('bingo_timer_' + userId);
                 selectionFinished = true;
                 saveGameState();
                 switchToGame(false); 
@@ -312,18 +321,21 @@
         engineStarted = true;
 
         let allBalls = Array.from({length: 75}, (_, i) => i + 1);
-        // ቀደም ብለው የወጡትን ቁጥሮች መቀነስ
         let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
 
         const engine = setInterval(() => {
-            if(isGameOver || remainingBalls.length == 0) return clearInterval(engine);
+            if(isGameOver || remainingBalls.length == 0) {
+                if(remainingBalls.length == 0) document.getElementById('game-info').innerText = "ጨዋታ አልቋል";
+                return clearInterval(engine);
+            }
             
             let n = remainingBalls.splice(Math.floor(Math.random()*remainingBalls.length), 1)[0];
             calledNumbers.push(n);
             saveGameState();
             
             updateBallDisplay(n);
-            document.getElementById(`bn-${n}`)?.classList.add('called');
+            const cell = document.getElementById(`bn-${n}`);
+            if(cell) cell.classList.add('called');
             document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
             document.getElementById('balls-count').innerText = calledNumbers.length;
             checkWin();
@@ -332,7 +344,6 @@
 
     function checkWin() {
         if (selected.length === 0) return;
-        
         selected.forEach(id => {
             const data = cardData[id];
             let hits = Array(5).fill().map(() => Array(5).fill(false));
@@ -357,10 +368,7 @@
     }
 
     function showWinner(cardId) {
-        // ጨዋታው ሲያልቅ ዳታውን አጽዳ
         localStorage.removeItem('bingo_state_' + userId);
-        localStorage.removeItem('bingo_timer_' + userId);
-        
         confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
         document.getElementById('winner-card-num').innerText = "#" + cardId;
         document.getElementById('winner-overlay').classList.remove('hidden');
