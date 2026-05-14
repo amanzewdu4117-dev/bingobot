@@ -50,7 +50,7 @@ function generateCard() {
 function initSelection() {
     loadGameState();
     
-    // 5 ቦቶች ገና ሲከፈት በራሳቸው እንዲመርጡ
+    // AI ቦቶች በራሳቸው እንዲመርጡ (ከዚህ በፊት ካልተመረጠ)
     if (selected.length === 0) {
         while(selected.length < 5) {
             let randomSlot = Math.floor(Math.random() * 500) + 1;
@@ -76,29 +76,27 @@ function initSelection() {
         btn.className = "slot-btn";
         btn.innerText = i;
         
-        // AI የመረጣቸው ምልክት እንዲደረግባቸው
+        // AI የመረጣቸው ካርቴላዎች ምልክት እንዲደረግባቸው
         if(selected.includes(i)) {
             btn.classList.add('selected');
-            btn.style.borderColor = "var(--orange)";
-            btn.style.color = "var(--orange)";
         }
         
         btn.onclick = () => {
             if(selected.includes(i)) {
                 selected = selected.filter(x => x !== i);
                 btn.classList.remove('selected');
-                btn.style.borderColor = "";
             } else if(selected.length < 10) { 
                 selected.push(i);
                 cardData[i] = generateCard();
                 btn.classList.add('selected');
             }
-            updatePreview();
+            updatePreview(); // እያንዳንዱ ምርጫ ላይ ብዛቱን ያድሳል
             saveGameState();
         };
         grid.appendChild(btn);
     }
-    updatePreview();
+    
+    updatePreview(); // ገጹ ሲከፈት መጀመሪያ ብዛቱን ያሳያል
 
     let timeLeft = 15;
     const timerEl = document.getElementById('timer');
@@ -119,59 +117,63 @@ function updatePreview() {
     const bar = document.getElementById('selected-preview-bar');
     if (!bar) return;
 
-    // የቁጥር ማሳያ ክፍል
+    // የብዛት ማሳያ ክፍል - HTML በደንብ እንዲታይ ተደርጓል
     let headerHtml = `
-        <div style="width: 100%; text-align: center; margin-bottom: 10px; padding: 8px; background: rgba(255, 157, 0, 0.15); border-radius: 10px; border: 1px solid var(--orange);">
-            <span style="color: var(--orange); font-weight: 900; font-size: 14px;">
-                ጠቅላላ የተመረጡ ካርቴላዎች: ${selected.length}
+        <div style="width: 100%; text-align: center; margin-bottom: 10px; padding: 10px; background: rgba(255, 157, 0, 0.2); border-radius: 8px; border: 2px solid var(--orange);">
+            <span style="color: white; font-weight: bold; font-size: 16px;">
+                 ጠቅላላ የተመረጡ: ${selected.length}
             </span>
         </div>
     `;
 
     if (selected.length === 0) {
-        bar.innerHTML = headerHtml + '<div style="font-size: 11px; color: #4e6a85; width: 100%; text-align: center; padding-top: 10px;">ምንም አልተመረጠም</div>';
+        bar.innerHTML = headerHtml + '<div style="color: #ccc; text-align: center;">ምንም አልተመረጠም</div>';
         return;
     }
 
-    bar.innerHTML = headerHtml;
-    
+    let cardsHtml = "";
     selected.forEach(id => {
         const data = cardData[id];
-        let html = `
-            <div class="mini-card-detail" style="min-width: 80px; margin-right: 8px; border-color: var(--orange);">
-                <div style="font-size: 8px; font-weight: bold; color: var(--orange); margin-bottom: 2px;">ID: #${id}</div>
-                <div class="mini-card-header">
-                    <span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span>
-                </div>
-                <div class="mini-grid-preview">`;
+        cardsHtml += `
+            <div class="mini-card-detail" style="min-width: 85px; margin-right: 8px; border: 1px solid var(--orange); border-radius: 5px; padding: 5px; background: #1a222c;">
+                <div style="font-size: 9px; font-weight: bold; color: var(--orange); text-align: center;">ID: #${id}</div>
+                <div class="mini-grid-preview" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-top: 3px;">`;
+        
         for (let r = 0; r < 5; r++) {
             for (let c = 0; c < 5; c++) {
                 let val = (r === 2 && c === 2) ? "F" : data[c][r];
-                html += `<div class="mini-cell" style="font-size: 7px; padding: 1px 0;">${val}</div>`;
+                cardsHtml += `<div style="font-size: 7px; color: white; text-align: center; background: #2c3949;">${val}</div>`;
             }
         }
-        bar.innerHTML += html + `</div></div>`;
+        cardsHtml += `</div></div>`;
     });
+
+    bar.innerHTML = headerHtml + `<div style="display: flex; overflow-x: auto; padding-bottom: 5px;">${cardsHtml}</div>`;
 }
 
 // 5. የጨዋታ ገጽ እና AI Auto-Play
 function switchToGame(isResume) {
-    document.getElementById('selection-page').classList.add('hidden');
-    document.getElementById('game-page').classList.remove('hidden');
+    const selectionPage = document.getElementById('selection-page');
+    const gamePage = document.getElementById('game-page');
+    
+    if(selectionPage) selectionPage.classList.add('hidden');
+    if(gamePage) gamePage.classList.remove('hidden');
     
     const area = document.getElementById('active-cards-area');
+    if(!area) return;
     area.innerHTML = "";
     
     selected.forEach(id => {
         const data = cardData[id];
         let html = `
-            <div class="active-card">
-                <div style="font-size: 9px; color: var(--orange); margin-bottom: 4px; font-weight:bold;">CARD #${id}</div>
+            <div class="active-card" id="card-${id}">
+                <div style="font-size: 10px; color: var(--orange); margin-bottom: 5px; font-weight:bold; text-align:center;">CARD #${id}</div>
                 <div class="card-grid">`;
         for(let r=0; r<5; r++) {
             for(let c=0; c<5; c++) {
-                if(r==2 && c==2) html += `<div class="card-cell hit" style="background:var(--orange); color:#000; font-size:6px">FREE</div>`;
-                else {
+                if(r==2 && c==2) {
+                    html += `<div class="card-cell hit" style="background:var(--orange); color:#000;">FREE</div>`;
+                } else {
                     const val = data[c][r];
                     const isHit = calledNumbers.includes(val) ? ' hit" style="background:var(--orange); color:#000"' : '"';
                     html += `<div class="card-cell${isHit} data-val="${val}">${val}</div>`;
@@ -182,12 +184,14 @@ function switchToGame(isResume) {
     });
     
     const board = document.getElementById('game-board');
-    board.innerHTML = "";
-    for(let r=0; r<15; r++) {
-        for(let c=0; c<5; c++) {
-            let n = (c * 15) + r + 1;
-            const isCalled = calledNumbers.includes(n) ? " called" : "";
-            board.innerHTML += `<div class="num-cell${isCalled}" id="bn-${n}">${n}</div>`;
+    if(board) {
+        board.innerHTML = "";
+        for(let r=0; r<15; r++) {
+            for(let c=0; c<5; c++) {
+                let n = (c * 15) + r + 1;
+                const isCalled = calledNumbers.includes(n) ? " called" : "";
+                board.innerHTML += `<div class="num-cell${isCalled}" id="bn-${n}">${n}</div>`;
+            }
         }
     }
     runEngine();
@@ -201,7 +205,10 @@ function runEngine() {
     let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
 
     const engine = setInterval(() => {
-        if(isGameOver || remainingBalls.length == 0) return clearInterval(engine);
+        if(isGameOver || remainingBalls.length == 0) {
+            clearInterval(engine);
+            return;
+        }
         
         let n = remainingBalls.splice(Math.floor(Math.random()*remainingBalls.length), 1)[0];
         calledNumbers.push(n);
@@ -211,14 +218,16 @@ function runEngine() {
         const cell = document.getElementById(`bn-${n}`);
         if(cell) cell.classList.add('called');
 
-        // AI Auto-Hit logic
+        // AI Auto-Hit: ቦቶቹ የመረጧቸው ቁጥሮች ሲወጡ በራሳቸው 'Hit' ይሆናሉ
         document.querySelectorAll(`[data-val="${n}"]`).forEach(el => {
             el.classList.add('hit');
             el.style.background = "var(--orange)";
             el.style.color = "#000";
         });
 
-        document.getElementById('balls-count').innerText = calledNumbers.length;
+        const countEl = document.getElementById('balls-count');
+        if(countEl) countEl.innerText = calledNumbers.length;
+        
         checkWin();
     }, 3000); 
 }
@@ -226,9 +235,13 @@ function runEngine() {
 function updateBallDisplay(n) {
     let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
     const colors = {'B':'var(--b-clr)','I':'var(--i-clr)','N':'var(--n-clr)','G':'var(--g-clr)','O':'var(--o-clr)'};
-    document.getElementById('ball-num').innerText = n;
-    document.getElementById('ball-let').innerText = letter;
-    document.getElementById('ball-let').style.color = colors[letter];
+    const numEl = document.getElementById('ball-num');
+    const letEl = document.getElementById('ball-let');
+    if(numEl) numEl.innerText = n;
+    if(letEl) {
+        letEl.innerText = letter;
+        letEl.style.color = colors[letter];
+    }
 }
 
 function checkWin() {
@@ -240,11 +253,14 @@ function checkWin() {
                 if((r==2 && c==2) || calledNumbers.includes(data[c][r])) hits[c][r] = true;
             }
         }
+        
         let win = false;
+        // Lines and columns
         for(let i=0; i<5; i++) {
             if(hits[i].every(h => h)) win = true; 
             if(hits.every(col => col[i])) win = true; 
         }
+        // Diagonals
         if([0,1,2,3,4].every(i => hits[i][i]) || [0,1,2,3,4].every(i => hits[i][4-i])) win = true;
 
         if(win && !isGameOver) {
@@ -256,14 +272,19 @@ function checkWin() {
 
 function showWinner(cardId) {
     localStorage.removeItem('bingo_state_' + userId);
-    confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
-    document.getElementById('winner-card-num').innerText = "#" + cardId;
-    document.getElementById('winner-overlay').classList.remove('hidden');
+    if(typeof confetti === 'function') {
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+    }
+    const winNumEl = document.getElementById('winner-card-num');
+    const overlay = document.getElementById('winner-overlay');
+    if(winNumEl) winNumEl.innerText = "#" + cardId;
+    if(overlay) overlay.classList.remove('hidden');
     
     let count = 5;
     const timer = setInterval(() => {
         count--;
-        document.getElementById('reload-timer').innerText = count;
+        const reloadEl = document.getElementById('reload-timer');
+        if(reloadEl) reloadEl.innerText = count;
         if(count <= 0) {
             clearInterval(timer);
             location.reload();
@@ -278,5 +299,5 @@ function resetGame() {
 
 window.onload = () => {
     initSelection();
-    tg.expand();
+    if(tg.expand) tg.expand();
 };
