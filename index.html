@@ -141,7 +141,7 @@
     }
     const db = firebase.database();
 
-    // --- State Variables (Loaded from LocalStorage) ---
+    // --- State Variables ---
     let userCards = JSON.parse(localStorage.getItem('aman_user_cards')) || [];
     let cardData = JSON.parse(localStorage.getItem('aman_card_data')) || {};
     let allSelectedCards = JSON.parse(localStorage.getItem('aman_all_selected')) || [];
@@ -162,7 +162,6 @@
         localStorage.removeItem('aman_user_cards');
         localStorage.removeItem('aman_card_data');
         localStorage.removeItem('aman_all_selected');
-        // balance አንሰርዘውም
     }
 
     function generateCard() {
@@ -216,7 +215,6 @@
         const grid = document.getElementById('slots-grid');
         grid.innerHTML = "";
         
-        // Refresh ሲደረግ ዳታው ካለ በቀጥታ ወደ ጌሙ እንዲገባ
         if(userCards.length > 0) {
             updateTotal();
             start();
@@ -338,27 +336,44 @@
         return false;
     }
 
+    // --- ቁጥርን የማመሳሰል ዋናው Logic ---
+    function applyNumber(n) {
+        if (!n || calledNumbers.has(n)) return;
+        calledNumbers.add(n);
+        
+        let boardCell = document.getElementById(`n-${n}`);
+        if(boardCell) boardCell.classList.add('called');
+        
+        document.getElementById('ball-num').innerText = n;
+        let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+        document.getElementById('ball-let').innerText = letter;
+
+        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
+        
+        if (gameActive) {
+            for(let id of allSelectedCards) {
+                if(checkWin(id)) { 
+                    showWinner(id, userCards.includes(id)); 
+                    break; 
+                }
+            }
+        }
+    }
+
     function play() {
+        // 1. መጀመሪያ ያለፉ ቁጥሮችን ከ History መጫን
+        db.ref('liveGame/history').once('value', (snap) => {
+            const history = snap.val();
+            if (history) {
+                Object.values(history).forEach(n => applyNumber(n));
+            }
+        });
+
+        // 2. አዳዲስ ቁጥሮችን መከታተል
         db.ref('liveGame/currentNumber').on('value', (snap) => {
             let n = snap.val();
-            if(n && gameActive && !calledNumbers.has(n)) {
-                calledNumbers.add(n);
-                
-                let boardCell = document.getElementById(`n-${n}`);
-                if(boardCell) boardCell.classList.add('called');
-                
-                document.getElementById('ball-num').innerText = n;
-                let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-                document.getElementById('ball-let').innerText = letter;
-
-                document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-                
-                for(let id of allSelectedCards) {
-                    if(checkWin(id)) { 
-                        showWinner(id, userCards.includes(id)); 
-                        break; 
-                    }
-                }
+            if(n && gameActive) {
+                applyNumber(n);
             }
         });
     }
