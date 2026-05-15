@@ -319,19 +319,36 @@
 
     // --- ቁጥሩን ከ Firebase ጋር የሚያመሳስለው ፋንክሽን ---
     function play() {
-        // 1. ከ Firebase አዲስ ቁጥር ሲመጣ ማዳመጥ
-        db.ref('liveGame/currentNumber').on('value', (snap) => {
-            let n = snap.val();
-            if(n && gameActive) {
-                calledNumbers.add(n);
-                let boardCell = document.getElementById(`n-${n}`);
-                if(boardCell) boardCell.classList.add('called');
-                document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-                document.getElementById('ball-num').innerText = n;
-                document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-                for(let id of allSelectedCards) if(checkWin(id)) { showWinner(id, userCards.includes(id)); break; }
+    // 1. ከ Firebase የሚመጣውን ቁጥር ብቻ መቀበል
+    db.ref('liveGame/currentNumber').on('value', (snap) => {
+        let n = snap.val();
+        
+        // ቁጥሩ ካለና ጨዋታው ገና ካላለቀ
+        if(n && gameActive && !calledNumbers.has(n)) {
+            calledNumbers.add(n);
+            
+            // ዋናው ቦርድ ላይ ቁጥሩን ማብራት (ነባሩ id n-1, n-2... ከሆነ)
+            let boardCell = document.getElementById(`n-${n}`);
+            if(boardCell) boardCell.classList.add('called');
+            
+            // በኳሱ ማሳያ ላይ ቁጥሩን መጻፍ
+            document.getElementById('ball-num').innerText = n;
+            let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+            document.getElementById('ball-let').innerText = letter;
+
+            // በካርቴላዎች ላይ ቁጥሩን መምታት (Hit)
+            document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
+            
+            // አሸናፊ መኖሩን መፈተሽ
+            for(let id of allSelectedCards) {
+                if(checkWin(id)) { 
+                    showWinner(id, userCards.includes(id)); 
+                    break; 
+                }
             }
-        });
+        }
+    });
+}
 
         // 2. ቁጥሩን በየ 3 ሰከንዱ አውጥቶ ለሁሉም መላክ
         // ማሳሰቢያ፡ ይህንን Host የሆነው ስልክ ብቻ ቢያደርገው ይመረጣል
