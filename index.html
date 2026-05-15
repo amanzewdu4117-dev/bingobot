@@ -141,11 +141,29 @@
     }
     const db = firebase.database();
 
-    let userCards = [], othersCount = 0, cardData = {}, gameActive = false;
-    let allSelectedCards = []; 
+    // --- State Variables (Loaded from LocalStorage) ---
+    let userCards = JSON.parse(localStorage.getItem('aman_user_cards')) || [];
+    let cardData = JSON.parse(localStorage.getItem('aman_card_data')) || {};
+    let allSelectedCards = JSON.parse(localStorage.getItem('aman_all_selected')) || [];
+    let currentBalance = parseFloat(localStorage.getItem('aman_bingo_bal')) || 100.00;
+    
+    let othersCount = 0, gameActive = false;
     let calledNumbers = new Set();
-    let currentBalance = 100.00; 
     const cardPrice = 10.00;
+
+    function saveState() {
+        localStorage.setItem('aman_user_cards', JSON.stringify(userCards));
+        localStorage.setItem('aman_card_data', JSON.stringify(cardData));
+        localStorage.setItem('aman_all_selected', JSON.stringify(allSelectedCards));
+        localStorage.setItem('aman_bingo_bal', currentBalance);
+    }
+
+    function clearState() {
+        localStorage.removeItem('aman_user_cards');
+        localStorage.removeItem('aman_card_data');
+        localStorage.removeItem('aman_all_selected');
+        // balance አንሰርዘውም
+    }
 
     function generateCard() {
         let card = []; let ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
@@ -173,6 +191,7 @@
         preview.innerHTML = "";
         userCards.forEach(id => {
             let d = cardData[id];
+            if(!d) return;
             let h = `<div class="mini-card">
                 <div style="color:var(--accent); font-size:9px; font-weight:900; margin-bottom:2px; text-align:center;">#${id}</div>
                 <div class="mini-grid" style="margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.1);">
@@ -196,14 +215,15 @@
     function init() {
         const grid = document.getElementById('slots-grid');
         grid.innerHTML = "";
-        userCards = [];
-        allSelectedCards = [];
-        cardData = {};
-        othersCount = 0;
-        calledNumbers = new Set();
         
-        document.getElementById('balance').innerText = currentBalance.toFixed(2);
+        // Refresh ሲደረግ ዳታው ካለ በቀጥታ ወደ ጌሙ እንዲገባ
+        if(userCards.length > 0) {
+            updateTotal();
+            start();
+            return;
+        }
 
+        document.getElementById('balance').innerText = currentBalance.toFixed(2);
         let aiPicks = [];
         let count = Math.floor(Math.random() * 51) + 40; 
         while(aiPicks.length < count) {
@@ -239,6 +259,7 @@
                     }
                 }
                 document.getElementById('balance').innerText = currentBalance.toFixed(2);
+                saveState();
                 updateTotal();
                 updatePreview();
             };
@@ -277,7 +298,7 @@
                 <div class="no-cards-icon">🎫</div>
                 <div class="no-cards-title">ካርቴላ አልመረጡም!</div>
                 <div class="no-cards-sub">በዚህ ዙር አልተሳተፉም።</div>
-                <div class="next-round-btn" onclick="location.reload()">ለሚቀጥለው ተዘጋጅ</div>
+                <div class="next-round-btn" onclick="clearAndReload()">ለሚቀጥለው ተዘጋጅ</div>
             </div>`;
         } else {
             userCards.forEach(id => {
@@ -318,25 +339,20 @@
     }
 
     function play() {
-        // ከ Firebase የሚመጣውን ቁጥር መከታተል
         db.ref('liveGame/currentNumber').on('value', (snap) => {
             let n = snap.val();
             if(n && gameActive && !calledNumbers.has(n)) {
                 calledNumbers.add(n);
                 
-                // ዋናው ቦርድ ላይ ቁጥሩን ማብራት
                 let boardCell = document.getElementById(`n-${n}`);
                 if(boardCell) boardCell.classList.add('called');
                 
-                // በኳሱ ማሳያ ላይ ማሳየት
                 document.getElementById('ball-num').innerText = n;
                 let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
                 document.getElementById('ball-let').innerText = letter;
 
-                // በካርቴላዎች ላይ ቁጥሩን መምታት
                 document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
                 
-                // አሸናፊ መኖሩን መፈተሽ
                 for(let id of allSelectedCards) {
                     if(checkWin(id)) { 
                         showWinner(id, userCards.includes(id)); 
@@ -350,7 +366,6 @@
     function showWinner(id, isUser = false) {
         gameActive = false;
         document.getElementById('winner-overlay').style.display = 'flex';
-        
         if(isUser) currentBalance += 50; 
 
         document.getElementById('win-msg').innerHTML = isUser ? 
@@ -363,15 +378,19 @@
             document.getElementById('restart-timer').innerText = rTime;
             if(rTime <= 0) { 
                 clearInterval(rInt); 
-                sessionStorage.setItem('aman_bingo_bal', currentBalance);
-                location.reload(); 
+                clearAndReload();
             }
         }, 1000);
     }
 
+    function clearAndReload() {
+        clearState();
+        localStorage.setItem('aman_bingo_bal', currentBalance);
+        location.reload();
+    }
+
     window.onload = () => {
-        let savedBal = sessionStorage.getItem('aman_bingo_bal');
-        if(savedBal) currentBalance = parseFloat(savedBal);
+        document.getElementById('balance').innerText = currentBalance.toFixed(2);
         init();
     };
 </script>
