@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Aman Bingo Pro - Elite Edition</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -129,12 +131,19 @@
     </div>
 
 <script>
+    // --- Firebase Initialization ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyD2lOQ4JCedRIShH0vqacqCeeOL1qVwN_g",
+        databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     let userCards = [], othersCount = 0, cardData = {}, gameActive = false;
     let allSelectedCards = []; 
     let calledNumbers = new Set();
     let engine;
     
-    // --- አዲስ የተጨመሩ ተለዋዋጮች ---
     let currentBalance = 100.00; 
     const cardPrice = 10.00;
 
@@ -193,7 +202,6 @@
         othersCount = 0;
         calledNumbers = new Set();
         
-        // Balance ማሳያ
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
 
         let aiPicks = [];
@@ -215,13 +223,11 @@
             b.onclick = () => {
                 if(aiPicks.includes(i)) return;
                 if(userCards.includes(i)) {
-                    // ካርቴላ ሲቀነስ ብር መመለስ (አማራጭ ነው - እዚህ ጋር ብሩን እንመልሳለን)
                     currentBalance += cardPrice;
                     userCards = userCards.filter(x => x !== i);
                     allSelectedCards = allSelectedCards.filter(x => x !== i);
                     b.classList.remove('selected');
                 } else if(userCards.length < 3) {
-                    // ብር ካለው ብቻ እንዲገዛ
                     if(currentBalance >= cardPrice) {
                         currentBalance -= cardPrice;
                         userCards.push(i);
@@ -311,27 +317,41 @@
         return false;
     }
 
+    // --- ቁጥሩን ከ Firebase ጋር የሚያመሳስለው ፋንክሽን ---
     function play() {
+        // 1. ከ Firebase አዲስ ቁጥር ሲመጣ ማዳመጥ
+        db.ref('liveGame/currentNumber').on('value', (snap) => {
+            let n = snap.val();
+            if(n && gameActive) {
+                calledNumbers.add(n);
+                let boardCell = document.getElementById(`n-${n}`);
+                if(boardCell) boardCell.classList.add('called');
+                document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
+                document.getElementById('ball-num').innerText = n;
+                document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+                for(let id of allSelectedCards) if(checkWin(id)) { showWinner(id, userCards.includes(id)); break; }
+            }
+        });
+
+        // 2. ቁጥሩን በየ 3 ሰከንዱ አውጥቶ ለሁሉም መላክ
+        // ማሳሰቢያ፡ ይህንን Host የሆነው ስልክ ብቻ ቢያደርገው ይመረጣል
         let balls = Array.from({length: 75}, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+        let i = 0;
         engine = setInterval(() => {
-            if(!gameActive || balls.length === 0) { clearInterval(engine); return; }
-            let n = balls.shift();
-            calledNumbers.add(n);
-            let boardCell = document.getElementById(`n-${n}`);
-            if(boardCell) boardCell.classList.add('called');
-            document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-            document.getElementById('ball-num').innerText = n;
-            document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-            for(let id of allSelectedCards) if(checkWin(id)) { showWinner(id, userCards.includes(id)); break; }
-        }, 1000);
+            if(!gameActive || i >= 75) { clearInterval(engine); return; }
+            db.ref('liveGame/currentNumber').set(balls[i]); 
+            i++;
+        }, 3000); 
     }
 
     function showWinner(id, isUser = false) {
         gameActive = false;
         clearInterval(engine);
+        // ጨዋታው ሲያልቅ ዳታቤዙን እናጸዳለን
+        db.ref('liveGame').remove();
+        
         document.getElementById('winner-overlay').style.display = 'flex';
         
-        // ተጠቃሚው ካሸነፈ ሽልማት እንዲጨመርለት (ለምሳሌ 50 ብር)
         if(isUser) currentBalance += 50; 
 
         document.getElementById('win-msg').innerHTML = isUser ? 
@@ -344,14 +364,12 @@
             document.getElementById('restart-timer').innerText = rTime;
             if(rTime <= 0) { 
                 clearInterval(rInt); 
-                // ከ reload በፊት balance ለማስቀመጥ (ለጊዜው በ session እንያዘው)
                 sessionStorage.setItem('aman_bingo_bal', currentBalance);
                 location.reload(); 
             }
         }, 1000);
     }
 
-    // ፔጁ ሲከፈት የተቀመጠ balance ካለ እንዲያመጣ
     window.onload = () => {
         let savedBal = sessionStorage.getItem('aman_bingo_bal');
         if(savedBal) currentBalance = parseFloat(savedBal);
