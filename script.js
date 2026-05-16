@@ -1,4 +1,4 @@
-// script.js - Multiplayer Sync Final Fixed Version
+// script.js - FULL VERSION (Cards + Timer + Sync)
 const firebaseConfig = { 
     apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
     databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -45,7 +45,7 @@ function generateCard() {
     return card;
 }
 
-// 1. ምርጫ ገጽ (Selection Page)
+// 1. የምርጫ ገጽ (Selection Page)
 function initSelection() {
     loadGameState();
     db.ref(".info/serverTimeOffset").on("value", snap => { serverOffset = snap.val() || 0; });
@@ -64,34 +64,36 @@ function initSelection() {
     if (selectionFinished) { switchToGame(true); return; }
 
     const grid = document.getElementById('slots-grid');
-    if(!grid) return;
-    grid.innerHTML = "";
-    for(let i=1; i<=500; i++) {
-        let btn = document.createElement('div');
-        btn.className = "slot-btn";
-        btn.innerText = i;
-        if(selected.includes(i)) btn.classList.add('selected');
-        btn.onclick = () => {
-            if(selected.includes(i)) {
-                selected = selected.filter(x => x !== i);
-                btn.classList.remove('selected');
-            } else if(selected.length < 10) { 
-                selected.push(i);
-                cardData[i] = generateCard();
-                btn.classList.add('selected');
-            }
-            updatePreview();
-            saveGameState();
-        };
-        grid.appendChild(btn);
+    if(grid) {
+        grid.innerHTML = "";
+        for(let i=1; i<=500; i++) {
+            let btn = document.createElement('div');
+            btn.className = "slot-btn";
+            btn.innerText = i;
+            if(selected.includes(i)) btn.classList.add('selected');
+            btn.onclick = () => {
+                if(selected.includes(i)) {
+                    selected = selected.filter(x => x !== i);
+                    btn.classList.remove('selected');
+                } else if(selected.length < 10) { 
+                    selected.push(i);
+                    cardData[i] = generateCard();
+                    btn.classList.add('selected');
+                }
+                updatePreview();
+                saveGameState();
+            };
+            grid.appendChild(btn);
+        }
     }
     updatePreview();
 
-    // --- የተስተካከለ የሰዓት ቆጣሪ ---
+    // ሰዓቱን መከታተያ (ይህ ክፍል Blink እንዲያደርግ ያደርገዋል)
     db.ref('liveGame/timerStartTime').on('value', snap => {
         let startTime = snap.val();
         
-        if(!startTime) {
+        // አሮጌውን 171584... ቁጥር ለማጥፋት (አዲስ ከሆነ ብቻ እንዲቀበል)
+        if(!startTime || startTime < 1740000000000) {
             db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
             return;
         }
@@ -101,12 +103,7 @@ function initSelection() {
 
         window.bingoTimer = setInterval(() => {
             let now = Date.now() + serverOffset;
-            
-            // የ Milliseconds ማስተካከያ
-            let normalizedStart = (startTime > 1000000000000 && startTime < 2000000000000) ? startTime : startTime / 1000;
-            if (startTime > 2000000000000) normalizedStart = startTime / 1000;
-
-            let diff = Math.floor((now - normalizedStart) / 1000);
+            let diff = Math.floor((now - startTime) / 1000);
             let timeLeft = 15 - diff;
 
             if(timeLeft <= 0) { 
@@ -117,7 +114,7 @@ function initSelection() {
                 saveGameState();
                 switchToGame(false);
 
-                // ሰዓቱን ማደሻ - ይሄ አሁን Firebase ላይ Blink ያደርጋል
+                // ሰዓቱን ማደሻ (Blink ማድረጊያ)
                 db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
             } else {
                 if(timerEl) timerEl.innerText = timeLeft;
@@ -179,6 +176,7 @@ function runEngine() {
     }, 3000);
 }
 
+// 4. Preview ማሳያ
 function updatePreview() {
     const bar = document.getElementById('selected-preview-bar');
     if (!bar) return;
