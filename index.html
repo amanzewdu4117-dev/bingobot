@@ -177,10 +177,6 @@
         return card;
     }
 
-    function updateTotal() { 
-        document.getElementById('total-count').innerText = userCards.length + othersCount; 
-    }
-
     function updatePreview() {
         const preview = document.getElementById('selection-preview');
         if(userCards.length === 0) {
@@ -211,35 +207,49 @@
         });
     }
 
+    // --- የታይመር እና የካርቴላ Logic (የተስተካከለ) ---
     function init() {
         const grid = document.getElementById('slots-grid');
         grid.innerHTML = "";
-        
-        if(userCards.length > 0) {
-            updateTotal();
-            start();
-            return;
-        }
-
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
-        let aiPicks = [];
-        let count = Math.floor(Math.random() * 51) + 40; 
-        while(aiPicks.length < count) {
-            let r = Math.floor(Math.random() * 500) + 1;
-            if(!aiPicks.includes(r)) {
-                aiPicks.push(r);
-                cardData[r] = generateCard();
-                allSelectedCards.push(r);
-                othersCount++;
-            }
-        }
+        const timerElement = document.getElementById('timer');
+        
+        let timerInterval;
 
+        // 1. ታይመሩን ከ Firebase ጋር ማመሳሰል
+        db.ref('liveGame/timerStartTime').on('value', (snap) => {
+            let startTime = snap.val();
+            if(timerInterval) clearInterval(timerInterval);
+
+            if(!startTime) {
+                timerElement.innerText = "15";
+                return;
+            }
+
+            timerInterval = setInterval(() => {
+                let now = Date.now();
+                let elapsed = Math.floor((now - startTime) / 1000);
+                let remaining = 15 - elapsed;
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.innerText = "0";
+                    if(!gameActive) start();
+                } else {
+                    timerElement.innerText = remaining;
+                }
+            }, 1000);
+        });
+
+        // 2. ካርቴላዎችን የመፍጠር Logic
         for(let i=1; i<=500; i++) {
             let b = document.createElement('div');
-            b.className = 'slot-btn'; b.id = `s-${i}`; b.innerText = i;
-            if(aiPicks.includes(i)) b.classList.add('occupied');
+            b.className = 'slot-btn'; b.innerText = i;
+            if(allSelectedCards.includes(i) && !userCards.includes(i)) b.classList.add('occupied');
+            if(userCards.includes(i)) b.classList.add('selected');
+            
             b.onclick = () => {
-                if(aiPicks.includes(i)) return;
+                if(b.classList.contains('occupied') || gameActive) return;
                 if(userCards.includes(i)) {
                     currentBalance += cardPrice;
                     userCards = userCards.filter(x => x !== i);
@@ -252,25 +262,14 @@
                         allSelectedCards.push(i);
                         cardData[i] = generateCard();
                         b.classList.add('selected');
-                    } else {
-                        alert("በቂ ሂሳብ የሎትም!");
                     }
                 }
                 document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                saveState();
-                updateTotal();
-                updatePreview();
+                saveState(); updatePreview();
             };
             grid.appendChild(b);
         }
-        updateTotal();
-
-        let tLeft = 15;
-        const timerInt = setInterval(() => {
-            tLeft--; 
-            if(document.getElementById('timer')) document.getElementById('timer').innerText = tLeft;
-            if(tLeft <= 0) { clearInterval(timerInt); start(); }
-        }, 1000);
+        updatePreview();
     }
 
     function start() {
@@ -336,20 +335,15 @@
         return false;
     }
 
-    // --- ቁጥርን የማመሳሰል ዋናው Logic ---
     function applyNumber(n) {
         if (!n || calledNumbers.has(n)) return;
         calledNumbers.add(n);
-        
         let boardCell = document.getElementById(`n-${n}`);
         if(boardCell) boardCell.classList.add('called');
-        
         document.getElementById('ball-num').innerText = n;
         let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
         document.getElementById('ball-let').innerText = letter;
-
         document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-        
         if (gameActive) {
             for(let id of allSelectedCards) {
                 if(checkWin(id)) { 
@@ -361,20 +355,13 @@
     }
 
     function play() {
-        // 1. መጀመሪያ ያለፉ ቁጥሮችን ከ History መጫን
         db.ref('liveGame/history').once('value', (snap) => {
             const history = snap.val();
-            if (history) {
-                Object.values(history).forEach(n => applyNumber(n));
-            }
+            if (history) Object.values(history).forEach(n => applyNumber(n));
         });
-
-        // 2. አዳዲስ ቁጥሮችን መከታተል
         db.ref('liveGame/currentNumber').on('value', (snap) => {
             let n = snap.val();
-            if(n && gameActive) {
-                applyNumber(n);
-            }
+            if(n && gameActive) applyNumber(n);
         });
     }
 
@@ -382,11 +369,9 @@
         gameActive = false;
         document.getElementById('winner-overlay').style.display = 'flex';
         if(isUser) currentBalance += 50; 
-
         document.getElementById('win-msg').innerHTML = isUser ? 
             `እንኳን ደስ አለህ! <br> ካርቴላ #${id} አሸንፏል!` : 
             `ተጫዋች <span style="color:var(--orange);">#${id}</span> ቀድሞ በመስራት አሸንፏል!`;
-
         let rTime = 5;
         const rInt = setInterval(() => {
             rTime--;
@@ -409,5 +394,7 @@
         init();
     };
 </script>
+    
+    
 </body>
 </html>
