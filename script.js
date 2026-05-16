@@ -87,7 +87,7 @@ function initSelection() {
     }
     updatePreview();
 
-    // Timer Logic
+    // የተስተካከለ Timer Logic
     db.ref('liveGame/timerStartTime').on('value', snap => {
         let startTime = snap.val();
         if(!startTime) {
@@ -96,18 +96,26 @@ function initSelection() {
         }
 
         const timerEl = document.getElementById('timer');
-        const t = setInterval(() => {
+        if (window.bingoTimer) clearInterval(window.bingoTimer);
+
+        window.bingoTimer = setInterval(() => {
             let now = Date.now() + serverOffset;
-            let diff = Math.floor((now - startTime) / 1000);
+            
+            // Milliseconds ማስተካከያ
+            let normalizedStart = startTime > 2000000000000 ? startTime / 1000 : startTime;
+            if (startTime > 1000000000000 && startTime < 2000000000000) normalizedStart = startTime;
+            
+            let diff = Math.floor((now - normalizedStart) / 1000);
             let timeLeft = 15 - diff;
 
             if(timeLeft <= 0) { 
-                clearInterval(t); 
+                clearInterval(window.bingoTimer); 
                 if(timerEl) timerEl.innerText = "0";
                 selectionFinished = true;
                 saveGameState();
                 switchToGame(false);
-                db.ref('liveGame/timerStartTime').transaction(() => firebase.database.ServerValue.TIMESTAMP);
+                // ሰዓቱን ማደሻ
+                db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
             } else {
                 if(timerEl) timerEl.innerText = timeLeft;
             }
@@ -153,7 +161,7 @@ function runEngine() {
             calledNumbers.push(n);
             const ballEl = document.getElementById('current-ball-num');
             if(ballEl) ballEl.innerText = n;
-            // እዚህ ጋር ካርቴላው ላይ ቁጥሩ ካለ ምልክት የማድረግ ኮድ ይጨመራል
+            // ማሳሰቢያ፡ እዚህ ጋር ካርቴላው ላይ ቁጥሩን ማድመቂያ ኮድ መጨመር ይቻላል
         }
     });
 
@@ -186,5 +194,4 @@ function updatePreview() {
     bar.innerHTML = headerHtml + `<div style="display: flex; overflow-x: auto; padding-bottom: 5px;">${cardsHtml}</div>`;
 }
 
-// ጅማሮ
 initSelection();
