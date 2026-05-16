@@ -1,4 +1,4 @@
-// script.js - Multiplayer Sync Fixed
+// script.js - Multiplayer Sync Final Version
 const firebaseConfig = { 
     apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
     databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -10,9 +10,8 @@ const userId = (tg.initDataUnsafe?.user?.id || "dev").toString();
 
 let selected = [], cardData = {}, calledNumbers = [], isGameOver = false, engineStarted = false;
 let selectionFinished = false;
-let serverOffset = 0; // ሰዓት ለማመሳሰል
+let serverOffset = 0;
 
-// 1. መረጃ መጫኛ
 function loadGameState() {
     const saved = localStorage.getItem('bingo_state_' + userId);
     if (saved) {
@@ -32,7 +31,6 @@ function saveGameState() {
     }));
 }
 
-// 2. ካርቴላ ማመንጫ (ያለህበት)
 function generateCard() {
     let card = [];
     let ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
@@ -47,14 +45,10 @@ function generateCard() {
     return card;
 }
 
-// 3. የተመሳሰለ የሰዓት ቆጠራ (Multiplayer Sync)
+// 1. ምርጫ ገጽ (Selection Page)
 function initSelection() {
     loadGameState();
-
-    // Firebase Server Time Offset - ለሁሉም እኩል እንዲሆን
-    db.ref(".info/serverTimeOffset").on("value", snap => {
-        serverOffset = snap.val() || 0;
-    });
+    db.ref(".info/serverTimeOffset").on("value", snap => { serverOffset = snap.val() || 0; });
 
     if (selected.length === 0) {
         while(selected.length < 5) {
@@ -67,12 +61,8 @@ function initSelection() {
         saveGameState();
     }
 
-    if (selectionFinished) {
-        switchToGame(true);
-        return;
-    }
+    if (selectionFinished) { switchToGame(true); return; }
 
-    // Grid ዝግጅት
     const grid = document.getElementById('slots-grid');
     if(!grid) return;
     grid.innerHTML = "";
@@ -97,10 +87,13 @@ function initSelection() {
     }
     updatePreview();
 
-    // --- ዋናው ማስተካከያ እዚህ ጋር ነው (Firebase Timer) ---
+    // Timer Logic
     db.ref('liveGame/timerStartTime').on('value', snap => {
         let startTime = snap.val();
-        if(!startTime) return;
+        if(!startTime) {
+            db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
+            return;
+        }
 
         const timerEl = document.getElementById('timer');
         const t = setInterval(() => {
@@ -113,7 +106,8 @@ function initSelection() {
                 if(timerEl) timerEl.innerText = "0";
                 selectionFinished = true;
                 saveGameState();
-                switchToGame(false); 
+                switchToGame(false);
+                db.ref('liveGame/timerStartTime').transaction(() => firebase.database.ServerValue.TIMESTAMP);
             } else {
                 if(timerEl) timerEl.innerText = timeLeft;
             }
@@ -121,7 +115,59 @@ function initSelection() {
     });
 }
 
-// 4. Preview Update (ያለህበት)
+// 2. ጨዋታ መቀየር (Switch Page)
+function switchToGame(isResume) {
+    const selectionPage = document.getElementById('selection-page');
+    const gamePage = document.getElementById('game-page');
+    if(selectionPage) selectionPage.classList.add('hidden');
+    if(gamePage) gamePage.classList.remove('hidden');
+
+    const area = document.getElementById('active-cards-area');
+    if(!area) return;
+    area.innerHTML = "";
+
+    selected.forEach(id => {
+        const data = cardData[id];
+        let html = `<div class="active-card" id="card-${id}"><div style="font-size: 10px; color: var(--orange); margin-bottom: 5px; font-weight:bold; text-align:center;">CARD #${id}</div><div class="card-grid">`;
+        for(let r=0; r<5; r++) { for(let c=0; c<5; c++) {
+            if(r==2 && c==2) { html += `<div class="card-cell hit" style="background:var(--orange); color:#000;">FREE</div>`; }
+            else {
+                const val = data[c][r];
+                const isHit = calledNumbers.includes(val) ? ' hit" style="background:var(--orange); color:#000"' : '"';
+                html += `<div class="card-cell${isHit} data-val="${val}">${val}</div>`;
+            }
+        }}
+        area.innerHTML += html + `</div></div>`;
+    });
+    runEngine(); 
+}
+
+// 3. ቁጥር ማውጫ (Game Engine)
+function runEngine() {
+    if (engineStarted) return;
+    engineStarted = true;
+
+    db.ref('liveGame/currentNumber').on('value', snap => {
+        let n = snap.val();
+        if (n && !calledNumbers.includes(n)) {
+            calledNumbers.push(n);
+            const ballEl = document.getElementById('current-ball-num');
+            if(ballEl) ballEl.innerText = n;
+            // እዚህ ጋር ካርቴላው ላይ ቁጥሩ ካለ ምልክት የማድረግ ኮድ ይጨመራል
+        }
+    });
+
+    setInterval(() => {
+        if (isGameOver) return;
+        let allBalls = Array.from({length: 75}, (_, i) => i + 1);
+        let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
+        if (remainingBalls.length > 0) {
+            let nextNum = remainingBalls[Math.floor(Math.random() * remainingBalls.length)];
+            db.ref('liveGame/currentNumber').set(nextNum);
+        }
+    }, 3000);
+}
+
 function updatePreview() {
     const bar = document.getElementById('selected-preview-bar');
     if (!bar) return;
@@ -140,7 +186,5 @@ function updatePreview() {
     bar.innerHTML = headerHtml + `<div style="display: flex; overflow-x: auto; padding-bottom: 5px;">${cardsHtml}</div>`;
 }
 
-// 5. ጨዋታ መቀየር (switchToGame)
-function switchToGame(isResume) {
-    const selectionPage = document.getElementById('selection-page');
-    const gamePage
+// ጅማሮ
+initSelection();
