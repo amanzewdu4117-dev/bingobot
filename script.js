@@ -1,4 +1,4 @@
-// script.js - Multiplayer Sync Final Version
+// script.js - Multiplayer Sync Final Fixed Version
 const firebaseConfig = { 
     apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
     databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
@@ -87,9 +87,10 @@ function initSelection() {
     }
     updatePreview();
 
-    // የተስተካከለ Timer Logic
+    // --- የተስተካከለ የሰዓት ቆጣሪ ---
     db.ref('liveGame/timerStartTime').on('value', snap => {
         let startTime = snap.val();
+        
         if(!startTime) {
             db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
             return;
@@ -101,20 +102,22 @@ function initSelection() {
         window.bingoTimer = setInterval(() => {
             let now = Date.now() + serverOffset;
             
-            // Milliseconds ማስተካከያ
-            let normalizedStart = startTime > 2000000000000 ? startTime / 1000 : startTime;
-            if (startTime > 1000000000000 && startTime < 2000000000000) normalizedStart = startTime;
-            
+            // የ Milliseconds ማስተካከያ
+            let normalizedStart = (startTime > 1000000000000 && startTime < 2000000000000) ? startTime : startTime / 1000;
+            if (startTime > 2000000000000) normalizedStart = startTime / 1000;
+
             let diff = Math.floor((now - normalizedStart) / 1000);
             let timeLeft = 15 - diff;
 
             if(timeLeft <= 0) { 
                 clearInterval(window.bingoTimer); 
                 if(timerEl) timerEl.innerText = "0";
+                
                 selectionFinished = true;
                 saveGameState();
                 switchToGame(false);
-                // ሰዓቱን ማደሻ
+
+                // ሰዓቱን ማደሻ - ይሄ አሁን Firebase ላይ Blink ያደርጋል
                 db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
             } else {
                 if(timerEl) timerEl.innerText = timeLeft;
@@ -161,7 +164,6 @@ function runEngine() {
             calledNumbers.push(n);
             const ballEl = document.getElementById('current-ball-num');
             if(ballEl) ballEl.innerText = n;
-            // ማሳሰቢያ፡ እዚህ ጋር ካርቴላው ላይ ቁጥሩን ማድመቂያ ኮድ መጨመር ይቻላል
         }
     });
 
@@ -172,6 +174,7 @@ function runEngine() {
         if (remainingBalls.length > 0) {
             let nextNum = remainingBalls[Math.floor(Math.random() * remainingBalls.length)];
             db.ref('liveGame/currentNumber').set(nextNum);
+            db.ref('liveGame/lastUpdateTime').set(firebase.database.ServerValue.TIMESTAMP);
         }
     }, 3000);
 }
