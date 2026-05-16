@@ -26,8 +26,9 @@
 
         .top-status-bar { 
             display: flex; justify-content: space-between; align-items: center; 
-            padding: 8px 15px; background: rgba(0,0,0,0.6); 
+            padding: 8px 15px; background: rgba(0,0,0,0.8); 
             backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border);
+            position: sticky; top: 0; z-index: 100;
         }
 
         .logo-text {
@@ -39,7 +40,7 @@
         #slots-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
         .slot-btn { height: 50px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
         .slot-btn.selected { background: linear-gradient(135deg, var(--accent), #0066ff); border-color: #fff; box-shadow: 0 0 15px var(--accent); }
-        .slot-btn.occupied { border: 2px solid var(--purple); position: relative; }
+        .slot-btn.occupied { border: 2px solid var(--purple); position: relative; opacity: 0.6; }
         .slot-btn.occupied::after { content: '👤'; position: absolute; top: -5px; right: -2px; font-size: 8px; }
 
         #selection-preview {
@@ -72,7 +73,7 @@
         .no-cards-icon { font-size: 50px; margin-bottom: 15px; filter: drop-shadow(0 0 10px var(--purple)); animation: float 3s ease-in-out infinite; }
         .next-round-btn { margin-top: 25px; padding: 10px 20px; background: linear-gradient(135deg, var(--purple), #6a11cb); border: none; border-radius: 25px; color: white; font-weight: bold; font-size: 12px; }
         
-        #winner-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 8, 18, 0.95); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
+        #winner-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 8, 18, 0.95); z-index: 2000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(15px); }
         .winner-card { background: var(--glass); padding: 30px; border-radius: 30px; border: 2px solid var(--accent); text-align: center; animation: zoomIn 0.5s; }
         
         @keyframes zoomIn { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -144,24 +145,24 @@
     // --- State Variables ---
     let userCards = JSON.parse(localStorage.getItem('aman_user_cards')) || [];
     let cardData = JSON.parse(localStorage.getItem('aman_card_data')) || {};
-    let allSelectedCards = JSON.parse(localStorage.getItem('aman_all_selected')) || [];
+    let allSelectedCards = [];
     let currentBalance = parseFloat(localStorage.getItem('aman_bingo_bal')) || 100.00;
     
-    let othersCount = 0, gameActive = false;
+    let gameActive = false;
     let calledNumbers = new Set();
     const cardPrice = 10.00;
 
     function saveState() {
         localStorage.setItem('aman_user_cards', JSON.stringify(userCards));
         localStorage.setItem('aman_card_data', JSON.stringify(cardData));
-        localStorage.setItem('aman_all_selected', JSON.stringify(allSelectedCards));
         localStorage.setItem('aman_bingo_bal', currentBalance);
     }
 
-    function clearState() {
+    function clearLocalState() {
         localStorage.removeItem('aman_user_cards');
         localStorage.removeItem('aman_card_data');
-        localStorage.removeItem('aman_all_selected');
+        userCards = [];
+        cardData = {};
     }
 
     function generateCard() {
@@ -207,74 +208,85 @@
         });
     }
 
-    // --- የታይመር እና የካርቴላ Logic (የተስተካከለ) ---
     function init() {
         const grid = document.getElementById('slots-grid');
         grid.innerHTML = "";
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
-        const timerElement = document.getElementById('timer');
         
-        let timerInterval;
-
-        // የታይመር መጀመሪያን ለማግኘት
-db.ref('liveGame/timerStartTime').on('value', (snap) => {
-    let startTime = snap.val();
-    
-    // ቁጥሩ ነጥብ ካለው ወደ ሙሉ ቁጥር ለመቀየር
-    if(startTime) startTime = Math.floor(parseFloat(startTime));
-
-    if(timerInterval) clearInterval(timerInterval);
-    // ... የተቀረው ኮድ ይቀጥላል
-
-            if(!startTime) {
-                timerElement.innerText = "15";
-                return;
-            }
-
-            timerInterval = setInterval(() => {
-                let now = Date.now();
-                let elapsed = Math.floor((now - startTime) / 1000);
-                let remaining = 15 - elapsed;
-
-                if (remaining <= 0) {
-                    clearInterval(timerInterval);
-                    timerElement.innerText = "0";
-                    if(!gameActive) start();
-                } else {
-                    timerElement.innerText = remaining;
-                }
-            }, 1000);
+        // ዳታቤዝ ላይ ያሉ ሁሉንም የተመረጡ ካርቴላዎች መከታተል
+        db.ref('liveGame/selectedCards').on('value', (snap) => {
+            allSelectedCards = snap.val() || [];
+            document.getElementById('total-count').innerText = allSelectedCards.length;
+            renderGrid();
         });
 
-        // 2. ካርቴላዎችን የመፍጠር Logic
+        // ታይመሩን መከታተል
+        db.ref('liveGame/timerStartTime').on('value', (snap) => {
+            let startTime = snap.val();
+            if(startTime) updateTimer(startTime);
+        });
+
+        // ቁጥር መውጣት ሲጀምር በራሱ ጨዋታው እንዲጀምር
+        db.ref('liveGame/currentNumber').on('value', (snap) => {
+            let n = snap.val();
+            if(n && !gameActive) start();
+            if(n && gameActive) applyNumber(n);
+        });
+
+        updatePreview();
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('slots-grid');
+        grid.innerHTML = "";
         for(let i=1; i<=500; i++) {
             let b = document.createElement('div');
             b.className = 'slot-btn'; b.innerText = i;
+            
             if(allSelectedCards.includes(i) && !userCards.includes(i)) b.classList.add('occupied');
             if(userCards.includes(i)) b.classList.add('selected');
             
             b.onclick = () => {
                 if(b.classList.contains('occupied') || gameActive) return;
-                if(userCards.includes(i)) {
-                    currentBalance += cardPrice;
-                    userCards = userCards.filter(x => x !== i);
-                    allSelectedCards = allSelectedCards.filter(x => x !== i);
-                    b.classList.remove('selected');
-                } else if(userCards.length < 3) {
-                    if(currentBalance >= cardPrice) {
-                        currentBalance -= cardPrice;
-                        userCards.push(i);
-                        allSelectedCards.push(i);
-                        cardData[i] = generateCard();
-                        b.classList.add('selected');
-                    }
-                }
-                document.getElementById('balance').innerText = currentBalance.toFixed(2);
-                saveState(); updatePreview();
+                handleCardSelection(i, b);
             };
             grid.appendChild(b);
         }
-        updatePreview();
+    }
+
+    function handleCardSelection(i, btn) {
+        if(userCards.includes(i)) {
+            currentBalance += cardPrice;
+            userCards = userCards.filter(x => x !== i);
+            btn.classList.remove('selected');
+            // ዳታቤዝ ላይ Update ማድረግ
+            let newAll = allSelectedCards.filter(x => x !== i);
+            db.ref('liveGame/selectedCards').set(newAll);
+        } else if(userCards.length < 3 && currentBalance >= cardPrice) {
+            currentBalance -= cardPrice;
+            userCards.push(i);
+            cardData[i] = generateCard();
+            btn.classList.add('selected');
+            // ዳታቤዝ ላይ Update ማድረግ
+            let newAll = [...allSelectedCards, i];
+            db.ref('liveGame/selectedCards').set(newAll);
+        }
+        document.getElementById('balance').innerText = currentBalance.toFixed(2);
+        saveState(); updatePreview();
+    }
+
+    function updateTimer(startTime) {
+        const timerElement = document.getElementById('timer');
+        const interval = setInterval(() => {
+            let elapsed = Math.floor((Date.now() - startTime) / 1000);
+            let remaining = 15 - elapsed;
+            if (remaining <= 0) {
+                clearInterval(interval);
+                timerElement.innerText = "0";
+            } else {
+                timerElement.innerText = remaining;
+            }
+        }, 1000);
     }
 
     function start() {
@@ -294,112 +306,72 @@ db.ref('liveGame/timerStartTime').on('value', (snap) => {
 
         const area = document.getElementById('player-area');
         area.innerHTML = "";
-
         if (userCards.length === 0) {
             area.innerHTML = `<div class="no-cards-container">
                 <div class="no-cards-icon">🎫</div>
-                <div class="no-cards-title">ካርቴላ አልመረጡም!</div>
-                <div class="no-cards-sub">በዚህ ዙር አልተሳተፉም።</div>
-                <div class="next-round-btn" onclick="clearAndReload()">ለሚቀጥለው ተዘጋጅ</div>
+                <p>በዚህ ዙር አልተሳተፉም</p>
+                <button class="next-round-btn" onclick="location.reload()">ቀጣይ ጨዋታ</button>
             </div>`;
         } else {
-            userCards.forEach(id => {
-                let d = cardData[id];
-                let h = `<div class="active-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-size:10px; color:var(--accent); font-weight:bold;">CARD #${id}</span>
-                    </div>
-                    <div class="card-header-grid" style="font-size:10px; margin-bottom:3px;">
-                        <span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span>
-                    </div>
-                    <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:3px;">`;
-                for(let row=0; row<5; row++) {
-                    for(let col=0; col<5; col++) {
-                        let v = (row===2 && col===2) ? "F" : d[col][row];
-                        let cls = v === "F" ? "card-cell hit free" : "card-cell";
-                        h += `<div class="${cls}" data-card="${id}" data-val="${v}">${v}</div>`;
-                    }
-                }
-                area.innerHTML += h + `</div></div>`;
-            });
+            userCards.forEach(id => renderActiveCard(id, area));
         }
-        play();
+    }
+
+    function renderActiveCard(id, container) {
+        let d = cardData[id];
+        let h = `<div class="active-card">
+            <div style="font-size:10px; color:var(--accent); margin-bottom:5px;">CARD #${id}</div>
+            <div class="card-header-grid"><span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span></div>
+            <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:3px;">`;
+        for(let row=0; row<5; row++) {
+            for(let col=0; col<5; col++) {
+                let v = (row===2 && col===2) ? "F" : d[col][row];
+                let cls = v === "F" ? "card-cell hit free" : "card-cell";
+                h += `<div class="${cls}" data-val="${v}">${v}</div>`;
+            }
+        }
+        container.innerHTML += h + `</div></div>`;
+    }
+
+    function applyNumber(n) {
+        if (!n || calledNumbers.has(n)) return;
+        calledNumbers.add(n);
+        let cell = document.getElementById(`n-${n}`);
+        if(cell) cell.classList.add('called');
+        document.getElementById('ball-num').innerText = n;
+        document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
+        
+        userCards.forEach(id => {
+            if(checkWin(id)) showWinner(id, true);
+        });
     }
 
     function checkWin(id) {
         let card = cardData[id];
-        if(!card) return false;
         let grid = Array(5).fill().map(() => Array(5).fill(false));
         for(let c=0; c<5; c++) for(let r=0; r<5; r++) if((c===2 && r===2) || calledNumbers.has(card[c][r])) grid[r][c] = true;
         for(let i=0; i<5; i++) {
             if(grid[i].every(v => v)) return true;
             if(grid.every(row => row[i])) return true;
         }
-        if([0,1,2,3,4].every(i => grid[i][i])) return true;
-        if([0,1,2,3,4].every(i => grid[i][4-i])) return true;
+        if([0,1,2,3,4].every(i => grid[i][i]) || [0,1,2,3,4].every(i => grid[i][4-i])) return true;
         return false;
     }
 
-    function applyNumber(n) {
-        if (!n || calledNumbers.has(n)) return;
-        calledNumbers.add(n);
-        let boardCell = document.getElementById(`n-${n}`);
-        if(boardCell) boardCell.classList.add('called');
-        document.getElementById('ball-num').innerText = n;
-        let letter = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-        document.getElementById('ball-let').innerText = letter;
-        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-        if (gameActive) {
-            for(let id of allSelectedCards) {
-                if(checkWin(id)) { 
-                    showWinner(id, userCards.includes(id)); 
-                    break; 
-                }
-            }
-        }
-    }
-
-    function play() {
-        db.ref('liveGame/history').once('value', (snap) => {
-            const history = snap.val();
-            if (history) Object.values(history).forEach(n => applyNumber(n));
-        });
-        db.ref('liveGame/currentNumber').on('value', (snap) => {
-            let n = snap.val();
-            if(n && gameActive) applyNumber(n);
-        });
-    }
-
-    function showWinner(id, isUser = false) {
+    function showWinner(id, isUser) {
         gameActive = false;
+        if(isUser) currentBalance += 50;
+        saveState();
+        document.getElementById('win-msg').innerHTML = isUser ? `BINGO! <br> ካርቴላ #${id} አሸንፏል!` : `ተጫዋች #${id} አሸንፏል!`;
         document.getElementById('winner-overlay').style.display = 'flex';
-        if(isUser) currentBalance += 50; 
-        document.getElementById('win-msg').innerHTML = isUser ? 
-            `እንኳን ደስ አለህ! <br> ካርቴላ #${id} አሸንፏል!` : 
-            `ተጫዋች <span style="color:var(--orange);">#${id}</span> ቀድሞ በመስራት አሸንፏል!`;
-        let rTime = 5;
-        const rInt = setInterval(() => {
-            rTime--;
-            document.getElementById('restart-timer').innerText = rTime;
-            if(rTime <= 0) { 
-                clearInterval(rInt); 
-                clearAndReload();
-            }
-        }, 1000);
+        setTimeout(() => {
+            clearLocalState();
+            location.reload();
+        }, 5000);
     }
 
-    function clearAndReload() {
-        clearState();
-        localStorage.setItem('aman_bingo_bal', currentBalance);
-        location.reload();
-    }
-
-    window.onload = () => {
-        document.getElementById('balance').innerText = currentBalance.toFixed(2);
-        init();
-    };
+    window.onload = init;
 </script>
-    
-    
 </body>
 </html>
