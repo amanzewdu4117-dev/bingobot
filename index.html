@@ -159,14 +159,14 @@
         renderGrid();
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
 
-        // 1. Listen for other players
+        // 1. የሌሎች ተጫዋቾችን ካርቴላ መስማት
         db.ref('liveGame/selectedCards').on('value', snap => {
             allSelected = snap.val() || [];
             document.getElementById('total-count').innerText = allSelected.length;
             renderGrid();
         });
 
-        // 2. Timer Sync
+        // 2. የታይመር ማመሳሰል
         db.ref('liveGame/timerStartTime').on('value', snap => {
             let startT = snap.val();
             if(startT) {
@@ -182,19 +182,18 @@
             }
         });
 
-        // 3. Game Status & Numbers
-        // ገጹ ሲታደስ የቆዩትን ቁጥሮች መልሶ ለማምጣት
-db.ref('liveGame/history').once('value', snap => {
-    let history = snap.val() || [];
-    history.forEach(num => {
-        applyNumber(num); // የቆዩትን ቁጥሮች በሙሉ ቦርዱ ላይ ያሰምራል
-    });
-});
+        // 3. የቆዩ ቁጥሮችን (History) ማምጣት
+        db.ref('liveGame/history').once('value', snap => {
+            let history = snap.val() || [];
+            history.forEach(num => {
+                applyNumber(num); 
+            });
+        });
 
-// ከዚያ በኋላ ያንተ የድሮው ኮድ (መስመር 191) ይቀጥላል...
+        // 4. ጨዋታው ሲጀመር እና አዲስ ቁጥር ሲመጣ መቀበል
         db.ref('liveGame/currentNumber').on('value', snap => {
             let n = snap.val();
-            db.ref('liveGame/status').on('value', sSnap => {
+            db.ref('liveGame/status').once('value', sSnap => {
                 let status = sSnap.val();
                 if(status === "started" && n) {
                     if(!gameActive) start();
@@ -302,9 +301,11 @@ db.ref('liveGame/history').once('value', snap => {
 
     function resetUI() {
         gameActive = false;
+        calledNumbers.clear();
         document.getElementById('selection-page').classList.remove('hidden');
         document.getElementById('game-page').classList.add('hidden');
         document.getElementById('game-page').style.display = 'none';
+        document.getElementById('winner-overlay').style.display = 'none';
     }
 
     function updatePreview() {
