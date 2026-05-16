@@ -37,10 +37,15 @@
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        #slots-grid { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; }
+        #slots-grid { 
+            flex: 1; overflow-y: auto; display: grid; 
+            grid-template-columns: repeat(5, 1fr); gap: 10px; padding: 20px; 
+            -webkit-overflow-scrolling: touch;
+        }
+        
         .slot-btn { height: 50px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
         .slot-btn.selected { background: linear-gradient(135deg, var(--accent), #0066ff); border-color: #fff; box-shadow: 0 0 15px var(--accent); }
-        .slot-btn.occupied { border: 2px solid var(--purple); position: relative; opacity: 0.6; }
+        .slot-btn.occupied { border: 2px solid var(--purple); position: relative; opacity: 0.6; pointer-events: none; }
 
         #selection-preview {
             height: 120px; background: rgba(0, 0, 0, 0.4);
@@ -60,7 +65,7 @@
         #ball-num { font-size: 60px; font-weight: 900; }
         .board-side { flex: 1.2; background: var(--glass); border-radius: 15px; padding: 10px; border: 1px solid var(--glass-border); }
         .num-cell { background: rgba(255,255,255,0.03); height: 30px; display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 6px; color: #5a7b9d; }
-        .num-cell.called { background: var(--orange); color: #000; font-weight: 900; }
+        .num-cell.called { background: var(--orange); color: #000; font-weight: 900; box-shadow: 0 0 10px var(--orange); }
         
         .active-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 10px; padding: 6px; margin-bottom: 10px; }
         .card-cell { background: rgba(0,0,0,0.3); height: 22px; display: flex; align-items: center; justify-content: center; font-size: 10px; border-radius: 3px; }
@@ -72,6 +77,10 @@
         
         .hidden { display: none !important; }
         .cl-b { color: var(--b-clr); } .cl-i { color: var(--i-clr); } .cl-n { color: var(--n-clr); } .cl-g { color: var(--g-clr); } .cl-o { color: var(--o-clr); }
+        
+        .search-container { padding: 0 20px; }
+        #searchCard { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--glass); color: #fff; outline: none; }
+        #searchCard:focus { border-color: var(--accent); }
     </style>
 </head>
 <body>
@@ -90,16 +99,21 @@
     </div>
 
     <div id="selection-page" style="display:flex; flex-direction:column; height: calc(100vh - 50px);">
-        <div style="padding: 10px 20px; display:flex; justify-content:space-between;">
+        <div style="padding: 10px 20px; display:flex; justify-content:space-between; align-items: center;">
             <div>
                 <div style="color:#888; font-size:11px;">ካርቴላ ይምረጡ (Max 3)</div>
                 <div style="color:var(--accent); font-size:10px;">ዋጋ: 10 ETB</div>
             </div>
             <div style="text-align: right;">
-                <div id="timer" style="background:var(--orange); color:#000; padding:2px 10px; border-radius:20px; font-weight:900;">15</div>
-                <div style="font-size: 9px; color: #888;">TIME LEFT</div>
+                <div id="timer" style="background:var(--orange); color:#000; padding:2px 12px; border-radius:20px; font-weight:900; min-width: 30px; text-align: center;">40</div>
+                <div style="font-size: 9px; color: #888; margin-top: 2px;">TIME LEFT</div>
             </div>
         </div>
+        
+        <div class="search-container">
+            <input type="number" id="searchCard" placeholder="ካርቴላ ቁጥር ይፈልጉ (1-500)...">
+        </div>
+
         <div id="slots-grid"></div>
         <div id="selection-preview"></div>
     </div>
@@ -121,20 +135,18 @@
     </div>
 
 <script>
-    // --- Firebase Setup ---
     const firebaseConfig = { databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com/" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // --- Variables ---
     let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
     let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
     let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 100.00;
     let allSelected = [];
     let gameActive = false;
     let calledNumbers = new Set();
+    let localTimerInterval;
 
-    // --- Core Functions ---
     function save() {
         localStorage.setItem('aman_cards', JSON.stringify(userCards));
         localStorage.setItem('aman_data', JSON.stringify(cardData));
@@ -154,62 +166,76 @@
         return card;
     }
 
-    // --- Logic ---
     function init() {
         renderGrid();
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
 
-        // 1. የሌሎች ተጫዋቾችን ካርቴላ መስማት
+        db.ref('liveGame').once('value', snap => {
+            let data = snap.val();
+            if(data) {
+                if(data.history) data.history.forEach(num => calledNumbers.add(num));
+                if(data.status === "started" && userCards.length > 0) {
+                    start();
+                    calledNumbers.forEach(n => applyNumber(n, true)); 
+                }
+            }
+        });
+
         db.ref('liveGame/selectedCards').on('value', snap => {
             allSelected = snap.val() || [];
             document.getElementById('total-count').innerText = allSelected.length;
             renderGrid();
         });
 
-        // 2. የታይመር ማመሳሰል
+        // --- የተስተካከለው የLocal Timer ሲስተም ---
         db.ref('liveGame/timerStartTime').on('value', snap => {
             let startT = snap.val();
             if(startT) {
-                if(window.tInt) clearInterval(window.tInt);
-                window.tInt = setInterval(() => {
-                    let rem = 15 - Math.floor((Date.now() - startT) / 1000);
-                    document.getElementById('timer').innerText = rem > 0 ? rem : 0;
-                    if(rem <= 0) {
-                        clearInterval(window.tInt);
-                        if(userCards.length > 0 && !gameActive) checkStartCondition();
+                if(localTimerInterval) clearInterval(localTimerInterval);
+                
+                function runClock() {
+                    let now = Date.now();
+                    let elapsed = Math.floor((now - startT) / 1000);
+                    let rem = 40 - elapsed;
+                    
+                    const timerEl = document.getElementById('timer');
+                    if(rem > 0) {
+                        timerEl.innerText = rem;
+                        timerEl.style.background = "var(--orange)";
+                    } else {
+                        timerEl.innerText = "0";
+                        timerEl.style.background = "#ff3e3e";
+                        clearInterval(localTimerInterval);
                     }
-                }, 1000);
+                }
+                runClock();
+                localTimerInterval = setInterval(runClock, 1000);
             }
         });
 
-        // 3. የቆዩ ቁጥሮችን (History) ማምጣት
-        db.ref('liveGame/history').once('value', snap => {
-            let history = snap.val() || [];
-            history.forEach(num => {
-                applyNumber(num); 
-            });
-        });
-
-        // 4. ጨዋታው ሲጀመር እና አዲስ ቁጥር ሲመጣ መቀበል
         db.ref('liveGame/currentNumber').on('value', snap => {
             let n = snap.val();
-            db.ref('liveGame/status').once('value', sSnap => {
-                let status = sSnap.val();
-                if(status === "started" && n) {
-                    if(!gameActive) start();
-                    applyNumber(n);
-                } else if(status === "waiting") {
-                    resetUI();
-                }
-            });
+            if(n && gameActive) applyNumber(n);
         });
-        updatePreview();
-    }
 
-    function checkStartCondition() {
-        db.ref('liveGame/status').once('value', s => {
-            if(s.val() === "started") start();
+        db.ref('liveGame/status').on('value', snap => {
+            let status = snap.val();
+            if(status === "started" && userCards.length > 0 && !gameActive) {
+                start();
+            } else if(status === "waiting") {
+                resetUI();
+            }
         });
+
+        document.getElementById('searchCard').oninput = function() {
+            let val = parseInt(this.value);
+            if(val >= 1 && val <= 500) {
+                let target = document.getElementById('slots-grid').children[val-1];
+                if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
+            }
+        };
+
+        updatePreview();
     }
 
     function renderGrid() {
@@ -234,7 +260,8 @@
             cardData[i] = generateCard();
             currentBalance -= 10;
         }
-        db.ref('liveGame/selectedCards').set(allSelected.filter(x => !userCards.includes(x)).concat(userCards));
+        let currentAll = allSelected.filter(x => !userCards.includes(x)).concat(userCards);
+        db.ref('liveGame/selectedCards').set(currentAll);
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
         save(); renderGrid(); updatePreview();
     }
@@ -250,7 +277,8 @@
         for(let r=0; r<15; r++) {
             for(let c=0; c<5; c++) {
                 let n = (c*15)+r+1;
-                board.innerHTML += `<div class="num-cell" id="n-${n}">${n}</div>`;
+                let colorClass = calledNumbers.has(n) ? 'called' : '';
+                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
             }
         }
         const area = document.getElementById('player-area');
@@ -260,23 +288,28 @@
 
     function renderActiveCard(id, container) {
         let d = cardData[id];
+        if(!d) return;
         let h = `<div class="active-card"><div style="color:var(--accent); font-size:10px;">CARD #${id}</div><div class="card-header-grid"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div><div style="display:grid; grid-template-columns:repeat(5,1fr); gap:3px;">`;
         for(let r=0; r<5; r++) for(let c=0; c<5; c++) {
             let v = (r===2 && c===2) ? "F" : d[c][r];
-            h += `<div class="card-cell ${v==='F'?'hit free':''}" data-val="${v}">${v}</div>`;
+            let isHit = (v === 'F' || calledNumbers.has(v)) ? 'hit' : '';
+            h += `<div class="card-cell ${isHit} ${v==='F'?'free':''}" data-val="${v}">${v}</div>`;
         }
         container.innerHTML += h + `</div></div>`;
     }
 
-    function applyNumber(n) {
-        if(!n || calledNumbers.has(n)) return;
+    function applyNumber(n, isInitial = false) {
+        if(!n) return;
         calledNumbers.add(n);
-        document.getElementById('ball-num').innerText = n;
-        document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
         let cell = document.getElementById(`n-${n}`);
         if(cell) cell.classList.add('called');
         document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-        userCards.forEach(id => { if(checkWin(id)) winner(id); });
+
+        if(!isInitial) {
+            document.getElementById('ball-num').innerText = n;
+            document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
+            userCards.forEach(id => { if(checkWin(id)) winner(id); });
+        }
     }
 
     function checkWin(id) {
@@ -302,10 +335,12 @@
     function resetUI() {
         gameActive = false;
         calledNumbers.clear();
+        if(localTimerInterval) clearInterval(localTimerInterval);
         document.getElementById('selection-page').classList.remove('hidden');
         document.getElementById('game-page').classList.add('hidden');
         document.getElementById('game-page').style.display = 'none';
         document.getElementById('winner-overlay').style.display = 'none';
+        renderGrid();
     }
 
     function updatePreview() {
