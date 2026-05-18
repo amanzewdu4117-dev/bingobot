@@ -251,8 +251,26 @@ const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "ተ
     }
 
     function init() {
-        renderGrid();
+    renderGrid();
+    
+    // የተጫዋቹን ID ለይተን እንመዝግባለን
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+
+    // ባላንሱን ከ Firebase ለማንበብ (Real-time)
+    db.ref('users/' + userId + '/balance').on('value', snap => {
+        if (snap.exists()) {
+            currentBalance = parseFloat(snap.val());
+        } else {
+            // ተጫዋቹ አዲስ ከሆነ 100 ብር ስጦታ እንሰጠዋለን
+            currentBalance = 100.00;
+            db.ref('users/' + userId).set({
+                name: tgUser,
+                balance: currentBalance
+            });
+        }
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
+        save(); // localStorage ላይም እንዲቀመጥ
+    });
 
         // --- ዋናው የጨዋታ ሁኔታ መቆጣጠሪያ (ያለ Refresh እንዲሰራ ያደርጋል) ---
         db.ref('liveGame').on('value', snap => {
@@ -407,25 +425,38 @@ function start() {
 }
 
     function selectCard(i) {
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+
     if (userCards.includes(i)) {
+        // ካርቴላውን ሲመልስ - ብሩ ይመለስለታል
         userCards = userCards.filter(x => x !== i);
         delete cardData[i];
         currentBalance += 10;
+        
+        // Firebase ላይ ባላንሱን እና የተመረጠውን ካርቴላ አዘምን
+        db.ref('users/' + userId + '/balance').set(currentBalance);
         db.ref('liveGame/selectedCards/c' + i).remove();
+
     } else if (userCards.length < 3 && currentBalance >= 10) {
+        // ካርቴላ ሲገዛ - 10 ብር ይቀነስ
         userCards.push(i);
         const newNumbers = generateCard();
         cardData[i] = newNumbers;
         currentBalance -= 10;
         
-        // እዚህ ጋር playerName የሚለውን ጨምረናል
+        // Firebase ላይ ባላንሱን አዘምን
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        
         db.ref('liveGame/selectedCards/c' + i).set({
             id: i,
-            playerName: tgUser, // ስሙን እዚህ ጋር ይልካል
+            playerName: tgUser,
             numbers: newNumbers.flat().filter(n => n !== 'F')
         });
+    } else if (currentBalance < 10) {
+        alert("በቂ ሂሳብ የሎትም!");
+        return;
     }
-    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+    
     save(); 
     renderGrid(); 
     updatePreview();
@@ -494,23 +525,28 @@ function start() {
     }
 
     function winner(winId) {
-        gameActive = false;
-        const overlay = document.getElementById('winner-overlay');
-        const isUserWinner = userCards.includes(parseInt(winId)) || userCards.includes(winId);
+    gameActive = false;
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+    const overlay = document.getElementById('winner-overlay');
+    const isUserWinner = userCards.includes(parseInt(winId)) || userCards.includes(winId);
 
-        if(isUserWinner) {
-            document.getElementById('overlay-title').innerText = "CONGRA!";
-            if(window.Telegram && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        } else {
-            document.getElementById('overlay-title').innerText = "ቢንጎ ተባለ!";
-        }
-        overlay.style.display = 'flex';
+    if(isUserWinner) {
+        document.getElementById('overlay-title').innerText = "CONGRA!";
         
-        // አሸናፊ ሲኖር ከ 7 ሰከንድ በኋላ ጌሙ እንዲታደስ (Python ላይ የ 7 ሰከንድ Sleep ስላለ)
-        setTimeout(() => {
-            resetUI();
-        }, 7000);
+        // --- አዲስ የተጨመረ፡ አሸናፊው 50 ብር እንዲያገኝ ---
+        currentBalance += 50; 
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        // ------------------------------------------
+
+        if(window.Telegram && Telegram.WebApp.HapticFeedback) 
+            Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    } else {
+        document.getElementById('overlay-title').innerText = "ቢንጎ ተባለ!";
     }
+    
+    overlay.style.display = 'flex';
+    setTimeout(() => { resetUI(); }, 7000);
+}
 
     function resetUI() {
         gameActive = false;
