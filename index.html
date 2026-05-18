@@ -107,19 +107,21 @@
     position: relative; /* ስሙ ከስር እንዲቀመጥ ያግዛል */
 }
 
-.slot-btn.occupied::after, .slot-btn.selected::after {
+        .slot-btn.occupied::after, .slot-btn.selected::after {
     content: attr(data-player);
     position: absolute;
     bottom: 2px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 7px;
-    background: rgba(0, 0, 0, 0.6);
+    font-size: 7px; /* ስሙ በጣም ትልቅ እንዳይሆን */
+    background: rgba(0, 0, 0, 0.5); /* ስሙ እንዲታይ ጥቁር ዳራ */
     padding: 0 3px;
     border-radius: 3px;
     white-space: nowrap;
     color: #fff;
     pointer-events: none;
+    max-width: 90%;
+    overflow: hidden;
 }
         .mini-card {
             min-width: 85px; background: var(--glass); border: 1px solid var(--accent);
@@ -372,37 +374,37 @@ function start() {
     }
 
     function renderGrid() {
-        const grid = document.getElementById('slots-grid');
-        grid.innerHTML = "";
-        for(let i=1; i<=500; i++) {
-            let b = document.createElement('div');
-            b.className = 'slot-btn'; b.innerText = i;
-            
-            // የካርቴላው ቁልፍ (ለምሳሌ c1, c2...)
-            let cardKey = 'c' + i;
+    const grid = document.getElementById('slots-grid');
+    grid.innerHTML = "";
+    for(let i=1; i<=500; i++) {
+        let b = document.createElement('div');
+        b.className = 'slot-btn'; 
+        b.innerText = i;
+        
+        let cardKey = 'c' + i;
 
-            // 1. ካርቴላው በሌላ ሰው ከተያዘ ስሙን እንመድባለን
-            if(allSelected[cardKey]) {
-                // ስሙን ለ CSS 'data-player' እንሰጠዋለን
-                b.setAttribute('data-player', allSelected[cardKey].playerName || "");
-                
-                // እኛ ካልያዝነው 'occupied' እንዲሆን እናደርጋለን
-                if(!userCards.includes(i)) {
-                    b.classList.add('occupied');
-                }
-            }
+        // 1. ካርቴላው በሌላ ሰው ከተያዘ ስሙን እንመድባለን
+        if(allSelected && allSelected[cardKey]) {
+            // ስሙን ለ CSS 'data-player' እንሰጠዋለን
+            b.setAttribute('data-player', allSelected[cardKey].playerName || "ተጫዋች");
             
-            // 2. እኛ የያዝነው ካርቴላ ከሆነ
-            if(userCards.includes(i)) {
-                b.classList.add('selected');
-                // የእኛንም ስም በላዩ ላይ ያሳያል
-                b.setAttribute('data-player', tgUser);
+            // እኛ ካልያዝነው 'occupied' እንዲሆን እናደርጋለን
+            if(!userCards.includes(i)) {
+                b.classList.add('occupied');
             }
-
-            b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
-            grid.appendChild(b);
         }
+        
+        // 2. እኛ የያዝነው ካርቴላ ከሆነ
+        if(userCards.includes(i)) {
+            b.classList.add('selected');
+            // የእኛንም ስም በላዩ ላይ ያሳያል
+            b.setAttribute('data-player', tgUser);
+        }
+
+        b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
+        grid.appendChild(b);
     }
+}
 
     function selectCard(i) {
     if (userCards.includes(i)) {
