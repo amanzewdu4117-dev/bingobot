@@ -530,18 +530,31 @@ function start() {
     const overlay = document.getElementById('winner-overlay');
     const isUserWinner = userCards.includes(parseInt(winId)) || userCards.includes(winId);
 
+    // --- የሽልማት ሂሳብ ስሌት ---
+    const cardPrice = 10; // የአንድ ካርቴላ ዋጋ
+    const totalCards = Object.keys(allSelected).length; // ጠቅላላ የተሸጡ ካርቴላዎች
+    const totalPool = totalCards * cardPrice; // ጠቅላላ የተሰበሰበ ብር
+    const systemCut = totalPool * 0.15; // 15% ለሲስተሙ ተቆራጭ
+    const winnerPrize = totalPool - systemCut; // ለአሸናፊው የሚሰጥ (85%)
+    // -----------------------
+
     if(isUserWinner) {
         document.getElementById('overlay-title').innerText = "CONGRA!";
+        document.getElementById('win-msg').innerHTML = `
+            የዚህ ዙር አሸናፊ ነዎት!<br>
+            ጠቅላላ ካርቴላ፡ ${totalCards}<br>
+            የአሸናፊነት ሽልማት፡ <b>${winnerPrize.toFixed(2)} ETB</b>
+        `;
         
-        // --- አዲስ የተጨመረ፡ አሸናፊው 50 ብር እንዲያገኝ ---
-        currentBalance += 50; 
+        // አሸናፊው ላይ ብሩን መጨመር
+        currentBalance += winnerPrize; 
         db.ref('users/' + userId + '/balance').set(currentBalance);
-        // ------------------------------------------
-
+        
         if(window.Telegram && Telegram.WebApp.HapticFeedback) 
             Telegram.WebApp.HapticFeedback.notificationOccurred('success');
     } else {
         document.getElementById('overlay-title').innerText = "ቢንጎ ተባለ!";
+        document.getElementById('win-msg').innerText = `አሸናፊው ${winnerPrize.toFixed(2)} ETB ወስዷል!`;
     }
     
     overlay.style.display = 'flex';
