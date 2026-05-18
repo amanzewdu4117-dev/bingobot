@@ -43,8 +43,17 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        .slot-btn { height: 50px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; }
-        .slot-btn.selected { background: linear-gradient(135deg, var(--accent), #0066ff); border-color: #fff; box-shadow: 0 0 15px var(--accent); }
+        .slot-btn { height: 50px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; transition: 0.3s; color: #fff; }
+        
+        /* ተጫዋቹ የመረጠው ካርቴላ ምልክት (Highlighter) */
+        .slot-btn.selected { 
+            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%) !important;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.8);
+            border: 2px solid #ffffff;
+            color: white;
+            transform: scale(1.05);
+        }
+
         .slot-btn.occupied { border: 2px solid var(--purple); position: relative; opacity: 0.6; pointer-events: none; }
 
         #selection-preview {
@@ -73,7 +82,6 @@
         .card-cell.hit.free { background: var(--purple); color: #fff; }
         .card-header-grid { display: grid; grid-template-columns: repeat(5, 1fr); text-align: center; font-weight: 900; font-size: 9px; margin-bottom: 3px; }
 
-        /* BINGO HEADER COLORS */
         .cl-b { color: var(--b-clr) !important; text-shadow: 0 0 5px var(--b-clr); }
         .cl-i { color: var(--i-clr) !important; text-shadow: 0 0 5px var(--i-clr); }
         .cl-n { color: var(--n-clr) !important; text-shadow: 0 0 5px var(--n-clr); }
@@ -195,7 +203,7 @@
 
         db.ref('liveGame/selectedCards').on('value', snap => {
             allSelected = snap.val() || [];
-            document.getElementById('total-count').innerText = allSelected.length;
+            document.getElementById('total-count').innerText = Object.keys(allSelected).length;
             renderGrid();
         });
 
@@ -260,8 +268,17 @@
         for(let i=1; i<=500; i++) {
             let b = document.createElement('div');
             b.className = 'slot-btn'; b.innerText = i;
-            if(allSelected.includes(i) && !userCards.includes(i)) b.classList.add('occupied');
-            if(userCards.includes(i)) b.classList.add('selected');
+            
+            // የሌላ ሰው ምርጫ ከሆነ (ከ Firebase የሚመጣ)
+            if(allSelected[i] && !userCards.includes(i)) {
+                b.classList.add('occupied');
+            }
+            
+            // የተጫዋቹ ምርጫ ከሆነ
+            if(userCards.includes(i)) {
+                b.classList.add('selected');
+            }
+
             b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
             grid.appendChild(b);
         }
@@ -270,14 +287,22 @@
     function selectCard(i) {
         if(userCards.includes(i)) {
             userCards = userCards.filter(x => x !== i);
+            delete cardData[i];
             currentBalance += 10;
+            // Firebase ላይ አጥፋ
+            db.ref('liveGame/selectedCards/' + i).remove();
         } else if(userCards.length < 3 && currentBalance >= 10) {
             userCards.push(i);
-            cardData[i] = generateCard();
+            const newNumbers = generateCard();
+            cardData[i] = newNumbers;
             currentBalance -= 10;
+            
+            // Firebase ላይ መረጃውን ላክ (Python እንዲያነበው)
+            db.ref('liveGame/selectedCards/' + i).set({
+                id: i,
+                numbers: newNumbers.flat().filter(n => n !== 'F')
+            });
         }
-        let currentAll = allSelected.filter(x => !userCards.includes(x)).concat(userCards);
-        db.ref('liveGame/selectedCards').set(currentAll);
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
         save(); renderGrid(); updatePreview();
     }
@@ -291,7 +316,6 @@
         const board = document.getElementById('main-board');
         board.innerHTML = "";
         
-        // ሰሌዳውን መገንባት (75 ቁጥሮችን ሙሉ በሙሉ እንዲያሳይ ማስተካከያ)
         for(let r=0; r<15; r++) { 
             for(let c=0; c<5; c++) { 
                 let n = (c * 15) + r + 1;
@@ -383,12 +407,23 @@
     function resetUI() {
         gameActive = false;
         calledNumbers.clear();
-        if(localTimerInterval) clearInterval(localTimerInterval);
+        
+        // --- አዲስ የተጨመረ፡ ምርጫዎችን ለማጥፋት ---
+        userCards = []; // የተጫዋቹን ምርጫ ባዶ ያደርጋል
+        cardData = {};  // የካርቴላ ዳታዎችን ያጠፋል
+        localStorage.removeItem('aman_cards'); // ከስልኩ ሚሞሪ ላይ ያጠፋል
+        localStorage.removeItem('aman_data');
+        // ------------------------------------
+
+        if (localTimerInterval) clearInterval(localTimerInterval);
+        
         document.getElementById('selection-page').classList.remove('hidden');
         document.getElementById('game-page').classList.add('hidden');
         document.getElementById('game-page').style.display = 'none';
         document.getElementById('winner-overlay').style.display = 'none';
-        renderGrid();
+        
+        renderGrid();     // ግሪዱን እንደ አዲስ ባዶ ሆኖ እንዲሳል ያደርጋል
+        updatePreview();  // የታችኛው መመልከቻ (Preview) ባዶ እንዲሆን ያደርጋል
     }
 
     function updatePreview() {
