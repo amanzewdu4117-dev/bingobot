@@ -17,7 +17,48 @@
             --orange: #ff9d00;
             --b-clr: #00d2ff; --i-clr: #ff00d4; --n-clr: #ff3e3e; --g-clr: #00ff85; --o-clr: #ffae00;
         }
+        .no-card-warning {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+         justify-content: center;
+         text-align: center;
+         background: linear-gradient(135deg, rgba(157, 80, 187, 0.1), rgba(0, 242, 255, 0.1));
+           border: 1px solid var(--glass-border);
+           border-radius: 20px;
+           padding: 20px;
+           animation: glow-border 3s infinite alternate;
+      }
 
+.warning-title {
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(to right, #00f2ff, #9d50bb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+}
+
+.warning-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+.highlight-orange {
+    color: var(--orange);
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
+    font-size: 18px;
+    text-shadow: 0 0 10px rgba(255, 157, 0, 0.5);
+}
+
+@keyframes glow-border {
+    from { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 5px rgba(0, 242, 255, 0.1); }
+    to { border-color: rgba(157, 80, 187, 0.5); box-shadow: 0 0 20px rgba(157, 80, 187, 0.2); }
+}
         body { 
             background: var(--bg); 
             background-image: radial-gradient(circle at 50% 50%, #0a192f 0%, #030812 100%);
@@ -165,7 +206,7 @@
     let allSelected = [];
     let gameActive = false;
     let calledNumbers = new Set();
-    let localTimerInterval;
+    let countdownInterval; // ታይመሩን እዚህ እንይዘዋለን
 
     function save() {
         localStorage.setItem('aman_cards', JSON.stringify(userCards));
@@ -190,65 +231,95 @@
         renderGrid();
         document.getElementById('balance').innerText = currentBalance.toFixed(2);
 
-        db.ref('liveGame').once('value', snap => {
-            let data = snap.val();
-            if(data) {
-                if(data.history) data.history.forEach(num => calledNumbers.add(num));
-                if(data.status === "started") {
-                    start();
-                    calledNumbers.forEach(n => applyNumber(n, true)); 
+        // --- ዋናው የጨዋታ ሁኔታ መቆጣጠሪያ (ያለ Refresh እንዲሰራ ያደርጋል) ---
+        db.ref('liveGame').on('value', snap => {
+            const data = snap.val();
+            if(!data) return;
+
+            // 1. የቁጥሮች ታሪክ አዘምን
+            calledNumbers.clear();
+            if(data.history) data.history.forEach(num => calledNumbers.add(num));
+
+            // 2. የታይመር ሁኔታ (Waiting Status)
+            if(data.status === "waiting" && data.timerStartTime) {
+                const now = Date.now();
+                const elapsed = Math.floor((now - data.timerStartTime) / 1000);
+                const remaining = 40 - elapsed;
+                
+                if (remaining > 0) {
+                    startCountdown(remaining);
+                } else {
+                    document.getElementById('timer').innerText = "0";
                 }
+                
+                if(gameActive) resetUI(); // ጨዋታው አልቆ ወደ መምረጫ ሲመለስ
+            }
+
+            // 3. የጨዋታ ጅማሬ (Started Status)
+            if(data.status === "started") {
+                clearInterval(countdownInterval); // ጨዋታ ሲጀመር ታይመሩ ይቁም
+                if(!gameActive) start();
+            }
+function start() {
+        gameActive = true;
+        document.getElementById('selection-page').classList.add('hidden');
+        document.getElementById('game-page').classList.remove('hidden');
+        document.getElementById('game-page').style.display = 'flex';
+        
+        // 1. የግራው የቁጥር ቦርድ (1-75) ሙሉ ሆኖ እንዲታይ
+        const board = document.getElementById('main-board');
+        board.innerHTML = "";
+        // ቁጥሮቹን በቅደም ተከተል (B-I-N-G-O) ለማውጣት
+        for(let r=0; r<15; r++) { 
+            for(let c=0; c<5; c++) { 
+                let n = (c * 15) + r + 1;
+                let colorClass = calledNumbers.has(n) ? 'called' : '';
+                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+            }
+        }
+
+        // 2. የቀኙ ክፍል (ተጫዋቹ የመረጠው ካርቴላ ወይም ማስጠንቀቂያ)
+        const area = document.getElementById('player-area');
+        area.innerHTML = "";
+        
+        if(userCards.length > 0) {
+            // ተጫዋቹ ካርቴላ ካለው ካርቴላውን አሳይ
+            userCards.forEach(id => renderActiveCard(id, area));
+        } else {
+            // ተጫዋቹ ካርቴላ ካልመረጠ ይህንን ያሸበረቀ መልዕክት በቀኝ በኩል አሳይ
+            area.innerHTML = `
+                <div class="no-card-warning">
+                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
+                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
+                    <p class="warning-text">
+                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
+                        አሸናፊ ለመሆን በሚቀጥለው ዙር
+                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
+                    </p>
+                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
+                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
+                    </div>
+                </div>
+            `;
+        }
+    }
+            // 4. አሸናፊ ሲኖር
+            if(data.winner && gameActive) {
+                winner(data.winner);
+            }
+
+            // 5. የአጠቃላይ ካርቴላ ብዛት
+            if(data.selectedCards) {
+                allSelected = data.selectedCards;
+                document.getElementById('total-count').innerText = Object.keys(allSelected).length;
+                renderGrid();
             }
         });
 
-        db.ref('liveGame/selectedCards').on('value', snap => {
-            allSelected = snap.val() || [];
-            document.getElementById('total-count').innerText = Object.keys(allSelected).length;
-            renderGrid();
-        });
-
-        db.ref('liveGame/timerStartTime').on('value', snap => {
-            let startT = snap.val();
-            if(startT) {
-                if(localTimerInterval) clearInterval(localTimerInterval);
-                function runClock() {
-                    let now = Date.now();
-                    let elapsed = Math.floor((now - startT) / 1000);
-                    let rem = 40 - elapsed;
-                    const timerEl = document.getElementById('timer');
-                    if(rem > 0) {
-                        timerEl.innerText = rem;
-                        timerEl.style.background = "var(--orange)";
-                    } else {
-                        timerEl.innerText = "0";
-                        timerEl.style.background = "#ff3e3e";
-                        clearInterval(localTimerInterval);
-                    }
-                }
-                runClock();
-                localTimerInterval = setInterval(runClock, 1000);
-            }
-        });
-
+        // አሁን ያለውን ቁጥር ለመከታተል
         db.ref('liveGame/currentNumber').on('value', snap => {
             let n = snap.val();
             if(n && gameActive) applyNumber(n);
-        });
-
-        db.ref('liveGame/status').on('value', snap => {
-            let status = snap.val();
-            if(status === "started" && !gameActive) {
-                start();
-            } else if(status === "waiting") {
-                resetUI();
-            }
-        });
-
-        db.ref('liveGame/winner').on('value', snap => {
-            let winId = snap.val();
-            if(winId && gameActive) {
-                winner(winId);
-            }
         });
 
         document.getElementById('searchCard').oninput = function() {
@@ -262,6 +333,23 @@
         updatePreview();
     }
 
+    function startCountdown(seconds) {
+        clearInterval(countdownInterval);
+        let counter = seconds;
+        const timerEl = document.getElementById('timer');
+
+        countdownInterval = setInterval(() => {
+            if (timerEl) {
+                timerEl.innerText = counter;
+                timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
+            }
+            if (counter <= 0) {
+                clearInterval(countdownInterval);
+            }
+            counter--;
+        }, 1000);
+    }
+
     function renderGrid() {
         const grid = document.getElementById('slots-grid');
         grid.innerHTML = "";
@@ -269,45 +357,39 @@
             let b = document.createElement('div');
             b.className = 'slot-btn'; b.innerText = i;
             
-            // የሌላ ሰው ምርጫ ከሆነ (ከ Firebase የሚመጣ)
-            if(allSelected[i] && !userCards.includes(i)) {
+            // ቁልፉን በ 'c' + i መልክ ቼክ እናደርጋለን
+            if(allSelected['c' + i] && !userCards.includes(i)) {
                 b.classList.add('occupied');
             }
-            
-            // የተጫዋቹ ምርጫ ከሆነ
             if(userCards.includes(i)) {
                 b.classList.add('selected');
             }
-
             b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
             grid.appendChild(b);
         }
     }
 
     function selectCard(i) {
-    if (userCards.includes(i)) {
-        userCards = userCards.filter(x => x !== i);
-        delete cardData[i];
-        currentBalance += 10;
-        // Firebase ላይ ሲሰረዝ
-        db.ref('liveGame/selectedCards/' + i).remove();
-    } else if (userCards.length < 3 && currentBalance >= 10) {
-        userCards.push(i);
-        const newNumbers = generateCard();
-        cardData[i] = newNumbers;
-        currentBalance -= 10;
-
-        // *** ዋናው ማስተካከያ እዚህ ጋር ነው ***
-        db.ref('liveGame/selectedCards/' + i).set({
-            id: i,
-            numbers: newNumbers.flat().filter(n => n !== 'F')
-        });
+        if (userCards.includes(i)) {
+            userCards = userCards.filter(x => x !== i);
+            delete cardData[i];
+            currentBalance += 10;
+            db.ref('liveGame/selectedCards/c' + i).remove();
+        } else if (userCards.length < 3 && currentBalance >= 10) {
+            userCards.push(i);
+            const newNumbers = generateCard();
+            cardData[i] = newNumbers;
+            currentBalance -= 10;
+            db.ref('liveGame/selectedCards/c' + i).set({
+                id: i,
+                numbers: newNumbers.flat().filter(n => n !== 'F')
+            });
+        }
+        document.getElementById('balance').innerText = currentBalance.toFixed(2);
+        save(); 
+        renderGrid(); 
+        updatePreview();
     }
-    document.getElementById('balance').innerText = currentBalance.toFixed(2);
-    save(); 
-    renderGrid(); 
-    updatePreview();
-}
 
     function start() {
         gameActive = true;
@@ -317,7 +399,6 @@
         
         const board = document.getElementById('main-board');
         board.innerHTML = "";
-        
         for(let r=0; r<15; r++) { 
             for(let c=0; c<5; c++) { 
                 let n = (c * 15) + r + 1;
@@ -325,13 +406,12 @@
                 board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
             }
         }
-
         const area = document.getElementById('player-area');
         area.innerHTML = "";
         if(userCards.length > 0) {
             userCards.forEach(id => renderActiveCard(id, area));
         } else {
-            area.innerHTML = `<div class="no-selection-box"><div style="font-size: 35px; margin-bottom: 10px;">🎫</div><div style="color: var(--accent); font-weight: bold; font-size: 13px;">ምንም የተመረጠ ካርቴላ የለም</div></div>`;
+            area.innerHTML = `<div class="no-selection-box">...</div>`;
         }
     }
 
@@ -358,9 +438,7 @@
             document.getElementById('ball-num').innerText = n;
             document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
             userCards.forEach(id => { 
-                if(checkWin(id)) {
-                    db.ref('liveGame/winner').set(id);
-                }
+                if(checkWin(id)) db.ref('liveGame/winner').set(id);
             });
         }
     }
@@ -378,54 +456,37 @@
     function winner(winId) {
         gameActive = false;
         const overlay = document.getElementById('winner-overlay');
-        const title = document.getElementById('overlay-title');
-        const msg = document.getElementById('win-msg');
-        const icon = document.getElementById('win-icon');
         const isUserWinner = userCards.includes(parseInt(winId)) || userCards.includes(winId);
 
         if(isUserWinner) {
-            icon.innerText = "🎉";
-            title.innerText = "CONGRA!";
-            title.style.color = "#00ff85";
-            msg.innerHTML = `<div style="font-size: 26px; font-weight: bold;">አሸንፈዋል!</div><div style="color: #ccc;">ካርቴላ #${winId} ቢንጎ ሰርቷል።</div>`;
+            document.getElementById('overlay-title').innerText = "CONGRA!";
             if(window.Telegram && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         } else {
-            icon.innerText = "🎮";
-            title.innerText = "ቢንጎ ተባለ!";
-            title.style.color = "#00f2ff";
-            msg.innerHTML = `<div style="font-size: 20px;">ሌላ አሸናፊ ተገኝቷል</div><div style="color: #ccc;">ያሸነፈው ካርቴላ: <b style="color:#ff9d00;">#${winId}</b></div>`;
+            document.getElementById('overlay-title').innerText = "ቢንጎ ተባለ!";
         }
-        
         overlay.style.display = 'flex';
         
+        // አሸናፊ ሲኖር ከ 7 ሰከንድ በኋላ ጌሙ እንዲታደስ (Python ላይ የ 7 ሰከንድ Sleep ስላለ)
         setTimeout(() => {
-            localStorage.removeItem('aman_cards');
-            localStorage.removeItem('aman_data');
-            db.ref('liveGame/winner').set(null);
-            location.reload();
-        }, 4000); 
+            resetUI();
+        }, 7000);
     }
 
     function resetUI() {
         gameActive = false;
         calledNumbers.clear();
-        
-        // --- አዲስ የተጨመረ፡ ምርጫዎችን ለማጥፋት ---
-        userCards = []; // የተጫዋቹን ምርጫ ባዶ ያደርጋል
-        cardData = {};  // የካርቴላ ዳታዎችን ያጠፋል
-        localStorage.removeItem('aman_cards'); // ከስልኩ ሚሞሪ ላይ ያጠፋል
+        userCards = [];
+        cardData = {};
+        localStorage.removeItem('aman_cards');
         localStorage.removeItem('aman_data');
-        // ------------------------------------
-
-        if (localTimerInterval) clearInterval(localTimerInterval);
         
         document.getElementById('selection-page').classList.remove('hidden');
         document.getElementById('game-page').classList.add('hidden');
         document.getElementById('game-page').style.display = 'none';
         document.getElementById('winner-overlay').style.display = 'none';
         
-        renderGrid();     // ግሪዱን እንደ አዲስ ባዶ ሆኖ እንዲሳል ያደርጋል
-        updatePreview();  // የታችኛው መመልከቻ (Preview) ባዶ እንዲሆን ያደርጋል
+        renderGrid();
+        updatePreview();
     }
 
     function updatePreview() {
