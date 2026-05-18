@@ -102,7 +102,25 @@
             border-top: 1px solid var(--glass-border); display: flex; 
             gap: 12px; padding: 10px 15px; overflow-x: auto; align-items: center;
         }
+        
+        .slot-btn { 
+    position: relative; /* ስሙ ከስር እንዲቀመጥ ያግዛል */
+}
 
+.slot-btn.occupied::after, .slot-btn.selected::after {
+    content: attr(data-player);
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0 3px;
+    border-radius: 3px;
+    white-space: nowrap;
+    color: #fff;
+    pointer-events: none;
+}
         .mini-card {
             min-width: 85px; background: var(--glass); border: 1px solid var(--accent);
             border-radius: 8px; padding: 5px; flex-shrink: 0;
@@ -199,6 +217,9 @@
     const firebaseConfig = { databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com/" };
     if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+
+// የቴሌግራም ስምን እዚህ ጋር እናገኛለን
+const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "ተጫዋች";
 
     let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
     let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
@@ -357,39 +378,56 @@ function start() {
             let b = document.createElement('div');
             b.className = 'slot-btn'; b.innerText = i;
             
-            // ቁልፉን በ 'c' + i መልክ ቼክ እናደርጋለን
-            if(allSelected['c' + i] && !userCards.includes(i)) {
-                b.classList.add('occupied');
+            // የካርቴላው ቁልፍ (ለምሳሌ c1, c2...)
+            let cardKey = 'c' + i;
+
+            // 1. ካርቴላው በሌላ ሰው ከተያዘ ስሙን እንመድባለን
+            if(allSelected[cardKey]) {
+                // ስሙን ለ CSS 'data-player' እንሰጠዋለን
+                b.setAttribute('data-player', allSelected[cardKey].playerName || "");
+                
+                // እኛ ካልያዝነው 'occupied' እንዲሆን እናደርጋለን
+                if(!userCards.includes(i)) {
+                    b.classList.add('occupied');
+                }
             }
+            
+            // 2. እኛ የያዝነው ካርቴላ ከሆነ
             if(userCards.includes(i)) {
                 b.classList.add('selected');
+                // የእኛንም ስም በላዩ ላይ ያሳያል
+                b.setAttribute('data-player', tgUser);
             }
+
             b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
             grid.appendChild(b);
         }
     }
 
     function selectCard(i) {
-        if (userCards.includes(i)) {
-            userCards = userCards.filter(x => x !== i);
-            delete cardData[i];
-            currentBalance += 10;
-            db.ref('liveGame/selectedCards/c' + i).remove();
-        } else if (userCards.length < 3 && currentBalance >= 10) {
-            userCards.push(i);
-            const newNumbers = generateCard();
-            cardData[i] = newNumbers;
-            currentBalance -= 10;
-            db.ref('liveGame/selectedCards/c' + i).set({
-                id: i,
-                numbers: newNumbers.flat().filter(n => n !== 'F')
-            });
-        }
-        document.getElementById('balance').innerText = currentBalance.toFixed(2);
-        save(); 
-        renderGrid(); 
-        updatePreview();
+    if (userCards.includes(i)) {
+        userCards = userCards.filter(x => x !== i);
+        delete cardData[i];
+        currentBalance += 10;
+        db.ref('liveGame/selectedCards/c' + i).remove();
+    } else if (userCards.length < 3 && currentBalance >= 10) {
+        userCards.push(i);
+        const newNumbers = generateCard();
+        cardData[i] = newNumbers;
+        currentBalance -= 10;
+        
+        // እዚህ ጋር playerName የሚለውን ጨምረናል
+        db.ref('liveGame/selectedCards/c' + i).set({
+            id: i,
+            playerName: tgUser, // ስሙን እዚህ ጋር ይልካል
+            numbers: newNumbers.flat().filter(n => n !== 'F')
+        });
     }
+    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+    save(); 
+    renderGrid(); 
+    updatePreview();
+}
 
     function start() {
         gameActive = true;
