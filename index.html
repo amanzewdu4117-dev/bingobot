@@ -285,27 +285,29 @@
     }
 
     function selectCard(i) {
-        if(userCards.includes(i)) {
-            userCards = userCards.filter(x => x !== i);
-            delete cardData[i];
-            currentBalance += 10;
-            // Firebase ላይ አጥፋ
-            db.ref('liveGame/selectedCards/' + i).remove();
-        } else if(userCards.length < 3 && currentBalance >= 10) {
-            userCards.push(i);
-            const newNumbers = generateCard();
-            cardData[i] = newNumbers;
-            currentBalance -= 10;
-            
-            // Firebase ላይ መረጃውን ላክ (Python እንዲያነበው)
-            db.ref('liveGame/selectedCards/' + i).set({
-                id: i,
-                numbers: newNumbers.flat().filter(n => n !== 'F')
-            });
-        }
-        document.getElementById('balance').innerText = currentBalance.toFixed(2);
-        save(); renderGrid(); updatePreview();
+    if (userCards.includes(i)) {
+        userCards = userCards.filter(x => x !== i);
+        delete cardData[i];
+        currentBalance += 10;
+        // Firebase ላይ ሲሰረዝ
+        db.ref('liveGame/selectedCards/' + i).remove();
+    } else if (userCards.length < 3 && currentBalance >= 10) {
+        userCards.push(i);
+        const newNumbers = generateCard();
+        cardData[i] = newNumbers;
+        currentBalance -= 10;
+
+        // *** ዋናው ማስተካከያ እዚህ ጋር ነው ***
+        db.ref('liveGame/selectedCards/' + i).set({
+            id: i,
+            numbers: newNumbers.flat().filter(n => n !== 'F')
+        });
     }
+    document.getElementById('balance').innerText = currentBalance.toFixed(2);
+    save(); 
+    renderGrid(); 
+    updatePreview();
+}
 
     function start() {
         gameActive = true;
