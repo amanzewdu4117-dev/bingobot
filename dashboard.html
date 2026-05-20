@@ -175,7 +175,7 @@
         for (let i = 1; i <= 200; i++) {
             let baseName = amharicNames[i % amharicNames.length];
             aiBotList.push({
-                id: `bot_999900${100 + i}`, // 👈 ID አጻጻፉን ይበልጥ ደህንነቱ የተጠበቀ አደረግኩት
+                id: `bot_999900${100 + i}`,
                 username: `🤖 ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
                 phone: "AI_Virtual",
                 balance: 100,
@@ -306,18 +306,21 @@
             if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
         };
 
-        // 🎯 እዚህ ጋር ማስተካከያ ተደርጓል!
+        // 🎯 እዚህ ጋር በምስሉ መሠረት የዳታቤዝ ቁልፎች (Paths) ተስተካክለዋል!
         window.injectAIBots = function() {
             if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
             const count = parseInt(document.getElementById("ai-bot-count").value);
             
-            // የድሮውን ጨዋታ አጽድቶ አዲስ የቦት ዳታ መክተት
             for (let i = 0; i < count; i++) {
                 let bot = aiBotList[i];
+                // 1. ወደ users ይገባል
                 db.ref(`users/${bot.id}`).set({ username: bot.username, phone: bot.phone, balance: bot.balance, is_ai: true });
-                db.ref(`current_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
+                // 2. ወደ currentGame (ከምስሉ ላይ እንዳየሁት G ካፒታል ናት)
+                db.ref(`currentGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
+                // 3. ወደ liveGame (ከምስሉ ላይ እንዳየሁት G ካፒታል ናት)
+                db.ref(`liveGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
             }
-            alert(`✅ ${count} AI ቦቶች በዳታቤዝ ላይ ተመዝግበው ወደ ጨዋታ ገብተዋል!`);
+            alert(`✅ ${count} AI ቦቶች በተሳካ ሁኔታ Firebase ላይ ገብተዋል!`);
         };
 
         window.clearAIBots = function() {
@@ -325,9 +328,10 @@
             for (let i = 0; i < 200; i++) {
                 let botId = aiBotList[i].id;
                 db.ref(`users/${botId}`).remove();
-                db.ref(`current_game/players/${botId}`).remove();
+                db.ref(`currentGame/players/${botId}`).remove();
+                db.ref(`liveGame/players/${botId}`).remove();
             }
-            alert("🗑️ AI ተጫዋቾች ወጥተዋል!");
+            alert("🗑️ AI ተጫዋቾች በሙሉ ወጥተዋል!");
         };
 
         window.approveDeposit = function(reqId, userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount, () => db.ref(`deposit_requests/${reqId}`).remove()); };
