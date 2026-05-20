@@ -16,8 +16,8 @@
         .ai-panel { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px; }
     </style>
 
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -167,7 +167,7 @@
     </div>
 
     <script>
-        const ADMIN_PASSWORD = "aman"; // 👈 የአድሚን መግቢያ ፓስወርድህ
+        const ADMIN_PASSWORD = "aman"; 
         let db;
 
         const aiBotList = [];
@@ -175,7 +175,7 @@
         for (let i = 1; i <= 200; i++) {
             let baseName = amharicNames[i % amharicNames.length];
             aiBotList.push({
-                id: `999900${100 + i}`,
+                id: `bot_999900${100 + i}`, // 👈 ID አጻጻፉን ይበልጥ ደህንነቱ የተጠበቀ አደረግኩት
                 username: `🤖 ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
                 phone: "AI_Virtual",
                 balance: 100,
@@ -183,7 +183,6 @@
             });
         }
 
-        // 🔐 ፓስወርድ ማረጋገጫ ፈንክሽን
         function checkAuth() {
             const sessionAuth = sessionStorage.getItem("admin_logged_in");
             if (sessionAuth === "true") { 
@@ -203,7 +202,6 @@
         }
         window.onload = checkAuth;
 
-        // 🔥 ሪልታይም ዳታቤዝ ማስጀመርና ዳታ ማምጣት
         function initDashboard() {
             const firebaseConfig = {
                 apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
@@ -212,7 +210,8 @@
                 projectId: "my-app-project-1e0bb",
                 storageBucket: "my-app-project-1e0bb.firebasestorage.app",
                 messagingSenderId: "280130045202",
-                appId: "1:280130045202:web:90c9a40d313b4d0b905fcb"
+                appId: "1:280130045202:web:90c9a40d313b4d0b905fcb",
+                measurementId: "G-WCWWP0GQ0G"
             };
             
             if (!firebase.apps.length) {
@@ -220,31 +219,30 @@
             }
             db = firebase.database();
 
-            // የኔትወርክ ግንኙነት ስታተስ
             db.ref(".info/connected").on("value", (snap) => {
                 document.getElementById("connection-status").innerHTML = snap.val() ? '<i class="fa-solid fa-circle-dot me-1"></i> ኦንላይን' : '<i class="fa-solid fa-circle-dot me-1"></i> ኦፍላይን';
                 document.getElementById("connection-status").className = snap.val() ? "navbar-text text-success" : "navbar-text text-danger";
             });
 
-            // የ AI ማሸነፊያ ፐርሰንት ማምጫ
             db.ref("settings/ai_win_rate").on("value", (snapshot) => {
                 const currentRate = snapshot.exists() ? snapshot.val() : 50;
                 document.getElementById("ai-win-range").value = currentRate;
                 document.getElementById("ai-win-percent-label").innerText = currentRate + "%";
             });
 
-            // የቦት ሁኔታ (ON/OFF)
             db.ref("settings/bot_status").on("value", (snapshot) => {
                 const isOnline = snapshot.exists() ? snapshot.val() : true;
                 const toggle = document.getElementById("bot-status-toggle");
                 const label = document.getElementById("bot-status-label");
-                toggle.checked = isOnline;
-                label.innerText = isOnline ? "Bot: ON🟢" : "Bot: OFF🔴";
+                if(toggle && label) {
+                    toggle.checked = isOnline;
+                    label.innerText = isOnline ? "Bot: ON🟢" : "Bot: OFF🔴";
+                }
             });
 
-            window.toggleBotStatus = function(status) { db.ref("settings/bot_status").set(status); };
+            window.toggleBotStatus = function(status) { if(db) db.ref("settings/bot_status").set(status); };
 
-            // የሚጠባበቁ ዲፖዚቶች
+            // ዲፖዚቶች
             db.ref("deposit_requests").on("value", (snapshot) => {
                 const container = document.getElementById("deposit-requests-body"); container.innerHTML = "";
                 if (snapshot.exists()) {
@@ -257,7 +255,7 @@
                 } else { container.innerHTML = "<tr><td colspan='4' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; }
             });
 
-            // የሚጠባበቁ ዊዝድሮዎች
+            // ዊዝድሮዎች
             db.ref("withdraw_requests").on("value", (snapshot) => {
                 const container = document.getElementById("withdraw-requests-body"); container.innerHTML = "";
                 if (snapshot.exists()) {
@@ -270,7 +268,7 @@
                 } else { container.innerHTML = "<tr><td colspan='4' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; }
             });
 
-            // የተጫዋቾች ዝርዝር
+            // ተጫዋቾች ሊስት
             db.ref("users").on("value", (snapshot) => {
                 const usersTableBody = document.getElementById("users-table-body"); usersTableBody.innerHTML = "";
                 let totalUsers = 0, totalBalance = 0;
@@ -303,25 +301,25 @@
             });
         }
 
-        // የ AI ማሸነፊያ ፐርሰንት መለወጫ
         window.updateAIWinRateInDB = function(val) {
             document.getElementById("ai-win-percent-label").innerText = val + "%";
             if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
         };
 
-        // ቦቶችን መክተቻ (Inject)
+        // 🎯 እዚህ ጋር ማስተካከያ ተደርጓል!
         window.injectAIBots = function() {
-            if(!db) return;
+            if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
             const count = parseInt(document.getElementById("ai-bot-count").value);
+            
+            // የድሮውን ጨዋታ አጽድቶ አዲስ የቦት ዳታ መክተት
             for (let i = 0; i < count; i++) {
                 let bot = aiBotList[i];
                 db.ref(`users/${bot.id}`).set({ username: bot.username, phone: bot.phone, balance: bot.balance, is_ai: true });
                 db.ref(`current_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
             }
-            alert(`✅ ${count} AI ተጫዋቾች ገብተዋል!`);
+            alert(`✅ ${count} AI ቦቶች በዳታቤዝ ላይ ተመዝግበው ወደ ጨዋታ ገብተዋል!`);
         };
 
-        // ቦቶችን ማስወገጃ (Clear)
         window.clearAIBots = function() {
             if(!db) return;
             for (let i = 0; i < 200; i++) {
@@ -338,7 +336,6 @@
         window.updateBalance = function(userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount); };
         window.customBalance = function(userId, action) { const amt = parseFloat(prompt("ብር መጠን?")); if(!isNaN(amt)) db.ref(`users/${userId}/balance`).transaction(c => action === 'add' ? (c || 0) + amt : ((c || 0) - amt >= 0 ? c - amt : 0)); };
 
-        // መፈለጊያ (Search)
         document.getElementById("user-search").addEventListener("input", function(e) {
             const term = e.target.value.toLowerCase();
             document.querySelectorAll("#users-table-body tr").forEach(row => {
