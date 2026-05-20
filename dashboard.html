@@ -175,7 +175,7 @@
         for (let i = 1; i <= 200; i++) {
             let baseName = amharicNames[i % amharicNames.length];
             aiBotList.push({
-                id: `bot_999900${100 + i}`,
+                id: `999900${100 + i}`, // ⚡ ልክ እንደ main.py ቁጥር ብቻ እንዲሆን ተስተካከለ
                 username: `🤖 ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
                 phone: "AI_Virtual",
                 balance: 100,
@@ -306,7 +306,7 @@
             if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
         };
 
-        // 🎯 እዚህ ጋር በምስሉ መሠረት የዳታቤዝ ቁልፎች (Paths) ተስተካክለዋል!
+        // 🎯 የ "ክተት" ፈንክሽን ፍጹም ማስተካከያ (ወደ አምስቱም የዳታቤዝ ክፍሎች ይልካል)
         window.injectAIBots = function() {
             if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
             const count = parseInt(document.getElementById("ai-bot-count").value);
@@ -315,14 +315,19 @@
                 let bot = aiBotList[i];
                 // 1. ወደ users ይገባል
                 db.ref(`users/${bot.id}`).set({ username: bot.username, phone: bot.phone, balance: bot.balance, is_ai: true });
-                // 2. ወደ currentGame (ከምስሉ ላይ እንዳየሁት G ካፒታል ናት)
+                // 2. ወደ currentGame (G ካፒታል)
                 db.ref(`currentGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                // 3. ወደ liveGame (ከምስሉ ላይ እንዳየሁት G ካፒታል ናት)
+                // 3. ወደ liveGame (G ካፒታል)
                 db.ref(`liveGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
+                // 4. ወደ current_game (በአንደርስኮር)
+                db.ref(`current_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
+                // 5. ወደ live_game (በአንደርስኮር)
+                db.ref(`live_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
             }
-            alert(`✅ ${count} AI ቦቶች በተሳካ ሁኔታ Firebase ላይ ገብተዋል!`);
+            alert(`✅ ${count} AI ቦቶች በሁሉም የዳታቤዝ ክፍሎች ላይ በተሳካ ሁኔታ ተለቀቁ!`);
         };
 
+        // 🗑️ የ "አውጣ" ፈንክሽን ፍጹም ማስተካከያ (ከሁሉም የዳታቤዝ ክፍሎች ያጠፋል)
         window.clearAIBots = function() {
             if(!db) return;
             for (let i = 0; i < 200; i++) {
@@ -330,8 +335,10 @@
                 db.ref(`users/${botId}`).remove();
                 db.ref(`currentGame/players/${botId}`).remove();
                 db.ref(`liveGame/players/${botId}`).remove();
+                db.ref(`current_game/players/${botId}`).remove();
+                db.ref(`live_game/players/${botId}`).remove();
             }
-            alert("🗑️ AI ተጫዋቾች በሙሉ ወጥተዋል!");
+            alert("🗑️ AI ተጫዋቾች ከሁሉም ቦታ ሙሉ በሙሉ ወጥተዋል!");
         };
 
         window.approveDeposit = function(reqId, userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount, () => db.ref(`deposit_requests/${reqId}`).remove()); };
