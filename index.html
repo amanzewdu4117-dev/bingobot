@@ -66,17 +66,88 @@
             color: #fff; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; overflow: hidden; height: 100vh; 
         }
 
+        /* 💎 የተቆጠበ እና ማራኪ የHeader CSS ዲዛይን */
         .top-status-bar { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 8px 15px; background: rgba(0,0,0,0.8); 
-            backdrop-filter: blur(10px); border-bottom: 1px solid var(--glass-border);
-            position: sticky; top: 0; z-index: 100;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 6px 12px; 
+            background: linear-gradient(135deg, #0d1117, #161b22); 
+            backdrop-filter: blur(10px); 
+            border-bottom: 2px solid #21262d;
+            position: sticky; 
+            top: 0; 
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
         }
 
         .logo-text {
-            font-weight: 900; letter-spacing: 1px;
-            background: linear-gradient(to right, var(--accent), var(--purple));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            font-size: 13px;
+            font-weight: 900; 
+            letter-spacing: 0.5px;
+            color: #00f2ff;
+        }
+
+        .pro-tag {
+            color: #b92b27;
+            background: rgba(185, 43, 39, 0.1);
+            padding: 1px 4px;
+            border-radius: 4px;
+            border: 1px solid rgba(185, 43, 39, 0.3);
+            font-size: 10px;
+            margin-left: 2px;
+        }
+
+        /* 🏆 መሃል ላይ ያለው የደራሽ ብር ማሳያ ሰሌዳ */
+        .header-center {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+        }
+
+        .prize-badge {
+            background: linear-gradient(145deg, #1f1a04, #000000);
+            border: 1px solid #ffcc00;
+            padding: 3px 12px;
+            border-radius: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.2);
+            animation: pulseGlow 2s infinite;
+        }
+
+        .prize-label {
+            font-size: 8px;
+            color: #aaaaaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .prize-amount {
+            font-size: 14px;
+            font-weight: bold;
+            color: #ffcc00;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.5);
+        }
+
+        .header-right {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            font-size: 11px;
+        }
+
+        .user-balance {
+            font-weight: bold;
+            color: #00ea96;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
+            50% { box-shadow: 0 0 12px rgba(255, 204, 0, 0.4); }
+            100% { box-shadow: 0 0 5px rgba(255, 204, 0, 0.2); }
         }
 
         #slots-grid { 
@@ -167,9 +238,19 @@
 </div>
 
     <div class="top-status-bar">
-        <div class="logo-text">AMAN BINGO PRO</div>
-        <div style="font-size: 12px;">ካርቴላ፦ <span id="total-count">0</span></div>
-        <div style="color: var(--accent); font-weight: bold;"><span id="balance">100.00</span> ETB</div>
+        <div class="logo-text">AMAN BINGO<span class="pro-tag">PRO</span></div>
+        
+        <div class="header-center">
+            <div class="prize-badge">
+                <span class="prize-label">🏆 የዙሩ ሽልማት</span>
+                <span class="prize-amount"><span id="live-prize">0.00</span> ETB</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <div>🎴 ካርቴላ፦ <span id="total-count">0</span></div>
+            <div class="user-balance">💰 <span id="balance">100.00</span> ETB</div>
+        </div>
     </div>
 
     <div id="selection-page" style="display:flex; flex-direction:column; height: calc(100vh - 50px);">
@@ -245,7 +326,6 @@
     function init() {
         const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
 
-        // ባላንሱን ከ Firebase ለማንበብ (Real-time)
         db.ref('users/' + userId + '/balance').on('value', snap => {
             if (snap.exists()) {
                 currentBalance = parseFloat(snap.val());
@@ -260,7 +340,6 @@
             save();
         });
 
-        // ዋናው የጨዋታ ሁኔታ መቆጣጠሪያ
         db.ref('liveGame').on('value', snap => {
             const data = snap.val();
             if(!data) return;
@@ -268,15 +347,24 @@
             calledNumbers.clear();
             if(data.history) data.history.forEach(num => calledNumbers.add(num));
 
+            let currentTotalCards = 0;
             if(data.selectedCards) {
                 allSelected = data.selectedCards;
-                document.getElementById('total-count').innerText = Object.keys(allSelected).length;
+                currentTotalCards = Object.keys(allSelected).length;
+                document.getElementById('total-count').innerText = currentTotalCards;
             } else {
                 allSelected = {};
                 document.getElementById('total-count').innerText = "0";
             }
             
-            // የካርቴላዎችን ግሪድ ሁሌም ወቅታዊ ማድረግ
+            // 🔄 [አዲስ የዳበረ ሎጂክ] ካርቴላ ሲገዛ 15% እየቀነሰ ቀጥታ በሪል-ታይም የሚያሳይ ሎጂክ
+            const cardPrice = 10;
+            const totalPool = currentTotalCards * cardPrice;
+            const systemCut = totalPool * 0.15;
+            const livePrizePool = totalPool - systemCut;
+            
+            document.getElementById('live-prize').innerText = livePrizePool.toFixed(2);
+            
             renderGrid();
 
             if(data.status === "waiting" && data.timerStartTime) {
