@@ -152,7 +152,7 @@
                 <div class="table-container">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-secondary mb-0"><i class="fa-solid fa-users-gear me-2 text-primary"></i> የተጫዋቾች መቆጣጠሪያ</h5>
-                        <input type="text" id="user-search" class="form-control form-control-sm w-50" placeholder="ፈልግ...">
+                        <input type="text" id="user-search" class="form-control form-control-sm w-50" placeholder="ተጫዋች በስም ፈልግ...">
                     </div>
                     <div class="table-responsive" style="max-height: 350px;">
                         <table class="table table-hover align-middle">
@@ -284,8 +284,6 @@
                                     </td>
                                 </tr>
                             `;
-
-                            // 🚀 እዚህ ጋር የገባውን የባንክ ኤስኤምኤስ በራስ-ሰር ቼክ ያደርጋል
                             checkSMSAndAutoApprove(key, userId, amount, holderName);
                         }
                     });
@@ -294,7 +292,7 @@
                 }
             });
 
-            // 📥 2. ዊዝድሮዎች (የተስተካከለ)
+            // 📥 2. ዊዝድሮዎች
             db.ref("withdraw_requests").on("value", (snapshot) => {
                 const container = document.getElementById("withdraw-requests-body"); 
                 container.innerHTML = "";
@@ -340,7 +338,7 @@
                 }
             });
 
-            // ተጫዋቾች ሊስት
+            // 👥 3. የተጫዋቾች መቆጣጠሪያ (የተስተካከለ የቀጥታ መቆጣጠሪያ)
             db.ref("users").on("value", (snapshot) => {
                 const usersTableBody = document.getElementById("users-table-body"); usersTableBody.innerHTML = "";
                 let totalUsers = 0, totalBalance = 0;
@@ -348,9 +346,19 @@
                     Object.keys(snapshot.val()).forEach(userId => {
                         const user = snapshot.val()[userId];
                         totalUsers++; totalBalance += Number(user.balance || 0);
+                        const currentBalance = user.balance !== undefined ? user.balance : 0;
+                        
                         const tr = document.createElement("tr");
                         tr.setAttribute("data-search-term", `${user.username || ''}`.toLowerCase());
-                        tr.innerHTML = `<td><strong>${user.username || 'ያልታወቀ'}</strong><br><small class='text-muted'>${userId}</small></td><td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'የለም'}</span></td><td><strong class="text-success">${Number(user.balance || 0).toFixed(1)}</strong></td><td class="text-center"><button class="btn btn-sm btn-outline-success py-0 px-1 me-1" onclick="updateBalance('${userId}', 50)">+50</button><button class="btn btn-sm btn-dark py-0 px-1 me-1" onclick="customBalance('${userId}', 'add')">+</button><button class="btn btn-sm btn-danger py-0 px-1" onclick="customBalance('${userId}', 'deduct')">-</button></td>`;
+                        tr.innerHTML = `
+                            <td><strong>${user.username || 'ያልታወቀ'}</strong><br><small class='text-muted'>${userId}</small></td>
+                            <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'የለም'}</span></td>
+                            <td><strong class="text-success">${Number(currentBalance).toFixed(1)} ETB</strong></td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${currentBalance})">✏️ ባላንስ ቀይር</button>
+                                <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄 Reset</button>
+                            </td>
+                        `;
                         usersTableBody.appendChild(tr);
                     });
                     document.getElementById("stat-total-users").innerText = totalUsers;
@@ -373,7 +381,33 @@
             });
         }
 
-        // 🚀 3. በራስ-ሰር ኤስኤምኤስ አመሳክሮ የሚያጸድቀው አዲሱ ፈንክሽን
+        // 🔄 የተጫዋችን ባላንስ በእጅ ለመቀየር የሚረዳ ፈንክሽን
+        window.editBalance = function(userId, currentBalance) {
+            const newBalance = prompt(`ለተጫዋች ${userId} አዲስ የባላንስ መጠን ያስገቡ:`, currentBalance);
+            if (newBalance !== null && !isNaN(newBalance) && newBalance.trim() !== "") {
+                const updatedBalance = parseFloat(newBalance);
+                db.ref(`users/${userId}`).update({
+                    balance: updatedBalance
+                }).then(() => {
+                    alert(`✅ የተጫዋች ${userId} ባላንስ ወደ ${updatedBalance} ETB ተቀይሯል!`);
+                }).catch((error) => {
+                    alert(`❌ ስህተት አጋጥሟል: ` + error.message);
+                });
+            }
+        };
+
+        // 🔄 የተጫዋችን ባላንስ 0 ለማድረግ
+        window.resetPlayer = function(userId) {
+            if (confirm(`⚠️ እርግጠኛ ነዎት የተጫዋች ${userId} ሂሳብ 0 መሆን አለበት?`)) {
+                db.ref(`users/${userId}`).update({
+                    balance: 0
+                }).then(() => {
+                    alert(`🔄 የ ${userId} ባላንስ 0 ሆኗል!`);
+                });
+            }
+        };
+
+        // ራስ-ሰር ኤስኤምኤስ አመሳክሮ የሚያጸድቀው ፈንክሽን
         function checkSMSAndAutoApprove(dbKey, userId, playerAmount, holderName) {
             db.ref('received_sms').once('value', smsSnapshot => {
                 if (smsSnapshot.exists()) {
@@ -397,7 +431,7 @@
             });
         }
 
-        // 4. በእጅ ማጽደቂያ ፈንክሽን (✔️ በተኑ ሲነካ የሚሰራ)
+        // በእጅ ማጽደቂያ ፈንክሽን
         window.approveDeposit = function(key, userId, amount) {
             db.ref('users/' + userId + '/balance').transaction(currentBal => {
                 return (currentBal || 0) + amount;
@@ -409,7 +443,7 @@
             });
         };
 
-        // 5. ውድቅ ማድረጊያ ፈንክሽን (❌ በተኑ ሲነካ የሚሰራ)
+        // ውድቅ ማድረጊያ ፈንክሽን
         window.rejectDeposit = function(key) {
             if (confirm("ይህንን የዲፖዚት ጥያቄ መሰረዝ ትፈልጋለህ?")) {
                 db.ref('deposit_requests/' + key).update({ status: "rejected" });
@@ -449,10 +483,7 @@
             alert("🗑️ AI ተጫዋቾች ከሁሉም ቦታ ሙሉ በሙሉ ወጥተዋል!");
         };
 
-        window.updateBalance = function(userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount); };
-        window.customBalance = function(userId, action) { const amt = parseFloat(prompt("ብር መጠን?")); if(!isNaN(amt)) db.ref(`users/${userId}/balance`).transaction(c => action === 'add' ? (c || 0) + amt : ((c || 0) - amt >= 0 ? c - amt : 0)); };
-
-        // ✅ አዲስ የዊዝድሮው ማጽደቂያ ፈንክሽን
+        // የዊዝድሮው ማጽደቂያ ፈንክሽን
         window.approveWithdrawNew = function(reqId) {
             if (confirm("ይህ ክፍያ በቴሌብር/በባንክ መፈጸሙን አረጋግጠሃል? ስታተሱ ወደ 'ተከፍሏል' ይቀየራል።")) {
                 db.ref('withdraw_requests/' + reqId).update({
@@ -464,7 +495,7 @@
             }
         };
 
-        // ❌ አዲስ የዊዝድሮው መሰረዣ ፈንክሽን (ብሩን ሪፈንድ ያደርጋል)
+        // የዊዝድሮው መሰረዣ ፈንክሽን (ብሩን ሪፈንድ ያደርጋል)
         window.rejectWithdrawNew = function(reqId) {
             if (confirm("ይህንን ጥያቄ መሰረዝ ትፈልጋለህ? የተያዘው የሰውየው ብር ወደ አካውንቱ ይመለሳል።")) {
                 db.ref('withdraw_requests/' + reqId).once('value').then(snapshot => {
