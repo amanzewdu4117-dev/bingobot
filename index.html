@@ -500,9 +500,10 @@
         const newBalance = currentBalance - amount;
         
         db.ref('users/' + userId + '/balance').set(newBalance).then(() => {
-            const reqId = db.ref('withdrawRequests').push().key;
+            // እዚህ ጋር ወደ withdraw_requests እንዲቀየር ተደርጓል
+            const reqId = db.ref('withdraw_requests').push().key;
             
-            db.ref('withdrawRequests/' + reqId).set({
+            db.ref('withdraw_requests/' + reqId).set({
                 reqId: reqId,
                 userId: userId,
                 username: tgUser,
