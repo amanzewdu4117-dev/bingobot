@@ -266,23 +266,37 @@
                 } else { container.innerHTML = "<tr><td colspan='4' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; }
             });
 
-            // 📥 ዊዝድሮዎች (በተጫዋቹ ፎርም መሰረት ሙሉ የባንክ መረጃዎችን በሪል-ታይም የሚያሳይ)
+            // 📥 ዊዝድሮዎች (የተስተካከለ - ሁሉንም የኪይ አማራጮች ያጣራል)
             db.ref("withdraw_requests").on("value", (snapshot) => {
-                const container = document.getElementById("withdraw-requests-body"); container.innerHTML = "";
+                const container = document.getElementById("withdraw-requests-body"); 
+                container.innerHTML = "";
+                
                 if (snapshot.exists()) {
+                    let hasData = false;
                     Object.keys(snapshot.val()).forEach(reqId => {
                         const req = snapshot.val()[reqId];
-                        const tr = document.createElement("tr");
                         
-                        // ዳታው 'pending' የሆኑትን ብቻ ለይቶ ያሳያል
-                        if(req.status === "pending" || !req.status) {
+                        // የትኛውንም ጥያቄ (completed/rejected ካልሆነ በስተቀር) እንዲያሳይ ማጣሪያውን አቅልለነዋል
+                        if (req.status !== "completed" && req.status !== "rejected") {
+                            hasData = true;
+                            const tr = document.createElement("tr");
+
+                            // ከተጫዋቹ የተላኩት የኪይ ስሞች ምንም አይነት ቢሆኑ አማራጮቹን ይወስዳል
+                            const displayUsername = req.username || req.name || 'ተጫዋች';
+                            const displayUserId = req.userId || req.user_id || 'የለም';
+                            const displayBank = req.bank || req.bank_name || req.bankName || 'ቴሌብር';
+                            const displayAccount = req.account || req.account_info || req.account_number || req.accountNumber || 'የለም';
+                            const displayHolder = req.holder || req.account_owner || req.accountOwner || '-';
+                            const displayAmount = req.amount || 0;
+                            const displayStatus = req.status || 'በጥበቃ ላይ';
+
                             tr.innerHTML = `
-                                <td><b>${req.username || 'ተጫዋች'}</b><br><small class="text-muted">${req.userId || req.user_id}</small></td>
-                                <td><span class="badge bg-secondary">${req.bank || 'ቴሌብር'}</span></td>
-                                <td><code>${req.account || req.account_info || 'የለም'}</code></td>
-                                <td><small>${req.holder || '-'}</small></td>
-                                <td><b class="text-danger">${req.amount} ETB</b></td>
-                                <td><span class="status-badge status-pending">በጥበቃ ላይ</span></td>
+                                <td><b>${displayUsername}</b><br><small class="text-muted">${displayUserId}</small></td>
+                                <td><span class="badge bg-secondary">${displayBank}</span></td>
+                                <td><code>${displayAccount}</code></td>
+                                <td><small>${displayHolder}</small></td>
+                                <td><b class="text-danger">${displayAmount} ETB</b></td>
+                                <td><span class="status-badge status-pending">${displayStatus}</span></td>
                                 <td class="text-center">
                                     <button class="btn btn-sm btn-success py-0 px-1 me-1" title="ክፍያ አጽድቅ" onclick="approveWithdrawNew('${reqId}')">✔</button>
                                     <button class="btn btn-sm btn-danger py-0 px-1" title="ጥያቄ ሰርዝ (Refund)" onclick="rejectWithdrawNew('${reqId}')">✖</button>
@@ -291,10 +305,13 @@
                             container.appendChild(tr);
                         }
                     });
-                    if(container.innerHTML === "") {
+                    
+                    if(!hasData) {
                         container.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
                     }
-                } else { container.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; }
+                } else { 
+                    container.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; 
+                }
             });
 
             // ተጫዋቾች ሊስት
