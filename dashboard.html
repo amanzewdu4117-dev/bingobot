@@ -112,10 +112,10 @@
                     <div class="table-responsive" style="max-height: 300px;">
                         <table class="table table-sm table-bordered align-middle">
                             <thead class="table-success">
-                                <tr><th>User ID</th><th>TID</th><th>ብር</th><th class="text-center">ድርጊት</th></tr>
+                                <tr><th>ተጫዋች / ID</th><th>ባንክ</th><th>አካውንት</th><th>ብር</th><th class="text-center">ድርጊት</th></tr>
                             </thead>
                             <tbody id="deposit-requests-body">
-                                <tr><td colspan="4" class="text-center text-muted">የሚጠባበቅ የለም</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted">የሚጠባበቅ የለም</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -253,20 +253,48 @@
 
             window.toggleBotStatus = function(status) { if(db) db.ref("settings/bot_status").set(status); };
 
-            // ዲፖዚቶች
-            db.ref("deposit_requests").on("value", (snapshot) => {
-                const container = document.getElementById("deposit-requests-body"); container.innerHTML = "";
+            // 📥 1. የዲፖዚት ጥያቄዎችን ከFirebase አንብቦ የሚያሳይ ክፍል
+            db.ref("deposit_requests").on("value", snapshot => {
+                const container = document.getElementById("deposit-requests-body");
+                if (!container) return;
+                container.innerHTML = "";
+
                 if (snapshot.exists()) {
-                    Object.keys(snapshot.val()).forEach(reqId => {
-                        const req = snapshot.val()[reqId];
-                        const tr = document.createElement("tr");
-                        tr.innerHTML = `<td><small>${req.user_id}</small></td><td><span class="badge bg-dark">${req.tid}</span></td><td><b class="text-success">${req.amount}</b></td><td class="text-center"><button class="btn btn-xs btn-success py-0 px-1 me-1" onclick="approveDeposit('${reqId}', '${req.user_id}', ${req.amount})">✔</button><button class="btn btn-xs btn-danger py-0 px-1" onclick="rejectRequest('deposit_requests', '${reqId}')">✖</button></td>`;
-                        container.appendChild(tr);
+                    snapshot.forEach(childSnapshot => {
+                        const data = childSnapshot.val();
+                        const key = childSnapshot.key;
+
+                        const holderName = data.holder || "ያልታወቀ";
+                        const bankName = data.bank || "CBE";
+                        const accountNumber = data.account || "የለም";
+                        const amount = parseFloat(data.amount || 0);
+                        const status = data.status || "pending";
+                        const userId = data.userId || "guest";
+
+                        if (status === "pending") {
+                            container.innerHTML += `
+                                <tr>
+                                    <td><strong>${holderName}</strong><br><small style="color:#888;">ID: ${userId}</small></td>
+                                    <td><span style="background:#21262d; padding:4px 8px; border-radius:5px; font-weight:bold; color:#ff9800;">${bankName}</span></td>
+                                    <td>${accountNumber}</td>
+                                    <td style="color:#00ff85; font-weight:bold;">${amount} ETB</td>
+                                    <td>
+                                        <button onclick="approveDeposit('${key}', '${userId}', ${amount})" style="background:#00a852; border:none; border-radius:5px; padding:5px 10px; color:#000; cursor:pointer; font-weight:bold;">✔️ ማጽደቂያ</button>
+                                        <button onclick="rejectDeposit('${key}')" style="background:#ff3e3e; border:none; border-radius:5px; padding:5px 10px; color:#fff; cursor:pointer; font-weight:bold; margin-left:5px;">❌ ውድቅ</button>
+                                    </td>
+                                </tr>
+                            `;
+
+                            // 🚀 እዚህ ጋር የገባውን የባንክ ኤስኤምኤስ በራስ-ሰር ቼክ ያደርጋል
+                            checkSMSAndAutoApprove(key, userId, amount, holderName);
+                        }
                     });
-                } else { container.innerHTML = "<tr><td colspan='4' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; }
+                } else {
+                    container.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
+                }
             });
 
-            // 📥 ዊዝድሮዎች (የተስተካከለ - ሁሉንም የኪይ አማራጮች ያጣራል)
+            // 📥 2. ዊዝድሮዎች (የተስተካከለ)
             db.ref("withdraw_requests").on("value", (snapshot) => {
                 const container = document.getElementById("withdraw-requests-body"); 
                 container.innerHTML = "";
@@ -276,12 +304,10 @@
                     Object.keys(snapshot.val()).forEach(reqId => {
                         const req = snapshot.val()[reqId];
                         
-                        // የትኛውንም ጥያቄ (completed/rejected ካልሆነ በስተቀር) እንዲያሳይ ማጣሪያውን አቅልለነዋል
                         if (req.status !== "completed" && req.status !== "rejected") {
                             hasData = true;
                             const tr = document.createElement("tr");
 
-                            // ከተጫዋቹ የተላኩት የኪይ ስሞች ምንም አይነት ቢሆኑ አማራጮቹን ይወስዳል
                             const displayUsername = req.username || req.name || 'ተጫዋች';
                             const displayUserId = req.userId || req.user_id || 'የለም';
                             const displayBank = req.bank || req.bank_name || req.bankName || 'ቴሌብር';
@@ -347,6 +373,49 @@
             });
         }
 
+        // 🚀 3. በራስ-ሰር ኤስኤምኤስ አመሳክሮ የሚያጸድቀው አዲሱ ፈንክሽን
+        function checkSMSAndAutoApprove(dbKey, userId, playerAmount, holderName) {
+            db.ref('received_sms').once('value', smsSnapshot => {
+                if (smsSnapshot.exists()) {
+                    smsSnapshot.forEach(smsChild => {
+                        const smsData = smsChild.val();
+                        const smsText = smsData.body || smsData.text || "";
+                        
+                        if (smsText.includes(playerAmount.toString())) {
+                            db.ref('users/' + userId + '/balance').transaction(currentBal => {
+                                return (currentBal || 0) + playerAmount;
+                            }, (error, committed) => {
+                                if (committed) {
+                                    db.ref('deposit_requests/' + dbKey).update({ status: "approved" });
+                                    db.ref('received_sms/' + smsChild.key).remove();
+                                    console.log(`ለ ${holderName} የተላከው ${playerAmount} ETB በራስ-ሰር ጸድቋል!`);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // 4. በእጅ ማጽደቂያ ፈንክሽን (✔️ በተኑ ሲነካ የሚሰራ)
+        window.approveDeposit = function(key, userId, amount) {
+            db.ref('users/' + userId + '/balance').transaction(currentBal => {
+                return (currentBal || 0) + amount;
+            }, (error, committed) => {
+                if (committed) {
+                    db.ref('deposit_requests/' + key).update({ status: "approved" });
+                    alert("ዲፖዚቱ በተሳካ ሁኔታ ጽድቋል!");
+                }
+            });
+        };
+
+        // 5. ውድቅ ማድረጊያ ፈንክሽን (❌ በተኑ ሲነካ የሚሰራ)
+        window.rejectDeposit = function(key) {
+            if (confirm("ይህንን የዲፖዚት ጥያቄ መሰረዝ ትፈልጋለህ?")) {
+                db.ref('deposit_requests/' + key).update({ status: "rejected" });
+            }
+        };
+
         window.updateAIWinRateInDB = function(val) {
             document.getElementById("ai-win-percent-label").innerText = val + "%";
             if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
@@ -380,12 +449,10 @@
             alert("🗑️ AI ተጫዋቾች ከሁሉም ቦታ ሙሉ በሙሉ ወጥተዋል!");
         };
 
-        window.approveDeposit = function(reqId, userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount, () => db.ref(`deposit_requests/${reqId}`).remove()); };
-        window.rejectRequest = function(path, reqId) { if(confirm("ይጥፋ?")) db.ref(`${path}/${reqId}`).remove(); };
         window.updateBalance = function(userId, amount) { db.ref(`users/${userId}/balance`).transaction(c => (c || 0) + amount); };
         window.customBalance = function(userId, action) { const amt = parseFloat(prompt("ብር መጠን?")); if(!isNaN(amt)) db.ref(`users/${userId}/balance`).transaction(c => action === 'add' ? (c || 0) + amt : ((c || 0) - amt >= 0 ? c - amt : 0)); };
 
-        // ✅ አዲስ የዊዝድሮው ማጽደቂያ ፈንክሽን (ዳታቤዝ ላይ ስታተሱን ያሳምራል)
+        // ✅ አዲስ የዊዝድሮው ማጽደቂያ ፈንክሽን
         window.approveWithdrawNew = function(reqId) {
             if (confirm("ይህ ክፍያ በቴሌብር/በባንክ መፈጸሙን አረጋግጠሃል? ስታተሱ ወደ 'ተከፍሏል' ይቀየራል።")) {
                 db.ref('withdraw_requests/' + reqId).update({
@@ -407,11 +474,9 @@
                     const userId = req.userId || req.user_id;
                     const amount = parseFloat(req.amount);
 
-                    // የተጫዋቹን ባላንስ በ Transaction መመለስ
                     db.ref('users/' + userId + '/balance').transaction(currentBalance => {
                         return (currentBalance || 0) + amount;
                     }).then(() => {
-                        // የጥያቄውን ስታተስ ወደ 'rejected' መቀየር ወይም ማጥፋት
                         db.ref('withdraw_requests/' + reqId).update({
                             status: "rejected",
                             processedAt: firebase.database.ServerValue.TIMESTAMP
