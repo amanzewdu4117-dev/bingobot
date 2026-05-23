@@ -408,7 +408,22 @@
             let currentTotalCards = 0;
             if(data.selectedCards) {
                 allSelected = data.selectedCards;
-                currentTotalCards = Object.keys(allSelected).length;
+        
+        // 🤖 የቦት ስሞችን ከነምልክታቸው እና ቁጥራቸው እዚሁ ላይ ያጸዳል
+        if (allSelected) {
+            Object.keys(allSelected).forEach(key => {
+                if (allSelected[key] && (allSelected[key].username || allSelected[key].UserName)) {
+                    let rawName = allSelected[key].username || allSelected[key].UserName || "";
+                    if (rawName.includes("🤖") || rawName.includes("_")) {
+                        let cleanName = rawName.replace(/🤖/g, "").split("_")[0].trim();
+                        allSelected[key].username = cleanName;
+                        allSelected[key].UserName = cleanName;
+                    }
+                }
+            });
+        }
+
+        currentTotalCards = Object.keys(allSelected).length;
                 document.getElementById('total-count').innerText = currentTotalCards;
             } else {
                 allSelected = {};
