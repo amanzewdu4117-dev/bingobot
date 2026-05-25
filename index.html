@@ -349,18 +349,37 @@
 
 <script>
     const firebaseConfig = { databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com/" };
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-    const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "ተጫዋች";
+const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "ተጫዋች";
 
-    let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
-    let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
-    let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 100.00;
-    let allSelected = {};
-    let gameActive = false;
-    let calledNumbers = new Set();
-    let countdownInterval;
+let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
+let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
+let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 100.00;
+let allSelected = {};
+let gameActive = false;
+let calledNumbers = new Set();
+let countdownInterval;
+
+// --- የ Firebase Listener (የጋራ አሸናፊ ማሳያ) ---
+db.ref('liveGame/gameStatus').on('value', (snapshot) => {
+    const data = snapshot.val();
+    
+    // ቦቱ 'declared' የሚል ምልክት ሲልክ ሁሉም ስልክ በአንድ ጊዜ ያሳያል
+    if (data && data.status === "declared") {
+        const winnerNameElement = document.getElementById('winnerName');
+        const modalElement = document.getElementById('winner-modal');
+        
+        if (winnerNameElement) winnerNameElement.innerText = data.name;
+        if (modalElement) modalElement.style.display = "block";
+        
+        // ቆጠራውን ሁሉም ሰው በአንድ ላይ ይጀምራል
+        if (typeof startNextRoundCountdown === 'function') {
+            startNextRoundCountdown();
+        }
+    }
+});
 
     function save() {
         localStorage.setItem('aman_cards', JSON.stringify(userCards));
