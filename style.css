@@ -28,3 +28,174 @@ body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; 
 .trophy { font-size: 60px; margin-bottom: 10px; }
 .gold-text { color: var(--orange); font-size: 24px; font-weight: bold; }
 .winner-card { background: #111; border: 1px solid #333; padding: 20px; border-radius: 15px; margin: 20px 0; }
+const firebaseConfig = { 
+    apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g", 
+    databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com" 
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const tg = window.Telegram.WebApp;
+const userId = (tg.initDataUnsafe?.user?.id || "dev").toString();
+
+let selected = [], cardData = {}, calledNumbers = [], isGameOver = false, engineStarted = false;
+let selectionFinished = false;
+let serverOffset = 0;
+
+// የጨዋታ ሁኔታን የሚያስተዳድር function (አዲስ የተጨመረ)
+function endGame() {
+    isGameOver = true;
+    db.ref('liveGame/game_status').set('waiting'); // ቦቶች እንዳይጫወቱ ያቆማል
+    
+    console.log("ጨዋታው አለቀ፣ 5 ሰከንድ ቆጠራ ይጀምራል...");
+    
+    // በስክሪን ላይ ቆጠራን ለማሳየት የሚረዳ logic (አስፈላጊ ከሆነ)
+    let countdown = 5;
+    let timer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+            clearInterval(timer);
+            isGameOver = false;
+            db.ref('liveGame/game_status').set('playing'); // ጨዋታው እንዲቀጥል
+            calledNumbers = []; // አዲስ ዙር ሲጀምር ቁጥሮችን ማጽዳት
+        }
+    }, 1000);
+}
+
+// ... (loadGameState, saveGameState, generateCard እንደነበሩ ይቆዩ) ...
+
+function loadGameState() {
+    const saved = localStorage.getItem('bingo_state_' + userId);
+    if (saved) {
+        const state = JSON.parse(saved);
+        selected = state.selected || [];
+        cardData = state.cardData || {};
+        calledNumbers = state.calledNumbers || [];
+        selectionFinished = state.selectionFinished || false;
+        return true;
+    }
+    return false;
+}
+
+function saveGameState() {
+    localStorage.setItem('bingo_state_' + userId, JSON.stringify({
+        selected, cardData, calledNumbers, selectionFinished
+    }));
+}
+
+function generateCard() {
+    let card = [];
+    let ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
+    for(let c=0; c<5; c++) {
+        let col = [];
+        while(col.length<5) {
+            let n = Math.floor(Math.random()*15)+ranges[c][0];
+            if(!col.includes(n)) col.push(n);
+        }
+        card.push(col.sort((a,b)=>a-b));
+    }
+    return card;
+}
+
+function initSelection() {
+    loadGameState();
+    db.ref(".info/serverTimeOffset").on("value", snap => { serverOffset = snap.val() || 0; });
+    
+    // ... (የምርጫ ገጽ ኮድህ እንዳለ ይቀጥል) ...
+    if (selected.length === 0) {
+        while(selected.length < 5) {
+            let randomSlot = Math.floor(Math.random() * 500) + 1;
+            if(!selected.includes(randomSlot)) {
+                selected.push(randomSlot);
+                cardData[randomSlot] = generateCard();
+            }
+        }
+        saveGameState();
+    }
+    
+    if (selectionFinished) { switchToGame(true); return; }
+    // ... (የተቀረው የምርጫ ገጽ ኮድህ እዚህ ይቀጥላል) ...
+    initTimerLogic(); 
+}
+
+function initTimerLogic() {
+    db.ref('liveGame/timerStartTime').on('value', snap => {
+        let startTime = snap.val();
+        if(!startTime || startTime < 1740000000000) {
+            db.ref('liveGame/timerStartTime').set(firebase.database.ServerValue.TIMESTAMP);
+            return;
+        }
+        const timerEl = document.getElementById('timer');
+        if (window.bingoTimer) clearInterval(window.bingoTimer);
+        window.bingoTimer = setInterval(() => {
+            let now = Date.now() + serverOffset;
+            let diff = Math.floor((now - startTime) / 1000);
+            let timeLeft = 15 - diff;
+            if(timeLeft <= 0) { 
+                clearInterval(window.bingoTimer); 
+                selectionFinished = true;
+                saveGameState();
+                switchToGame(false);
+            } else if(timerEl) timerEl.innerText = timeLeft;
+        }, 1000);
+    });
+}
+
+function switchToGame(isResume) {
+    const selectionPage = document.getElementById('selection-page');
+    const gamePage = document.getElementById('game-page');
+    if(selectionPage) selectionPage.classList.add('hidden');
+    if(gamePage) gamePage.classList.remove('hidden');
+    runEngine(); 
+}
+
+function runEngine() {
+    if (engineStarted) return;
+    engineStarted = true;
+
+    // የጨዋታ ሁኔታን መከታተል (ለቦቶች ወሳኝ)
+    db.ref('liveGame/game_status').on('value', snap => {
+        isGameOver = (snap.val() === 'waiting');
+    });
+
+    db.ref('liveGame/currentNumber').on('value', snap => {
+        let n = snap.val();
+        if (n && !calledNumbers.includes(n)) {
+            calledNumbers.push(n);
+            const ballEl = document.getElementById('current-ball-num');
+            if(ballEl) ballEl.innerText = n;
+        }
+    });
+
+    setInterval(() => {
+        if (isGameOver) return; // ጨዋታው waiting ከሆነ ቦቶች ቁጥር አይላኩም
+        let allBalls = Array.from({length: 75}, (_, i) => i + 1);
+        let remainingBalls = allBalls.filter(b => !calledNumbers.includes(b));
+        if (remainingBalls.length > 0) {
+            let nextNum = remainingBalls[Math.floor(Math.random() * remainingBalls.length)];
+            db.ref('liveGame/currentNumber').set(nextNum);
+        }
+    }, 3000);
+}
+
+initSelection();
+
+// 4. Preview ማሳያ
+function updatePreview() {
+    const bar = document.getElementById('selected-preview-bar');
+    if (!bar) return;
+    let headerHtml = `<div style="width: 100%; text-align: center; margin-bottom: 10px; padding: 10px; background: rgba(255, 157, 0, 0.2); border-radius: 8px; border: 2px solid var(--orange);"><span style="color: white; font-weight: bold; font-size: 16px;">ጠቅላላ የተመረጡ: ${selected.length}</span></div>`;
+    if (selected.length === 0) { bar.innerHTML = headerHtml + '<div style="color: #ccc; text-align: center;">ምንም አልተመረጠም</div>'; return; }
+    let cardsHtml = "";
+    selected.forEach(id => {
+        const data = cardData[id];
+        cardsHtml += `<div class="mini-card-detail" style="min-width: 85px; margin-right: 8px; border: 1px solid var(--orange); border-radius: 5px; padding: 5px; background: #1a222c;"><div style="font-size: 9px; font-weight: bold; color: var(--orange); text-align: center;">ID: #${id}</div><div class="mini-grid-preview" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; margin-top: 3px;">`;
+        for (let r = 0; r < 5; r++) { for (let c = 0; c < 5; c++) {
+            let val = (r === 2 && c === 2) ? "F" : data[c][r];
+            cardsHtml += `<div style="font-size: 7px; color: white; text-align: center; background: #2c3949;">${val}</div>`;
+        }}
+        cardsHtml += `</div></div>`;
+    });
+    bar.innerHTML = headerHtml + `<div style="display: flex; overflow-x: auto; padding-bottom: 5px;">${cardsHtml}</div>`;
+}
+
+initSelection();
