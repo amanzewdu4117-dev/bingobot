@@ -837,21 +837,47 @@ db.ref('liveGame/gameStatus').on('value', (snapshot) => {
   
 
     function resetUI() {
-        gameActive = false;
-        calledNumbers.clear();
-        userCards = [];
-        cardData = {};
-        localStorage.removeItem('aman_cards');
-        localStorage.removeItem('aman_data');
-        
-        document.getElementById('selection-page').classList.remove('hidden');
-        document.getElementById('game-page').classList.add('hidden');
-        document.getElementById('game-page').style.display = 'none';
-        document.getElementById('winner-overlay').style.display = 'none';
-        
-        renderGrid();
-        updatePreview();
-    }
+
+    gameActive = false;
+
+    calledNumbers.clear();
+
+    // ✅ RESET PLAYER DATA
+    userCards = [];
+    cardData = {};
+    allSelected = {};
+
+    // ✅ REMOVE SAVED CARDS
+    localStorage.removeItem('aman_cards');
+    localStorage.removeItem('aman_data');
+
+    // ✅ SHOW SELECTION PAGE AGAIN
+    document.getElementById('selection-page')
+        .classList.remove('hidden');
+
+    document.getElementById('selection-page')
+        .style.display = 'block';
+
+    // ✅ HIDE GAME PAGE
+    document.getElementById('game-page')
+        .classList.add('hidden');
+
+    document.getElementById('game-page')
+        .style.display = 'none';
+
+    // ✅ HIDE WINNER POPUP
+    document.getElementById('winner-overlay')
+        .style.display = 'none';
+
+    // ✅ CLEAR CURRENT NUMBER
+    document.getElementById('current-number')
+        .innerText = '--';
+
+    // ✅ RELOAD CARD SELECTION
+    renderGrid();
+
+    updatePreview();
+}
 
     window.onload = init;
 </script>
