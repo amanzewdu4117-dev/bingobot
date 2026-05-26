@@ -27,12 +27,38 @@
         <div class="container">
             <a class="navbar-brand" href="#"><i class="fa-solid fa-robot text-info me-2"></i> VAMOS AI CONTROL PANEL</a>
             <div class="d-flex align-items-center gap-3">
-                <div class="form-check form-switch text-white mb-0 bg-secondary px-3 py-1 rounded">
-                    <input class="form-check-input" type="checkbox" id="bot-status-toggle" onchange="toggleBotStatus(this.checked)">
-                    <label class="form-check-label fw-bold" for="bot-status-toggle" id="bot-status-label">Bot: LOADING</label>
-                </div>
-                <span class="navbar-text text-success" id="connection-status">
-                    <i class="fa-solid fa-circle-dot me-1"></i> በመገናኘት ላይ...
+
+    <div class="form-check form-switch text-white mb-0 bg-secondary px-3 py-1 rounded">
+        <input class="form-check-input"
+               type="checkbox"
+               id="bot-status-toggle"
+               onchange="toggleBotStatus(this.checked)">
+
+        <label class="form-check-label fw-bold"
+               for="bot-status-toggle"
+               id="bot-status-label">
+            Bot: LOADING
+        </label>
+    </div>
+
+    <!-- AI COMMAND BUTTON -->
+    <button
+        onclick="sendAICommand('start_game')"
+        style="
+            background:#00ff85;
+            color:#000;
+            font-weight:bold;
+            border:none;
+            padding:6px 12px;
+            border-radius:6px;
+        ">
+        🎮 START GAME
+    </button>
+
+    <span class="navbar-text text-success" id="connection-status">
+        <i class="fa-solid fa-circle-dot me-1"></i>
+        በመገናኘት ላይ...
+    
                 </span>
             </div>
         </div>
@@ -187,8 +213,8 @@
             let baseName = amharicNames[i % amharicNames.length];
             aiBotList.push({
                 id: `999900${100 + i}`, 
-                username: `🤖 ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
-                phone: "AI_Virtual",
+                username: ` ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
+                phone: "0910114222",
                 balance: 100,
                 is_ai: true
             });
@@ -526,6 +552,19 @@
                 row.style.display = txt && txt.includes(term) ? "" : "none";
             });
         });
+// ✅ SEND COMMAND TO PYTHON AI
+
+function sendAICommand(command) {
+
+    firebase.database()
+    .ref("aiCommands")
+    .push({
+        command: command,
+        timestamp: Date.now()
+    });
+
+    alert("✅ Command Sent: " + command);
+}        
     </script>
 </body>
 </html>
