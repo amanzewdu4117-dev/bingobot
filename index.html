@@ -955,82 +955,6 @@ function renderGrid() {
     }
 }
 
-
-
-// ✅ SELECT CARD
-function selectCard(i) {
-
-    const userId =
-        window.Telegram?.WebApp
-        ?.initDataUnsafe?.user?.id
-        || "guest_user";
-
-    // ✅ REMOVE
-    if (userCards.includes(i)) {
-
-        userCards =
-            userCards.filter(x => x !== i);
-
-        delete cardData[i];
-
-        currentBalance += 10;
-
-        db.ref(
-            'users/' + userId + '/balance'
-        ).set(currentBalance);
-
-        db.ref(
-            'liveGame/selectedCards/c' + i
-        ).remove();
-    }
-
-    // ✅ ADD
-    else {
-
-        if (userCards.length >= 3) {
-
-            alert("Max 3 cards");
-
-            return;
-        }
-
-        if (currentBalance < 10) {
-
-            alert("በቂ ሂሳብ የሎትም");
-
-            return;
-        }
-
-        userCards.push(i);
-
-        const newCard =
-            generateCard();
-
-        cardData[i] = newCard;
-
-        currentBalance -= 10;
-
-        db.ref(
-            'users/' + userId + '/balance'
-        ).set(currentBalance);
-
-        db.ref(
-            'liveGame/selectedCards/c' + i
-        ).set({
-            id: i,
-            playerName: tgUser,
-            userId: userId,
-            numbers: newCard
-        });
-    }
-
-    save();
-
-    renderGrid();
-
-    updatePreview();
-}
-
 // ✅ SELECT CARD
 function selectCard(i) {
 
@@ -1404,10 +1328,6 @@ function applyNumber(n) {
     // ✅ UPDATE PLAYER CARDS
     renderPlayerCards();
 }
-
-
-
-
 
 // ✅ WINNER
 function winner() {
