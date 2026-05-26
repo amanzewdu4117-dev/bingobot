@@ -348,555 +348,660 @@
     </div>
 
 <script>
-    const firebaseConfig = { databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com/" };
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+
+const firebaseConfig = {
+    databaseURL:
+    "https://my-app-project-1e0bb-default-rtdb.firebaseio.com/"
+};
+
+if (!firebase.apps.length) {
+
+    firebase.initializeApp(firebaseConfig);
+}
+
 const db = firebase.database();
 
-const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user?.first_name || "ተጫዋች";
+const tgUser =
+    window.Telegram?.WebApp
+    ?.initDataUnsafe?.user?.first_name
+    || "ተጫዋች";
 
-let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
-let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
-let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 100.00;
+let userCards =
+    JSON.parse(localStorage.getItem('aman_cards'))
+    || [];
+
+let cardData =
+    JSON.parse(localStorage.getItem('aman_data'))
+    || {};
+
+let currentBalance =
+    parseFloat(localStorage.getItem('aman_bal'))
+    || 100.00;
+
 let allSelected = {};
+
 let gameActive = false;
+
 let calledNumbers = new Set();
+
 let countdownInterval;
 
-// --- የ Firebase Listener (የጋራ አሸናፊ ማሳያ) ---
 
 
+// ✅ SAVE
+function save() {
 
+    localStorage.setItem(
+        'aman_cards',
+        JSON.stringify(userCards)
+    );
 
-    function save() {
-        localStorage.setItem('aman_cards', JSON.stringify(userCards));
-        localStorage.setItem('aman_data', JSON.stringify(cardData));
-        localStorage.setItem('aman_bal', currentBalance);
-    }
+    localStorage.setItem(
+        'aman_data',
+        JSON.stringify(cardData)
+    );
 
-    function generateCard() {
-        let card = []; let ranges = [[1,15],[16,30],[31,45],[46,60],[61,75]];
-        for(let c=0; c<5; c++) {
-            let col = [];
-            while(col.length<5) {
-                let n = Math.floor(Math.random()*15)+ranges[c][0];
-                if(!col.includes(n)) col.push(n);
-            }
-            card.push(col.sort((a,b)=>a-b));
-        }
-        return card;
-    }
-
-    function init() {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-
-        db.ref('users/' + userId + '/balance').on('value', snap => {
-            if (snap.exists()) {
-                currentBalance = parseFloat(snap.val());
-            } else {
-                currentBalance = 100.00;
-                db.ref('users/' + userId).set({
-                    name: tgUser,
-                    balance: currentBalance
-                });
-            }
-            document.getElementById('balance').innerText = currentBalance.toFixed(2);
-            save();
-        });
-
-        db.ref('liveGame').on('value', snap => {
-            const data = snap.val();
-            if(!data) return;
-
-            // ✅ NEW ROUND RESET
-if (data.status === "waiting") {
-
-    console.log("🧹 FULL ROUND RESET");
-
-    gameActive = false;
-
-    // 🧹 CLEAR PLAYER DATA
-    userCards = [];
-    cardData = {};
-    allSelected = {};
-
-    // 🧹 CLEAR LOCAL STORAGE
-    localStorage.removeItem("aman_cards");
-    localStorage.removeItem("aman_data");
-
-    // 🧹 CLEAR CALLED NUMBERS
-    calledNumbers.clear();
-
-    // 🧹 RESET BALL DISPLAY
-    document.getElementById('ball-num').innerText = "--";
-    document.getElementById('ball-let').innerText = "-";
-
-    // 🧹 HIDE WINNER OVERLAY
-    document.getElementById('winner-overlay')
-        .style.display = "none";
-
-    // 🧹 HIDE GAME PAGE
-    document.getElementById('game-page')
-        .classList.add('hidden');
-
-    document.getElementById('game-page')
-        .style.display = "none";
-
-    // ✅ SHOW SELECTION PAGE
-    document.getElementById('selection-page')
-        .classList.remove('hidden');
-
-    document.getElementById('selection-page')
-        .style.display = "flex";
-
-    // 🔄 RELOAD GRID
-    renderGrid();
-
-    // 🔄 UPDATE PREVIEW
-    updatePreview();
-
-    console.log("✅ NEW ROUND READY");
+    localStorage.setItem(
+        'aman_bal',
+        currentBalance
+    );
 }
-        
-        // 🤖 የቦት ስሞችን ከነምልክታቸው እና ቁጥራቸው እዚሁ ላይ ያጸዳል
-        if (allSelected) {
-            Object.keys(allSelected).forEach(key => {
-                if (allSelected[key] && (allSelected[key].username || allSelected[key].UserName)) {
-                    let rawName = allSelected[key].username || allSelected[key].UserName || "";
-                    if (rawName.includes("🤖") || rawName.includes("_")) {
-                        let cleanName = rawName.replace(/🤖/g, "").split("_")[0].trim();
-                        allSelected[key].username = cleanName;
-                        allSelected[key].UserName = cleanName;
-                    }
-                }
-            });
-        }
 
-        currentTotalCards = Object.keys(allSelected).length;
-                document.getElementById('total-count').innerText = currentTotalCards;
-            } else {
-                allSelected = {};
-                document.getElementById('total-count').innerText = "0";
-            }
-            
-            const cardPrice = 10;
-            const totalPool = currentTotalCards * cardPrice;
-            const systemCut = totalPool * 0.15;
-            const livePrizePool = totalPool - systemCut;
-            
-            document.getElementById('live-prize').innerText = livePrizePool.toFixed(2);
-            
-            renderGrid();
 
-            if(data.status === "waiting" && data.timerStartTime) {
-                const now = Date.now();
-                const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-                const remaining = 40 - elapsed;
-                
-                if (remaining > 0) {
-                    startCountdown(remaining);
-                } else {
-                    document.getElementById('timer').innerText = "0";
-                }
-                
-                if(gameActive) resetUI();
-            }
 
-            if(data.status === "started") {
-                clearInterval(countdownInterval);
-                if(!gameActive) start();
-            }
+// ✅ GENERATE CARD
+function generateCard() {
 
-            if(data.winner && gameActive) {
-                winner(data.winner);
-            }
-        });
+    let card = [];
 
-        8mentById(`cartela-${val}`);
-                if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
-            }
-        };
+    let ranges = [
+        [1,15],
+        [16,30],
+        [31,45],
+        [46,60],
+        [61,75]
+    ];
 
-        updatePreview();
-    }
+    for(let c=0; c<5; c++) {
 
-    function openWithdrawModal() {
-        document.getElementById('modal-current-bal').innerText = currentBalance.toFixed(2);
-        document.getElementById('withdraw-modal').style.display = 'flex';
-    }
+        let col = [];
 
-    function closeWithdrawModal() {
-        document.getElementById('withdraw-modal').style.display = 'none';
-        document.getElementById('withdraw-amount').value = '';
-        document.getElementById('bank-name').selectedIndex = 0;
-        document.getElementById('bank-account').value = '';
-        document.getElementById('account-holder').value = '';
-    }
+        while(col.length < 5) {
 
-    function submitWithdrawal() {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-        const amount = parseFloat(document.getElementById('withdraw-amount').value);
-        const bank = document.getElementById('bank-name').value;
-        const account = document.getElementById('bank-account').value;
-        const holder = document.getElementById('account-holder').value;
+            let n =
+                Math.floor(Math.random()*15)
+                + ranges[c][0];
 
-        if (!amount || amount < 50) {
-            alert("እባክዎ ቢያንስ 50 ብር እና ከዚያ በላይ ያስገቡ!");
-            return;
-        }
-        if (amount > currentBalance) {
-            alert("በቂ ሂሳብ የሎትም! ያሎት ባላንስ: " + currentBalance.toFixed(2) + " ETB");
-            return;
-        }
-        if (!bank || !account || !holder) {
-            alert("እባክዎ ሁሉንም ፎርሞች በትክክል ይሙሉ!");
-            return;
-        }
+            if(!col.includes(n)) {
 
-        const newBalance = currentBalance - amount;
-        
-        db.ref('users/' + userId + '/balance').set(newBalance).then(() => {
-            // እዚህ ጋር ወደ withdraw_requests እንዲቀየር ተደርጓል
-            const reqId = db.ref('withdraw_requests').push().key;
-            
-            db.ref('withdraw_requests/' + reqId).set({
-                reqId: reqId,
-                userId: userId,
-                username: tgUser,
-                amount: amount,
-                bank: bank,
-                account: account,
-                holder: holder,
-                status: "pending",
-                timestamp: Date.now()
-            }).then(() => {
-                alert("የማውጫ ጥያቄዎ በተሳካ ሁኔታ ተልኳል! በአስተዳዳሪው ተረጋግጦ ይላክልዎታል::");
-                closeWithdrawModal();
-            });
-        }).catch(err => {
-            alert("ስህተት ተፈጥሯል፣ እባክዎ እንደገና ይሞክሩ!");
-        });
-    }
-
-    function start() {
-        gameActive = true;
-        document.getElementById('selection-page').classList.add('hidden');
-        document.getElementById('game-page').classList.remove('hidden');
-        document.getElementById('game-page').style.display = 'flex';
-        
-        const board = document.getElementById('main-board');
-        board.innerHTML = "";
-        for(let r=0; r<15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let n = (c * 15) + r + 1;
-                let colorClass = calledNumbers.has(n) ? 'called' : '';
-                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+                col.push(n);
             }
         }
 
-        const area = document.getElementById('player-area');
-        area.innerHTML = "";
-        
-        if(userCards.length > 0) {
-            userCards.forEach(id => renderActiveCard(id, area));
-        } else {
-            area.innerHTML = `
-                <div class="no-card-warning">
-                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
-                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
-                    <p class="warning-text">
-                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
-                        አሸናፊ ለመሆን በሚቀጥለው ዙር
-                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
-                    </p>
-                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
-                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
-                    </div>
-                </div>
-            `;
-        }
+        card.push(
+            col.sort((a,b)=>a-b)
+        );
     }
 
-    function startCountdown(seconds) {
-        clearInterval(countdownInterval);
-        let counter = seconds;
-        const timerEl = document.getElementById('timer');
+    return card;
+}
 
-        countdownInterval = setInterval(() => {
-            if (timerEl) {
-                timerEl.innerText = counter;
-                timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
-            }
-            if (counter <= 0) {
-                clearInterval(countdownInterval);
-            }
-            counter--;
-        }, 1000);
-    }
 
-    function renderGrid() {
-        const grid = document.getElementById('slots-grid');
-        grid.innerHTML = "";
-        
-        for(let i=1; i<=500; i++) {
-            let b = document.createElement('div');
-            b.className = 'slot-btn'; 
-            b.id = `cartela-${i}`;
-            
-            let cardKey = 'c' + i;
 
-            if(allSelected && allSelected[cardKey]) {
-                const playerData = allSelected[cardKey];
-                const displayName = playerData.playerName || playerData.username || playerData.UserName || playerData.Name || "ተጫዋች";
-                
-                b.innerHTML = `
-                    <div class="card-number">${i}</div>
-                    <div class="player-name">${displayName}</div>
-                `;
-                
-                if(!userCards.includes(i)) {
-                    b.classList.add('occupied');
-                }
-            } else {
-                b.innerHTML = `<div class="card-number">${i}</div>`;
-            }
-            
-            if(userCards.includes(i)) {
-                b.classList.add('selected');
-                b.innerHTML = `
-                    <div class="card-number">${i}</div>
-                    <div class="player-name">${tgUser}</div>
-                `;
-            }
-
-            b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
-            grid.appendChild(b);
-        }
-    }
-
-    function selectCard(i) {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-
-        if (userCards.includes(i)) {
-            userCards = userCards.filter(x => x !== i);
-            delete cardData[i];
-            currentBalance += 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            db.ref('liveGame/selectedCards/c' + i).remove();
-
-        } else if (userCards.length < 3 && currentBalance >= 10) {
-            userCards.push(i);
-            const newNumbers = generateCard();
-            cardData[i] = newNumbers;
-            currentBalance -= 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            
-            db.ref('liveGame/selectedCards/c' + i).set({
-                id: i,
-                playerName: tgUser,
-                numbers: newNumbers.flat().filter(n => n !== 'F')
-            });
-        } else if (currentBalance < 10) {
-            alert("በቂ ሂሳብ የሎትም!");
-            return;
-        }
-        
-        save(); 
-        renderGrid(); 
-        updatePreview();
-    }
-
-    function updatePreview() {
-        const p = document.getElementById('selection-preview');
-        p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
-        userCards.forEach(id => {
-            let d = cardData[id];
-            if(!d) return;
-            let h = `<div class="mini-card"><div style="font-size:9px; text-align:center;">#${id}</div><div class="mini-grid">`;
-            for(let r=0; r<5; r++) for(let c=0; c<5; c++) h += `<div class="mini-cell">${(r===2&&c===2)?'F':d[c][r]}</div>`;
-            p.innerHTML += h + `</div></div>`;
-        });
-    }
-
-    function renderActiveCard(id, container) {
-        let d = cardData[id];
-        if(!d) return;
-        let h = `<div class="active-card"><div style="color:var(--accent); font-size:10px; font-weight:bold;">CARD #${id}</div><div class="card-header-grid"><span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span></div><div style="display:grid; grid-template-columns:repeat(5,1fr); gap:3px;">`;
-        for(let r=0; r<5; r++) for(let c=0; c<5; c++) {
-            let v = (r===2 && c===2) ? "F" : d[c][r];
-            let isHit = (v === 'F' || calledNumbers.has(v)) ? 'hit' : '';
-            h += `<div class="card-cell ${isHit} ${v==='F'?'free':''}" data-val="${v}">${v}</div>`;
-        }
-        container.innerHTML += h + `</div></div>`;
-    }
-
-    function applyNumber(n, isInitial = false) {
-        if(!n) return;
-        calledNumbers.add(n);
-        let cell = document.getElementById(`n-${n}`);
-        if(cell) cell.classList.add('called');
-        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
-
-        if(!isInitial) {
-            document.getElementById('ball-num').innerText = n;
-            document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-            userCards.forEach(id => { 
-                if(checkWin(id)) db.ref('liveGame/winner').set(id);
-            });
-        }
-    }
-
-    function checkWin(id) {
-        let d = cardData[id];
-        if(!d) return false;
-        let g = Array(5).fill().map(() => Array(5).fill(false));
-        for(let c=0; c<5; c++) for(let r=0; r<5; r++) if((c===2 && r===2) || calledNumbers.has(d[c][r])) g[r][c] = true;
-        for(let i=0; i<5; i++) if(g[i].every(v=>v) || g.every(r=>r[i])) return true;
-        if([0,1,2,3,4].every(i=>g[i][i]) || [0,1,2,3,4].every(i=>g[i][4-i])) return true;
-        return false;
-    }
-
-    function winner(winId) {
-
-    gameActive = false;
+// ✅ INIT
+function init() {
 
     const userId =
         window.Telegram?.WebApp
-        ?.initDataUnsafe?.user?.id || "guest_user";
+        ?.initDataUnsafe?.user?.id
+        || "guest_user";
 
-    const overlay =
-        document.getElementById('winner-overlay');
+    // ✅ USER BALANCE
+    db.ref('users/' + userId + '/balance')
+    .on('value', snap => {
 
-    const winnerData = allSelected['c' + winId] || {};
+        if (snap.exists()) {
 
-    const winnerId = winnerData.userId;
+            currentBalance =
+                parseFloat(snap.val());
 
-    const isUserWinner =
-        String(winnerId) === String(userId);
+        } else {
 
-    const cardPrice = 10;
+            currentBalance = 100;
 
-    const totalCards =
-        Object.keys(allSelected).length;
+            db.ref('users/' + userId)
+            .set({
+                name: tgUser,
+                balance: currentBalance
+            });
+        }
 
-    const totalPool =
-        totalCards * cardPrice;
+        document.getElementById('balance')
+            .innerText =
+            currentBalance.toFixed(2);
 
-    const systemCut =
-        totalPool * 0.15;
+        save();
+    });
 
-    const winnerPrize =
-        totalPool - systemCut;
 
-    overlay.style.display = "flex";
 
-    // 🏆 USER WON
-    if (isUserWinner) {
+    // ✅ MAIN GAME LISTENER
+    db.ref('liveGame')
+    .on('value', snap => {
 
-        document.getElementById(
-            'overlay-title'
-        ).innerText = "🎉 CONGRATULATIONS";
+        const data = snap.val();
 
-        document.getElementById(
-            'win-msg'
-        ).innerHTML = `
-            🏆 BINGO YOU WIN!<br><br>
+        if (!data) return;
 
-            💰 Prize:
-            <b>${winnerPrize.toFixed(2)} ETB</b>
-        `;
+        // ✅ RESET CALLED NUMBERS
+        calledNumbers.clear();
 
-        currentBalance += winnerPrize;
+        if (data.history) {
+
+            data.history.forEach(num => {
+
+                calledNumbers.add(num);
+
+            });
+        }
+
+        // ✅ LOAD SELECTED
+        allSelected =
+            data.selectedCards || {};
+
+        // ✅ TOTAL
+        const currentTotalCards =
+            Object.keys(allSelected).length;
+
+        document.getElementById('total-count')
+            .innerText =
+            currentTotalCards;
+
+        // ✅ PRIZE
+        const totalPool =
+            currentTotalCards * 10;
+
+        const livePrize =
+            totalPool - (totalPool * 0.15);
+
+        document.getElementById('live-prize')
+            .innerText =
+            livePrize.toFixed(2);
+
+
+
+        // ✅ WAITING ROUND
+        if (data.status === "waiting") {
+
+            console.log("🧹 RESET ROUND");
+
+            gameActive = false;
+
+            // ✅ CLEAR PLAYER DATA
+            userCards = [];
+
+            cardData = {};
+
+            // ✅ CLEAR STORAGE
+            localStorage.removeItem(
+                "aman_cards"
+            );
+
+            localStorage.removeItem(
+                "aman_data"
+            );
+
+            // ✅ RESET NUMBERS
+            calledNumbers.clear();
+
+            // ✅ RESET BALL
+            document.getElementById(
+                'ball-num'
+            ).innerText = "--";
+
+            document.getElementById(
+                'ball-let'
+            ).innerText = "-";
+
+            // ✅ HIDE GAME
+            document.getElementById(
+                'game-page'
+            ).classList.add('hidden');
+
+            document.getElementById(
+                'game-page'
+            ).style.display = "none";
+
+            // ✅ SHOW SELECTION
+            document.getElementById(
+                'selection-page'
+            ).classList.remove('hidden');
+
+            document.getElementById(
+                'selection-page'
+            ).style.display = "flex";
+
+            // ✅ TIMER
+            if (data.timerStartTime) {
+
+                const now = Date.now();
+
+                const elapsed =
+                    Math.floor(
+                        (now - data.timerStartTime)
+                        / 1000
+                    );
+
+                const remaining =
+                    40 - elapsed;
+
+                startCountdown(
+                    remaining > 0
+                    ? remaining
+                    : 0
+                );
+            }
+
+            // ✅ RENDER 500 CARDS
+            renderGrid();
+
+            updatePreview();
+
+            return;
+        }
+
+
+
+        // ✅ GAME STARTED
+        if (data.status === "started") {
+
+            clearInterval(countdownInterval);
+
+            if (!gameActive) {
+
+                start();
+            }
+        }
+
+        // ✅ UPDATE GRID
+        renderGrid();
+
+        // ✅ APPLY CURRENT NUMBER
+        if (data.currentNumber) {
+
+            applyNumber(
+                data.currentNumber,
+                true
+            );
+        }
+
+        // ✅ WINNER
+        if (data.winner && gameActive) {
+
+            winner(data.winner);
+        }
+    });
+
+
+
+    // ✅ SEARCH
+    document.getElementById('searchCard')
+    .oninput = function() {
+
+        let val = parseInt(this.value);
+
+        if (val >=1 && val <=500) {
+
+            const target =
+                document.getElementById(
+                    `cartela-${val}`
+                );
+
+            if (target) {
+
+                target.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                });
+            }
+        }
+    };
+
+
+
+    updatePreview();
+}
+
+
+
+// ✅ COUNTDOWN
+function startCountdown(seconds) {
+
+    clearInterval(countdownInterval);
+
+    let counter = seconds;
+
+    const timerEl =
+        document.getElementById('timer');
+
+    countdownInterval =
+    setInterval(() => {
+
+        timerEl.innerText = counter;
+
+        if (counter <= 10) {
+
+            timerEl.style.background =
+                "#ff3e3e";
+
+        } else {
+
+            timerEl.style.background =
+                "var(--orange)";
+        }
+
+        if (counter <= 0) {
+
+            clearInterval(countdownInterval);
+        }
+
+        counter--;
+
+    }, 1000);
+}
+
+
+
+// ✅ RENDER GRID
+function renderGrid() {
+
+    const grid =
+        document.getElementById('slots-grid');
+
+    grid.innerHTML = "";
+
+    for(let i=1; i<=500; i++) {
+
+        let b = document.createElement('div');
+
+        b.className = 'slot-btn';
+
+        b.id = `cartela-${i}`;
+
+        let cardKey = 'c' + i;
+
+        // ✅ OCCUPIED
+        if (allSelected[cardKey]) {
+
+            const playerData =
+                allSelected[cardKey];
+
+            const displayName =
+                playerData.playerName
+                || "ተጫዋች";
+
+            b.innerHTML = `
+                <div class="card-number">
+                    ${i}
+                </div>
+
+                <div class="player-name">
+                    ${displayName}
+                </div>
+            `;
+
+            if (!userCards.includes(i)) {
+
+                b.classList.add('occupied');
+            }
+
+        } else {
+
+            b.innerHTML = `
+                <div class="card-number">
+                    ${i}
+                </div>
+            `;
+        }
+
+        // ✅ USER SELECTED
+        if (userCards.includes(i)) {
+
+            b.classList.add('selected');
+
+            b.innerHTML = `
+                <div class="card-number">
+                    ${i}
+                </div>
+
+                <div class="player-name">
+                    ${tgUser}
+                </div>
+            `;
+        }
+
+        b.onclick = () => {
+
+            if (
+                !gameActive &&
+                !b.classList.contains('occupied')
+            ) {
+
+                selectCard(i);
+            }
+        };
+
+        grid.appendChild(b);
+    }
+}
+
+
+
+// ✅ SELECT CARD
+function selectCard(i) {
+
+    const userId =
+        window.Telegram?.WebApp
+        ?.initDataUnsafe?.user?.id
+        || "guest_user";
+
+    // ✅ REMOVE
+    if (userCards.includes(i)) {
+
+        userCards =
+            userCards.filter(x => x !== i);
+
+        delete cardData[i];
+
+        currentBalance += 10;
 
         db.ref(
             'users/' + userId + '/balance'
         ).set(currentBalance);
 
-        if (
-            window.Telegram &&
-            Telegram.WebApp.HapticFeedback
-        ) {
+        db.ref(
+            'liveGame/selectedCards/c' + i
+        ).remove();
+    }
 
-            Telegram.WebApp
-            .HapticFeedback
-            .notificationOccurred('success');
+    // ✅ ADD
+    else {
+
+        if (userCards.length >= 3) {
+
+            alert("Max 3 cards");
+
+            return;
         }
 
-    } else {
+        if (currentBalance < 10) {
 
-        // 👀 OTHER PLAYER WON
-        let countdown = 5;
+            alert("በቂ ሂሳብ የሎትም");
 
-        const interval = setInterval(() => {
+            return;
+        }
 
-            document.getElementById(
-                'overlay-title'
-            ).innerText = "🏆 WINNER";
+        userCards.push(i);
 
-            document.getElementById(
-                'win-msg'
-            ).innerHTML = `
-                👑 ${winnerData.username}<br><br>
+        const newCard =
+            generateCard();
 
-                ⏳ Next Round In
-                ${countdown}s
-            `;
+        cardData[i] = newCard;
 
-            countdown--;
+        currentBalance -= 10;
 
-            if (countdown < 0) {
+        db.ref(
+            'users/' + userId + '/balance'
+        ).set(currentBalance);
 
-                clearInterval(interval);
-
-                overlay.style.display = "none";
-            }
-
-        }, 1000);
+        db.ref(
+            'liveGame/selectedCards/c' + i
+        ).set({
+            id: i,
+            playerName: tgUser,
+            userId: userId,
+            numbers: newCard
+        });
     }
-}
-  
 
-    function resetUI() {
+    save();
 
-    gameActive = false;
-
-    calledNumbers.clear();
-
-    // ✅ RESET PLAYER DATA
-    userCards = [];
-    cardData = {};
-    allSelected = {};
-
-    // ✅ REMOVE SAVED CARDS
-    localStorage.removeItem('aman_cards');
-    localStorage.removeItem('aman_data');
-
-    // ✅ SHOW SELECTION PAGE AGAIN
-    document.getElementById('selection-page')
-        .classList.remove('hidden');
-
-    document.getElementById('selection-page')
-        .style.display = 'block';
-
-    // ✅ HIDE GAME PAGE
-    document.getElementById('game-page')
-        .classList.add('hidden');
-
-    document.getElementById('game-page')
-        .style.display = 'none';
-
-    // ✅ HIDE WINNER POPUP
-    document.getElementById('winner-overlay')
-        .style.display = 'none';
-
-    // ✅ RELOAD CARD SELECTION
     renderGrid();
 
     updatePreview();
 }
 
-    window.onload = init;
+
+
+// ✅ UPDATE PREVIEW
+function updatePreview() {
+
+    const p =
+        document.getElementById(
+            'selection-preview'
+        );
+
+    p.innerHTML = "";
+
+    if (userCards.length <= 0) {
+
+        p.innerHTML =
+            '<div style="width:100%;text-align:center;color:#666;">ካርቴላ ይምረጡ</div>';
+
+        return;
+    }
+
+    userCards.forEach(id => {
+
+        let d = cardData[id];
+
+        if (!d) return;
+
+        let h = `
+        <div class="mini-card">
+
+        <div style="
+            text-align:center;
+            font-size:10px;
+            margin-bottom:5px;
+        ">
+            #${id}
+        </div>
+
+        <div class="mini-grid">
+        `;
+
+        for(let r=0; r<5; r++) {
+
+            for(let c=0; c<5; c++) {
+
+                let v =
+                    (r===2 && c===2)
+                    ? "F"
+                    : d[c][r];
+
+                h += `
+                <div class="mini-cell">
+                    ${v}
+                </div>
+                `;
+            }
+        }
+
+        h += `
+        </div>
+        </div>
+        `;
+
+        p.innerHTML += h;
+    });
+}
+
+
+
+// ✅ START GAME
+function start() {
+
+    gameActive = true;
+
+    document.getElementById(
+        'selection-page'
+    ).classList.add('hidden');
+
+    document.getElementById(
+        'game-page'
+    ).classList.remove('hidden');
+
+    document.getElementById(
+        'game-page'
+    ).style.display = "flex";
+}
+
+
+
+// ✅ APPLY NUMBER
+function applyNumber(n) {
+
+    if (!n) return;
+
+    calledNumbers.add(n);
+
+    document.getElementById(
+        'ball-num'
+    ).innerText = n;
+
+    document.getElementById(
+        'ball-let'
+    ).innerText =
+        n<=15 ? "B" :
+        n<=30 ? "I" :
+        n<=45 ? "N" :
+        n<=60 ? "G" : "O";
+}
+
+
+
+// ✅ WINNER
+function winner() {
+
+    gameActive = false;
+
+    document.getElementById(
+        'winner-overlay'
+    ).style.display = "flex";
+
+    setTimeout(() => {
+
+        document.getElementById(
+            'winner-overlay'
+        ).style.display = "none";
+
+    }, 5000);
+}
+
+// ✅ START
+window.onload = init;
+
 </script>
 </body>
 </html>
