@@ -286,66 +286,219 @@
     </div>
 
     <div id="selection-page" style="display:flex; flex-direction:column; height: calc(100vh - 50px);">
-        <div style="padding: 10px 20px; display:flex; justify-content:space-between; align-items: center;">
-            <div>
-                <div style="color:#888; font-size:11px;">ካርቴላ ይምረጡ (Max 3)</div>
-                <div style="color:var(--accent); font-size:10px;">ዋጋ: 10 ETB</div>
+
+    <div style="padding: 10px 20px; display:flex; justify-content:space-between; align-items: center;">
+
+        <div>
+            <div style="color:#888; font-size:11px;">
+                ካርቴላ ይምረጡ (Max 3)
             </div>
-            <div style="text-align: right;">
-                <div id="timer" style="background:var(--orange); color:#000; padding:2px 12px; border-radius:20px; font-weight:900; min-width: 30px; text-align: center;">40</div>
-                <div style="font-size: 9px; color: #888; margin-top: 2px;">TIME LEFT</div>
+
+            <div style="color:var(--accent); font-size:10px;">
+                ዋጋ: 10 ETB
             </div>
-        </div>
-        
-        <div class="search-container">
-            <input type="number" id="searchCard" placeholder="ካርቴላ ቁጥር ይፈልጉ (1-500)...">
         </div>
 
-        <div id="slots-grid"></div>
-        <div id="selection-preview"></div>
-    </div>
-
-    <div id="game-page" class="hidden" style="flex-direction:column; height: calc(100vh - 50px);">
-        <div class="ball-display">
-            <div id="ball-let" style="font-size: 40px; font-weight: 900;">-</div>
-            <div id="ball-num">--</div>
-        </div>
-        <div style="display:flex; gap:10px; padding:15px; flex:1; overflow:hidden;">
-            <div class="board-side">
-                <div class="card-header-grid">
-                    <span class="cl-b">B</span><span class="cl-i">I</span><span class="cl-n">N</span><span class="cl-g">G</span><span class="cl-o">O</span>
-                </div>
-                <div id="main-board" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:4px;"></div>
+        <div style="text-align: right;">
+            <div id="timer"
+                 style="
+                    background:var(--orange);
+                    color:#000;
+                    padding:2px 12px;
+                    border-radius:20px;
+                    font-weight:900;
+                    min-width: 30px;
+                    text-align: center;
+                 ">
+                 40
             </div>
-            <div id="player-area" style="flex:1; overflow-y:auto;"></div>
-        </div>
-    </div>
 
-    <div id="withdraw-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>ብር ማውጫ (Withdraw)</h3>
-            <p style="font-size: 11px; color: #aaa; text-align: center;">ያሎት ሂሳብ፦ <span id="modal-current-bal" style="color: #00ff85; font-weight:bold;">0.00</span> ETB</p>
-            
-            <input type="number" id="withdraw-amount" placeholder="የሚወጣው የብር መጠን (ቢያንስ 50)" min="50">
-            
-            <select id="bank-name">
-                <option value="" disabled selected>ባንክ ይምረጡ</option>
-                <option value="CBE">የኢትዮጵያ ንግድ ባንክ (CBE)</option>
-                <option value="Telebirr">ቴሌብር (Telebirr)</option>
-                <option value="Awash">አዋሽ ባንክ (Awash)</option>
-                <option value="Abyssinia">አቢሲኒያ ባንክ (BoA)</option>
-                <option value="Dashen">ዳሽን ባንክ (Dashen)</option>
-            </select>
-            
-            <input type="text" id="bank-account" placeholder="የአካውንት ወይም የቲሌብር ቁጥር">
-            <input type="text" id="account-holder" placeholder="የአካውንቱ ባለቤት ሙሉ ስም">
-            
-            <div class="modal-btn-group">
-                <button class="btn-submit" onclick="submitWithdrawal()">ጠይቅ</button>
-                <button class="btn-cancel" onclick="closeWithdrawModal()">ሰርዝ</button>
+            <div style="font-size: 9px; color: #888; margin-top: 2px;">
+                TIME LEFT
             </div>
         </div>
+
     </div>
+
+    <!-- SEARCH -->
+    <div class="search-container">
+        <input
+            type="number"
+            id="searchCard"
+            placeholder="ካርቴላ ቁጥር ይፈልጉ (1-500)...">
+    </div>
+
+    <!-- CARDS -->
+    <div id="slots-grid"></div>
+
+    <!-- PREVIEW -->
+    <div id="selection-preview"></div>
+
+</div>
+
+
+
+<!-- GAME PAGE -->
+<div id="game-page"
+     class="hidden"
+     style="
+        flex-direction:column;
+        height: calc(100vh - 50px);
+     ">
+
+    <!-- BALL DISPLAY -->
+    <div class="ball-display">
+
+        <div id="ball-let"
+             style="
+                font-size: 40px;
+                font-weight: 900;
+             ">
+             -
+        </div>
+
+        <div id="ball-num">--</div>
+
+    </div>
+
+
+
+    <!-- MAIN GAME -->
+    <div style="
+        display:flex;
+        gap:10px;
+        padding:15px;
+        flex:1;
+        overflow:hidden;
+    ">
+
+        <!-- BINGO BOARD -->
+        <div class="board-side">
+
+            <!-- HEADER -->
+            <div class="card-header-grid">
+
+                <span class="cl-b">B</span>
+                <span class="cl-i">I</span>
+                <span class="cl-n">N</span>
+                <span class="cl-g">G</span>
+                <span class="cl-o">O</span>
+
+            </div>
+
+            <!-- 75 BOARD -->
+            <div id="main-board"
+                 style="
+                    display:grid;
+                    grid-template-columns:repeat(5,1fr);
+                    gap:4px;
+                 ">
+            </div>
+
+        </div>
+
+
+
+        <!-- PLAYER AREA -->
+        <div id="player-area"
+             style="
+                flex:1;
+                overflow-y:auto;
+             ">
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<!-- WITHDRAW -->
+<div id="withdraw-modal" class="modal-overlay">
+
+    <div class="modal-box">
+
+        <h3>ብር ማውጫ (Withdraw)</h3>
+
+        <p style="
+            font-size: 11px;
+            color: #aaa;
+            text-align: center;
+        ">
+            ያሎት ሂሳብ፦
+
+            <span id="modal-current-bal"
+                  style="
+                    color: #00ff85;
+                    font-weight:bold;
+                  ">
+                  0.00
+            </span>
+
+            ETB
+        </p>
+
+        <input
+            type="number"
+            id="withdraw-amount"
+            placeholder="የሚወጣው የብር መጠን (ቢያንስ 50)"
+            min="50">
+
+        <select id="bank-name">
+
+            <option value="" disabled selected>
+                ባንክ ይምረጡ
+            </option>
+
+            <option value="CBE">
+                የኢትዮጵያ ንግድ ባንክ (CBE)
+            </option>
+
+            <option value="Telebirr">
+                ቴሌብር (Telebirr)
+            </option>
+
+            <option value="Awash">
+                አዋሽ ባንክ (Awash)
+            </option>
+
+            <option value="Abyssinia">
+                አቢሲኒያ ባንክ (BoA)
+            </option>
+
+            <option value="Dashen">
+                ዳሽን ባንክ (Dashen)
+            </option>
+
+        </select>
+
+        <input
+            type="text"
+            id="bank-account"
+            placeholder="የአካውንት ወይም የቲሌብር ቁጥር">
+
+        <input
+            type="text"
+            id="account-holder"
+            placeholder="የአካውንቱ ባለቤት ሙሉ ስም">
+
+        <div class="modal-btn-group">
+
+            <button class="btn-submit"
+                    onclick="submitWithdrawal()">
+                    ጠይቅ
+            </button>
+
+            <button class="btn-cancel"
+                    onclick="closeWithdrawModal()">
+                    ሰርዝ
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
 <script>
 
@@ -533,14 +686,13 @@ function init() {
         // ✅ WAITING ROUND
         if (data.status === "waiting") {
 
-            console.log("🧹 RESET ROUND");
+    console.log("🧹 RESET ROUND");
 
-            gameActive = false;
+    gameActive = false;
 
-            // ✅ CLEAR PLAYER DATA
-            userCards = [];
-
-            cardData = {};
+    // ❌ እነዚህን አትሰርዝ
+    // userCards = [];
+    // cardData = {};
 
             // ✅ CLEAR STORAGE
             localStorage.removeItem(
@@ -871,7 +1023,112 @@ function selectCard(i) {
     updatePreview();
 }
 
+// ✅ SELECT CARD
+function selectCard(i) {
 
+    const userId =
+        window.Telegram?.WebApp
+        ?.initDataUnsafe?.user?.id
+        || "guest_user";
+
+
+
+    // ✅ REMOVE CARD
+    if (userCards.includes(i)) {
+
+        userCards =
+            userCards.filter(x => x !== i);
+
+        delete cardData[i];
+
+        currentBalance += 10;
+
+        db.ref(
+            'users/' + userId + '/balance'
+        ).set(currentBalance);
+
+        db.ref(
+            'liveGame/selectedCards/c' + i
+        ).remove();
+    }
+
+
+
+    // ✅ ADD CARD
+    else {
+
+        // ✅ ONLY 3 CARDS
+        if (userCards.length >= 3) {
+
+            alert("3 ካርዶች ብቻ ይፈቀዳሉ");
+
+            return;
+        }
+
+
+
+        // ✅ CHECK BALANCE
+        if (currentBalance < 10) {
+
+            alert("በቂ ሂሳብ የሎትም");
+
+            return;
+        }
+
+
+
+        // ✅ SAVE CARD
+        userCards.push(i);
+
+
+
+        // ✅ GENERATE CARD
+        const newCard =
+            generateCard();
+
+        cardData[i] =
+            newCard;
+
+
+
+        // ✅ BALANCE
+        currentBalance -= 10;
+
+        db.ref(
+            'users/' + userId + '/balance'
+        ).set(currentBalance);
+
+
+
+        // ✅ SAVE FIREBASE
+        db.ref(
+            'liveGame/selectedCards/c' + i
+        ).set({
+
+            id: i,
+
+            playerName: tgUser,
+
+            userId: userId,
+
+            numbers: newCard
+        });
+    }
+
+
+
+    // ✅ SAVE
+    save();
+
+
+
+    // ✅ UPDATE UI
+    renderGrid();
+
+    updatePreview();
+
+    renderPlayerCards();
+}
 
 // ✅ UPDATE PREVIEW
 function updatePreview() {
@@ -938,11 +1195,154 @@ function updatePreview() {
 }
 
 
+// ✅ SHOW PLAYER CARDS
+function renderPlayerCards() {
+
+    const area =
+        document.getElementById(
+            'player-area'
+        );
+
+    area.innerHTML = "";
+
+
+
+    // ✅ NO CARD
+    if(userCards.length <= 0){
+
+        area.innerHTML = `
+        <div class="no-card-warning">
+
+            <div class="warning-title">
+                🎴 ካርድ የለም
+            </div>
+
+            <div class="warning-text">
+                ጨዋታውን ለመጫወት
+                ካርቴላ ይምረጡ
+
+                <span class="highlight-orange">
+                    Max 3 Cards
+                </span>
+            </div>
+
+        </div>
+        `;
+
+        return;
+    }
+
+
+
+    // ✅ RENDER CARDS
+    userCards.forEach(id => {
+
+        // ✅ LOAD CARD AGAIN IF MISSING
+        if(!cardData[id]){
+
+            const live =
+                allSelected['c' + id];
+
+            if(live && live.numbers){
+
+                cardData[id] =
+                    live.numbers;
+            }
+        }
+
+        const d = cardData[id];
+
+        if(!d) return;
+
+        let html = `
+        <div class="active-card">
+
+            <div style="
+                text-align:center;
+                font-weight:900;
+                margin-bottom:6px;
+                color:var(--accent);
+            ">
+                🎴 CARD #${id}
+            </div>
+
+            <div class="card-header-grid">
+                <span class="cl-b">B</span>
+                <span class="cl-i">I</span>
+                <span class="cl-n">N</span>
+                <span class="cl-g">G</span>
+                <span class="cl-o">O</span>
+            </div>
+
+            <div style="
+                display:grid;
+                grid-template-columns:repeat(5,1fr);
+                gap:3px;
+            ">
+        `;
+
+
+
+        for(let r=0; r<5; r++){
+
+            for(let c=0; c<5; c++){
+
+                let val =
+                    (r===2 && c===2)
+                    ? "FREE"
+                    : d[c][r];
+
+                let hit =
+                    calledNumbers.has(d[c][r]);
+
+
+
+                if(r===2 && c===2){
+
+                    html += `
+                    <div class="
+                        card-cell
+                        hit
+                        free
+                    ">
+                        FREE
+                    </div>
+                    `;
+
+                } else {
+
+                    html += `
+                    <div class="
+                        card-cell
+                        ${hit ? 'hit' : ''}
+                    ">
+                        ${val}
+                    </div>
+                    `;
+                }
+            }
+        }
+
+        html += `
+            </div>
+        </div>
+        `;
+
+        area.innerHTML += html;
+    });
+}
+
+
+
+
 
 // ✅ START GAME
 function start() {
 
     gameActive = true;
+
+    console.log(userCards);
+    console.log(cardData);
 
     document.getElementById(
         'selection-page'
@@ -955,9 +1355,9 @@ function start() {
     document.getElementById(
         'game-page'
     ).style.display = "flex";
+
+    renderPlayerCards();
 }
-
-
 
 // ✅ APPLY NUMBER
 function applyNumber(n) {
@@ -977,7 +1377,27 @@ function applyNumber(n) {
         n<=30 ? "I" :
         n<=45 ? "N" :
         n<=60 ? "G" : "O";
+
+
+
+    // ✅ HIGHLIGHT BOARD NUMBER
+    const target =
+        document.getElementById(
+            'num-' + n
+        );
+
+    if(target){
+
+        target.classList.add('called');
+    }
+
+
+
+    // ✅ UPDATE PLAYER CARDS
+    renderPlayerCards();
 }
+
+
 
 
 
@@ -997,6 +1417,26 @@ function winner() {
         ).style.display = "none";
 
     }, 5000);
+}
+
+// 👇 እዚህ ላይ አስገባ
+
+// ✅ CREATE 75 BINGO NUMBERS
+const board =
+    document.getElementById('main-board');
+
+for(let i = 1; i <= 75; i++) {
+
+    const cell =
+        document.createElement('div');
+
+    cell.className = 'num-cell';
+
+    cell.id = 'num-' + i;
+
+    cell.innerText = i;
+
+    board.appendChild(cell);
 }
 
 // ✅ START
