@@ -737,38 +737,104 @@ db.ref('liveGame/gameStatus').on('value', (snapshot) => {
     }
 
     function winner(winId) {
-        gameActive = false;
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-        const overlay = document.getElementById('winner-overlay');
-        const isUserWinner = userCards.includes(parseInt(winId)) || userCards.includes(winId);
 
-        const cardPrice = 10; 
-        const totalCards = Object.keys(allSelected).length; 
-        const totalPool = totalCards * cardPrice; 
-        const systemCut = totalPool * 0.15; 
-        const winnerPrize = totalPool - systemCut; 
+    gameActive = false;
 
-        if(isUserWinner) {
-            document.getElementById('overlay-title').innerText = "CONGRA!";
-            document.getElementById('win-msg').innerHTML = `
-                የዚህ ዙር አሸናፊ ነዎት!<br>
-                ጠቅላላ ካርቴላ፡ ${totalCards}<br>
-                推 የአሸናፊነት ሽልማት፡ <b>${winnerPrize.toFixed(2)} ETB</b>
-            `;
-            
-            currentBalance += winnerPrize; 
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            
-            if(window.Telegram && Telegram.WebApp.HapticFeedback) 
-                Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-        } else {
-            document.getElementById('overlay-title').innerText = "ቢንጎ ተባለ!";
-            document.getElementById('win-msg').innerText = `አሸናፊው ${winnerPrize.toFixed(2)} ETB ወስዷል!`;
+    const userId =
+        window.Telegram?.WebApp
+        ?.initDataUnsafe?.user?.id || "guest_user";
+
+    const overlay =
+        document.getElementById('winner-overlay');
+
+    const winnerData = gameData.winner_data || {};
+
+    const winnerId = winnerData.userId;
+
+    const isUserWinner =
+        String(winnerId) === String(userId);
+
+    const cardPrice = 10;
+
+    const totalCards =
+        Object.keys(allSelected).length;
+
+    const totalPool =
+        totalCards * cardPrice;
+
+    const systemCut =
+        totalPool * 0.15;
+
+    const winnerPrize =
+        totalPool - systemCut;
+
+    overlay.style.display = "flex";
+
+    // 🏆 USER WON
+    if (isUserWinner) {
+
+        document.getElementById(
+            'overlay-title'
+        ).innerText = "🎉 CONGRATULATIONS";
+
+        document.getElementById(
+            'win-msg'
+        ).innerHTML = `
+            🏆 BINGO YOU WIN!<br><br>
+
+            💰 Prize:
+            <b>${winnerPrize.toFixed(2)} ETB</b>
+        `;
+
+        currentBalance += winnerPrize;
+
+        db.ref(
+            'users/' + userId + '/balance'
+        ).set(currentBalance);
+
+        if (
+            window.Telegram &&
+            Telegram.WebApp.HapticFeedback
+        ) {
+
+            Telegram.WebApp
+            .HapticFeedback
+            .notificationOccurred('success');
         }
-        
-        overlay.style.display = 'flex';
-        setTimeout(() => { resetUI(); }, 7000);
+
+    } else {
+
+        // 👀 OTHER PLAYER WON
+        let countdown = 5;
+
+        const interval = setInterval(() => {
+
+            document.getElementById(
+                'overlay-title'
+            ).innerText = "🏆 WINNER";
+
+            document.getElementById(
+                'win-msg'
+            ).innerHTML = `
+                👑 ${winnerData.username}<br><br>
+
+                ⏳ Next Round In
+                ${countdown}s
+            `;
+
+            countdown--;
+
+            if (countdown < 0) {
+
+                clearInterval(interval);
+
+                overlay.style.display = "none";
+            }
+
+        }, 1000);
     }
+}
+  
 
     function resetUI() {
         gameActive = false;
