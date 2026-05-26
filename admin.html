@@ -42,18 +42,22 @@
     </div>
 
     <!-- AI COMMAND BUTTON -->
-    <button
-        onclick="sendAICommand('start_game')"
-        style="
-            background:#00ff85;
-            color:#000;
-            font-weight:bold;
-            border:none;
-            padding:6px 12px;
-            border-radius:6px;
-        ">
-        🎮 START GAME
-    </button>
+    <label style="color: white;">የቦቶች ብዛት፦</label>
+<input type="number" id="botCountInput" value="20" min="1" max="500" 
+       style="padding:5px; border-radius:5px; border:none; width: 60px;">
+
+<button
+    onclick="sendAICommand('start_game')"
+    style="
+        background:#00ff85;
+        color:#000;
+        font-weight:bold;
+        border:none;
+        padding:6px 12px;
+        border-radius:6px;
+    ">
+    🎮 START GAME
+</button>
 
     <span class="navbar-text text-success" id="connection-status">
         <i class="fa-solid fa-circle-dot me-1"></i>
@@ -555,15 +559,18 @@
 // ✅ SEND COMMAND TO PYTHON AI
 
 function sendAICommand(command) {
+    // 1. የቦት ብዛትን ከ input ውሰድ
+    var botCount = document.getElementById("botCountInput").value;
 
     firebase.database()
     .ref("aiCommands")
     .push({
         command: command,
+        botCount: parseInt(botCount), // የቦት ብዛትን ይዞ ይሄዳል
         timestamp: Date.now()
     });
 
-    alert("✅ Command Sent: " + command);
+    alert("✅ Command Sent: " + command + " with " + botCount + " bots");
 }        
     </script>
 </body>
