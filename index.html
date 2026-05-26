@@ -534,17 +534,9 @@ const tgUser =
     ?.initDataUnsafe?.user?.first_name
     || "ተጫዋች";
 
-let userCards =
-    JSON.parse(localStorage.getItem('aman_cards'))
-    || [];
-
-let cardData =
-    JSON.parse(localStorage.getItem('aman_data'))
-    || {};
-
-let currentBalance =
-    parseFloat(localStorage.getItem('aman_bal'))
-    || 100.00;
+let userCards = [];
+let cardData = {};
+let currentBalance = 100.00;
 
 let allSelected = {};
 
