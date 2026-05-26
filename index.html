@@ -364,20 +364,84 @@ let countdownInterval;
 
 // --- የ Firebase Listener (የጋራ አሸናፊ ማሳያ) ---
 db.ref('liveGame/gameStatus').on('value', (snapshot) => {
+
     const data = snapshot.val();
-    
-    // ቦቱ 'declared' የሚል ምልክት ሲልክ ሁሉም ስልክ በአንድ ጊዜ ያሳያል
+
     if (data && data.status === "declared") {
-        const winnerNameElement = document.getElementById('winnerName');
-        const modalElement = document.getElementById('winner-modal');
-        
-        if (winnerNameElement) winnerNameElement.innerText = data.name;
-        if (modalElement) modalElement.style.display = "block";
-        
-        // ቆጠራውን ሁሉም ሰው በአንድ ላይ ይጀምራል
+
+        const winnerNameElement =
+            document.getElementById('winnerName');
+
+        const modalElement =
+            document.getElementById('winner-modal');
+
+        if (winnerNameElement)
+            winnerNameElement.innerText = data.name;
+
+        if (modalElement)
+            modalElement.style.display = "block";
+
         if (typeof startNextRoundCountdown === 'function') {
+
             startNextRoundCountdown();
         }
+    }
+});
+
+
+// ✅ NEW ROUND RESET
+db.ref("liveGame").on("value", (snap) => {
+
+    const gameData = snap.val();
+
+    if (
+        gameData &&
+        gameData.status === "waiting"
+    ) {
+
+        console.log("🧹 RESETTING OLD ROUND");
+
+        // 🧹 CLEAR PLAYER DATA
+        userCards = [];
+        cardData = {};
+        allSelected = {};
+
+        // 🧹 CLEAR LOCAL STORAGE
+        localStorage.removeItem("aman_cards");
+        localStorage.removeItem("aman_data");
+
+        // 🧹 RESET CALLED NUMBERS
+        if (typeof calledNumbers !== "undefined") {
+
+            calledNumbers.clear();
+        }
+
+        // 🧹 HIDE GAME PAGE
+        document.getElementById("game-page")
+            .style.display = "none";
+
+        // ✅ SHOW SELECTION PAGE
+        document.getElementById("selection-page")
+            .classList.remove("hidden");
+
+        document.getElementById("selection-page")
+            .style.display = "block";
+
+        // 🧹 HIDE WINNER POPUP
+        const modal =
+            document.getElementById("winner-modal");
+
+        if (modal) {
+
+            modal.style.display = "none";
+        }
+
+        // 🔄 RELOAD CARD GRID
+        renderGrid();
+
+        updatePreview();
+
+        console.log("✅ NEW ROUND READY");
     }
 });
 
@@ -482,15 +546,7 @@ db.ref('liveGame/gameStatus').on('value', (snapshot) => {
             }
         });
 
-        db.ref('liveGame/currentNumber').on('value', snap => {
-            let n = snap.val();
-            if(n && gameActive) applyNumber(n);
-        });
-
-        document.getElementById('searchCard').oninput = function() {
-            let val = parseInt(this.value);
-            if(val >= 1 && val <= 500) {
-                let target = document.getElementById(`cartela-${val}`);
+        8mentById(`cartela-${val}`);
                 if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
             }
         };
