@@ -691,83 +691,112 @@ function init() {
 
 
         // ✅ WAITING ROUND
-        if (data.status === "waiting") {
+if (data.status === "waiting") {
 
     console.log("🧹 RESET ROUND");
 
     gameActive = false;
 
-    // ❌ እነዚህን አትሰርዝ
-    // userCards = [];
-    // cardData = {};
+    // ✅ RESET NUMBERS
+    calledNumbers.clear();
 
-            // ✅ CLEAR STORAGE
-            localStorage.removeItem(
-                "aman_cards"
+    // ✅ RESET BALL
+    document.getElementById(
+        'ball-num'
+    ).innerText = "--";
+
+    document.getElementById(
+        'ball-let'
+    ).innerText = "-";
+
+    // ✅ HIDE GAME
+    document.getElementById(
+        'game-page'
+    ).classList.add('hidden');
+
+    document.getElementById(
+        'game-page'
+    ).style.display = "none";
+
+    // ✅ SHOW SELECTION
+    document.getElementById(
+        'selection-page'
+    ).classList.remove('hidden');
+
+    document.getElementById(
+        'selection-page'
+    ).style.display = "flex";
+
+    // ✅ LOAD MY CARDS AGAIN
+const userId =
+    window.Telegram?.WebApp
+    ?.initDataUnsafe?.user?.id
+    || "guest_user";
+
+// ✅ RESTORE SAVED DATA
+const savedCards =
+    JSON.parse(
+        localStorage.getItem('aman_cards')
+    ) || [];
+
+const savedData =
+    JSON.parse(
+        localStorage.getItem('aman_data')
+    ) || {};
+
+userCards = [];
+cardData = {};
+
+// ✅ RESTORE ONLY VALID CARDS
+savedCards.forEach(id => {
+
+    const liveCard =
+        allSelected['c' + id];
+
+    if (liveCard) {
+
+        userCards.push(id);
+
+        cardData[id] =
+            liveCard.numbers
+            || savedData[id];
+    }
+});
+
+// ✅ SAVE AGAIN
+save();
+
+    // ✅ TIMER
+    if (data.timerStartTime) {
+
+        const now = Date.now();
+
+        const elapsed =
+            Math.floor(
+                (now - data.timerStartTime)
+                / 1000
             );
 
-            localStorage.removeItem(
-                "aman_data"
-            );
+        let duration =
+            data.duration || 40;
 
-            // ✅ RESET NUMBERS
-            calledNumbers.clear();
+        const remaining =
+            duration - elapsed;
 
-            // ✅ RESET BALL
-            document.getElementById(
-                'ball-num'
-            ).innerText = "--";
+        startCountdown(
+            remaining > 0
+            ? remaining
+            : 0
+        );
+    }
 
-            document.getElementById(
-                'ball-let'
-            ).innerText = "-";
+    // ✅ RENDER
+    renderGrid();
 
-            // ✅ HIDE GAME
-            document.getElementById(
-                'game-page'
-            ).classList.add('hidden');
+    updatePreview();
 
-            document.getElementById(
-                'game-page'
-            ).style.display = "none";
-
-            // ✅ SHOW SELECTION
-            document.getElementById(
-                'selection-page'
-            ).classList.remove('hidden');
-
-            document.getElementById(
-                'selection-page'
-            ).style.display = "flex";
-
-            // ✅ TIMER
-            if (data.timerStartTime) {
-
-                const now = Date.now();
-
-                const elapsed =
-                    Math.floor(
-                        (now - data.timerStartTime)
-                        / 1000
-                    );
-
-                const remaining =
-                    40 - elapsed;
-
-                startCountdown(
-                    remaining > 0
-                    ? remaining
-                    : 0
-                );
-            }
-
-            // ✅ RENDER 500 CARDS
-            renderGrid();
-
-            updatePreview();
-
-            return;
-        }
+    return;
+}
 
 
 
