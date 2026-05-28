@@ -675,7 +675,13 @@ function init() {
             currentBalance.toFixed(2);
 
         save();
-    });
+    }); // 👈 የ Firebase ክትትል እዚህ ጋር ያበቃል
+
+    // ⏳ 👇 አዲሱ ዙር ሲነሳ የ 20 ሰከንድ ቆጠራውን እዚህ ጋር አስነሳው!
+    if (typeof startCountdown === "function") {
+        startCountdown(20);
+    }
+} // 👈 የ function init() መዝጊያ
 
 
 
@@ -897,38 +903,36 @@ save();
 
 
 // ✅ COUNTDOWN
+// ⏳ የ 20 ሰከንድ ቆጣሪ ፈንክሽን
 function startCountdown(seconds) {
-
-    clearInterval(countdownInterval);
+    // ቀደም ሲል የነበረ ቆጣሪ ካለ መጀመሪያ እናቆመዋለን
+    if (typeof countdownInterval !== 'undefined') {
+        clearInterval(countdownInterval);
+    }
 
     let counter = seconds;
+    const timerEl = document.getElementById('timer');
 
-    const timerEl =
-        document.getElementById('timer');
+    if (timerEl) {
+        timerEl.innerText = counter; // መጀመሪያ የሰጠነውን ሰከንድ (20) ያሳያል
+    }
 
-    countdownInterval =
-    setInterval(() => {
-
-        timerEl.innerText = counter;
-
-        if (counter <= 10) {
-
-            timerEl.style.background =
-                "#ff3e3e";
-
-        } else {
-
-            timerEl.style.background =
-                "var(--orange)";
-        }
-
-        if (counter <= 0) {
-
-            clearInterval(countdownInterval);
-        }
-
+    countdownInterval = setInterval(() => {
         counter--;
+        
+        if (timerEl) {
+            timerEl.innerText = counter; // በየሰከንዱ ቁጥሩን ይቀንሳል
+        }
 
+        // ⚠️ ሰዓቱ ማለቁን ለማወቅ
+        if (counter <= 0) {
+            clearInterval(countdownInterval);
+            console.log("⏰ ሰዓት አልቋል!");
+            
+            // 👇 እዚህ ጋር ሰዓቱ ሲያልቅ መሆን ያለበትን ሎጅክ መጥራት ትችላለህ
+            // ለምሳሌ አውቶማቲክ ቁጥር እንዲወጣ ወይም የ AI ተራ እንዲሆን፡
+            // if (typeof handleTimeOut === 'function') handleTimeOut();
+        }
     }, 1000);
 }
 
