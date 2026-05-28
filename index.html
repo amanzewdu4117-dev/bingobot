@@ -567,6 +567,40 @@ function save() {
     );
 }
 
+// 🏆 አሸናፊውን Firebase ላይ የመመዝገብ ፈንክሽን
+function saveWinnerScore(playerName, scorePoints) {
+    const scoreRef = firebase.database().ref('scores').push();
+    
+    scoreRef.set({
+        username: playerName,
+        score: scorePoints,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    }).then(() => {
+        console.log("🎯 የደረጃ ውጤት በትክክል ተመዝግቧል!");
+    }).catch((error) => {
+        console.error("❌ ውጤት ለመመዝገብ አልተቻለም፦", error);
+    });
+}
+
+// 📊 ከFirebase ላይ ከፍተኛ ውጤቶችን (Top Scores) አምጥቶ ስክሪን ላይ ማሳያ
+function loadScoreboard() {
+    const topScoresRef = firebase.database().ref('scores').orderByChild('score').limitToLast(5);
+    
+    topScoresRef.on('value', (snapshot) => {
+        let scoresHTML = "<h3>🏆 ከፍተኛ አሸናፊዎች (Top 5)</h3><ul>";
+        
+        snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            scoresHTML += `<li>👤 ${data.username} —— ⭐️ ${data.score} ነጥብ</li>`;
+        });
+        
+        scoresHTML += "</ul>";
+        
+        // 👇 ይህንን ውጤት በዌብሳይትህ ላይ ለማሳየት የምትፈልግበት የባዶ <div> ID 'scoreboard-container' ከሆነ
+        const container = document.getElementById('scoreboard-container');
+        if (container) container.innerHTML = scoresHTML;
+    });
+}
 
 
 // ✅ GENERATE CARD
@@ -1397,7 +1431,49 @@ for(let i = 1; i <= 75; i++) {
 
 // ✅ START
 window.onload = init;
+// 🤖 AI ተጫዋቾችን ከአድሚን ፓናል መቆጣጠሪያ
+const aiStatusRef = firebase.database().ref('settings/ai_players_enabled');
 
+aiStatusRef.on('value', (snapshot) => {
+    const aiEnabled = snapshot.val();
+    
+    if (aiEnabled === false) {
+        console.log("🤖 AI ተጫዋቾች በአድሚን ታግደዋል!");
+        
+        if (typeof checkAndRemoveAI === "function") {
+            checkAndRemoveAI(); 
+        }
+        
+        // ⏳ የ 5 ሰከንድ ቆጠራውን እዚህ ጋር በትክክል እንጠራዋለን
+        startNextRoundCountdown();
+    } else {
+        console.log("🤖 AI ተጫዋቾች እንዲጫወቱ ተፈቅዷል!");
+    }
+});
+
+// ⏳ የ 5 ሰከንድ ቆጠራ እና አዲስ ዙር ሽግግር ፈንክሽን
+function startNextRoundCountdown() {
+    let secondsLeft = 5;
+    
+    // በስክሪኑ ላይ የሚመጣ ማሳያ (Overlay) መፍጠር
+    const countdownDiv = document.createElement('div');
+    countdownDiv.style = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; font-size:22px; text-align:center; font-family:sans-serif;";
+    countdownDiv.id = "countdown-overlay";
+    document.body.appendChild(countdownDiv);
+
+    const timer = setInterval(() => {
+        countdownDiv.innerHTML = `⚠️ <b>AI ተጫዋቾች ከአስተዳዳሪ ፓናል ተወግደዋል!</b><br><br>⏳ አዲስ ዙር በ <b>${secondsLeft}</b> ሰከንድ ውስጥ ይጀምራል...`;
+        secondsLeft--;
+
+        if (secondsLeft < 0) {
+            clearInterval(timer);
+            if (document.getElementById("countdown-overlay")) {
+                document.body.removeChild(countdownDiv);
+            }
+            window.location.reload(); // ገጹን ሪፍሬሽ አድርጎ አዲስ ጨዋታ ያስጀምራል
+        }
+    }, 1000);
+}
 </script>
 </body>
 </html>
