@@ -590,6 +590,7 @@
             let cardKey = 'c' + i;
 
             if(allSelected && allSelected[cardKey]) {
+                // 1. ሌላ ሰው የመረጠው ካርቴላ ከሆነ የያዘውን ሰው ትክክለኛ ስም ከFirebase ያነባል
                 const playerData = allSelected[cardKey];
                 const displayName = playerData.playerName || playerData.username || playerData.UserName || playerData.Name || "ተጫዋች";
                 
@@ -602,9 +603,14 @@
                     b.classList.add('occupied');
                 }
             } else {
-                b.innerHTML = `<div class="card-number">${i}</div>`;
+                // 2. ካርቴላው ገና ያልተመረጠ (ባዶ) ከሆነ "ተጫዋች" ብሎ ያሳያል
+                b.innerHTML = `
+                    <div class="card-number">${i}</div>
+                    <div class="player-name">ተጫዋች</div>
+                `;
             }
             
+            // 3. ራሱ ተጫዋቹ (አንተ ወይም ማንኛውም የቦቱ ተጠቃሚ) የራሱን ካርቴላ ሲመርጥ
             if(userCards.includes(i)) {
                 b.classList.add('selected');
                 b.innerHTML = `
