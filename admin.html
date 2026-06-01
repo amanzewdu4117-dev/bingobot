@@ -16,6 +16,7 @@
         .ai-panel { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 25px; }
         .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
         .status-pending { background-color: #ffeeba; color: #856404; }
+        .user-id-badge { background: #e9ecef; padding: 3px 7px; border-radius: 5px; font-family: monospace; font-size: 13px; color: #495057; border: 1px solid #dee2e6; }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -27,43 +28,13 @@
         <div class="container">
             <a class="navbar-brand" href="#"><i class="fa-solid fa-robot text-info me-2"></i> VAMOS AI CONTROL PANEL</a>
             <div class="d-flex align-items-center gap-3">
-
-    <div class="form-check form-switch text-white mb-0 bg-secondary px-3 py-1 rounded">
-        <input class="form-check-input"
-               type="checkbox"
-               id="bot-status-toggle"
-               onchange="toggleBotStatus(this.checked)">
-
-        <label class="form-check-label fw-bold"
-               for="bot-status-toggle"
-               id="bot-status-label">
-            Bot: LOADING
-        </label>
-    </div>
-
-    <!-- AI COMMAND BUTTON -->
-    <label style="color: white;">የቦቶች ብዛት፦</label>
-<input type="number" id="botCountInput" value="20" min="1" max="500" 
-       style="padding:5px; border-radius:5px; border:none; width: 60px;">
-
-<button
-    onclick="sendAICommand('start_game')"
-    style="
-        background:#00ff85;
-        color:#000;
-        font-weight:bold;
-        border:none;
-        padding:6px 12px;
-        border-radius:6px;
-    ">
-    🎮 START GAME
-</button>
-
-    <span class="navbar-text text-success" id="connection-status">
-        <i class="fa-solid fa-circle-dot me-1"></i>
-        በመገናኘት ላይ...
-    
-                </span>
+                <div class="form-check form-switch text-white mb-0 bg-secondary px-3 py-1 rounded">
+                    <input class="form-check-input" type="checkbox" id="bot-status-toggle" onchange="toggleBotStatus(this.checked)">
+                    <label class="form-check-label fw-bold" for="bot-status-toggle" id="bot-status-label">Bot: LOADING</label>
+                </div>
+                <input type="number" id="botCountInput" value="20" min="1" max="500" style="padding:5px; border-radius:5px; border:none; width: 60px;">
+                <button onclick="sendAICommand('start_game')" style="background:#00ff85; color:#000; font-weight:bold; border:none; padding:6px 12px; border-radius:6px;">🎮 START GAME</button>
+                <span class="navbar-text text-success" id="connection-status"><i class="fa-solid fa-circle-dot me-1"></i> በመገናኘት ላይ...</span>
             </div>
         </div>
     </nav>
@@ -73,11 +44,10 @@
             <div class="row g-3 align-items-center">
                 <div class="col-lg-5">
                     <h5 class="fw-bold mb-1"><i class="fa-solid fa-users-gear text-info me-2"></i> AI ቨርቹዋል ተጫዋቾች & የድል መቆጣጠሪያ</h5>
-                    <p class="small text-white-50 mb-0">የቦት ብዛት ይምረጡ ወይም የ AI የማሸነፍ ዕድል (Win Rate) በፐርሰንት ያስተካክሉ።</p>
                 </div>
                 <div class="col-lg-4">
                     <div class="bg-dark bg-opacity-25 p-2 rounded border border-light border-opacity-10">
-                        <label for="ai-win-range" class="form-label small fw-bold d-flex justify-content-between mb-1">
+                        <label class="form-label small fw-bold d-flex justify-content-between mb-1">
                             <span>🎯 AI Win Advantage:</span>
                             <span class="text-info" id="ai-win-percent-label">50%</span>
                         </label>
@@ -86,11 +56,8 @@
                 </div>
                 <div class="col-lg-3">
                     <div class="input-group input-group-sm">
-                        <select class="form-select text-dark" id="ai-bot-count">
-                            <option value="5">5 Bots</option>
-                            <option value="10">10 Bots</option>
-                            <option value="20">20 Bots</option>
-                            <option value="50">50 Bots</option>
+                        <select class="form-select" id="ai-bot-count">
+                            <option value="5">5 Bots</option><option value="10">10 Bots</option><option value="20">20 Bots</option><option value="50">50 Bots</option>
                         </select>
                         <button class="btn btn-info btn-sm fw-bold" onclick="injectAIBots()">ክተት</button>
                         <button class="btn btn-danger btn-sm fw-bold" onclick="clearAIBots()">አውጣ</button>
@@ -98,109 +65,29 @@
                 </div>
             </div>
         </div>
-        
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card card-stat bg-primary text-white p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase opacity-75">ጠቅላላ ተጫዋቾች</h6>
-                            <h2 class="fw-bold mb-0" id="stat-total-users">0</h2>
-                        </div>
-                        <i class="fa-solid fa-users fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-stat bg-success text-white p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase opacity-75">አጠቃላይ ሲስተም ባላንስ</h6>
-                            <h2 class="fw-bold mb-0"><span id="stat-total-balance">0</span> ETB</h2>
-                        </div>
-                        <i class="fa-solid fa-wallet fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-stat bg-warning text-dark p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-uppercase opacity-75">በካሽ ውስጥ ያሉ TIDs</h6>
-                            <h2 class="fw-bold mb-0" id="stat-total-tids">0</h2>
-                        </div>
-                        <i class="fa-solid fa-receipt fa-3x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-5">
-                <div class="table-container" style="border-left: 5px solid #28a745;">
-                    <h5 class="fw-bold text-success mb-3"><i class="fa-solid fa-arrow-down-long me-2"></i> የሚጠባበቁ ዲፖዚቶች</h5>
-                    <div class="table-responsive" style="max-height: 300px;">
-                        <table class="table table-sm table-bordered align-middle">
-                            <thead class="table-success">
-                                <tr><th>ተጫዋች / ID</th><th>ባንክ</th><th>አካውንት</th><th>ብር</th><th class="text-center">ድርጊት</th></tr>
-                            </thead>
-                            <tbody def gid="deposit-requests-body">
-                                <tr><td colspan="5" class="text-center text-muted">የሚጠባበቅ የለም</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-7">
-                <div class="table-container" style="border-left: 5px solid #dc3545;">
-                    <h5 class="fw-bold text-danger mb-3"><i class="fa-solid fa-arrow-up-long me-2"></i> የሚጠባበቁ ዊዝድሮዎች (Withdrawals)</h5>
-                    <div class="table-responsive" style="max-height: 300px;">
-                        <table class="table table-sm table-bordered align-middle" style="font-size: 13px;">
-                            <thead class="table-danger">
-                                <tr>
-                                    <th>ተጫዋች</th>
-                                    <th>ባንክ</th>
-                                    <th>አካውንት ቁጥር</th>
-                                    <th>ባለቤት</th>
-                                    <th>ብር</th>
-                                    <th>ሁኔታ</th>
-                                    <th class="text-center">ድርጊት</th>
-                                </tr>
-                            </thead>
-                            <tbody id="withdraw-requests-body">
-                                <tr><td colspan="7" class="text-center text-muted">የሚጠባበቅ የለም</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+            <div class="col-md-4"><div class="card card-stat bg-primary text-white p-3"><div><h6 class="opacity-75">ጠቅላላ ተጫዋቾች</h6><h2 class="fw-bold" id="stat-total-users">0</h2></div></div></div>
+            <div class="col-md-4"><div class="card card-stat bg-success text-white p-3"><div><h6 class="opacity-75">አጠቃላይ ሲስተም ባላንስ</h6><h2 class="fw-bold"><span id="stat-total-balance">0</span> ETB</h2></div></div></div>
+            <div class="col-md-4"><div class="card card-stat bg-warning text-dark p-3"><div><h6 class="opacity-75">በካሽ ውስጥ ያሉ TIDs</h6><h2 class="fw-bold" id="stat-total-tids">0</h2></div></div></div>
         </div>
 
         <div class="row g-4">
-            <div class="col-lg-8">
+            <div class="col-lg-12">
                 <div class="table-container">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold text-secondary mb-0"><i class="fa-solid fa-users-gear me-2 text-primary"></i> የተጫዋቾች መቆጣጠሪያ</h5>
-                        <input type="text" id="user-search" class="form-control form-control-sm w-50" placeholder="ተጫዋች በስም ፈልግ...">
+                        <input type="text" id="user-search" class="form-control form-control-sm w-25" placeholder="ተጫዋች በስም ፈልግ...">
                     </div>
-                    <div class="table-responsive" style="max-height: 350px;">
+                    <div class="table-responsive">
                         <table class="table table-hover align-middle">
-                            <thead class="table-light sticky-top">
-                                <tr><th>ስም (ID)</th><th>ስልክ</th><th>ሒሳብ</th><th class="text-center">ድርጊት</th></tr>
+                            <thead class="table-light">
+                                <tr><th>ስም</th><th>Player ID</th><th>ስልክ</th><th>ሒሳብ</th><th class="text-center">ድርጊት</th></tr>
                             </thead>
                             <tbody id="users-table-body">
-                                <tr><td colspan="4" class="text-center text-muted py-4">በመጫን ላይ...</td></tr>
+                                <tr><td colspan="5" class="text-center text-muted py-4">በመጫን ላይ...</td></tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="table-container">
-                    <h5 class="fw-bold text-secondary mb-3"><i class="fa-solid fa-money-bill-transfer me-2 text-warning"></i> የTID Cache</h5>
-                    <div class="list-group" id="tid-cache-list" style="max-height: 350px; overflow-y: auto;">
-                        <div class="text-center text-muted py-4">ምንም የለም</div>
                     </div>
                 </div>
             </div>
@@ -208,37 +95,21 @@
     </div>
 
     <script>
-        const ADMIN_PASSWORD = "aman"; 
+        const ADMIN_PASSWORD = "aman";
         let db;
 
-        const aiBotList = [];
-        const amharicNames = ["Abebe", "Kebede", "Almaz", "Aster", "Bekele", "Chala", "Dawit", "Elias", "Fasil", "Girma", "Hagos", "Samuel", "Yonas", "Zewdu", "Sami", "Dani", "Maki", "Yoni", "Bini", "Kiya"];
-        for (let i = 1; i <= 200; i++) {
-            let baseName = amharicNames[i % amharicNames.length];
-            aiBotList.push({
-                id: `999900${100 + i}`, 
-                username: ` ${baseName}_${Math.floor(Math.random() * 90) + 10}`,
-                phone: "0910114222",
-                balance: 100,
-                is_ai: true
-            });
-        }
-
+        // Firebase Initialization
         function checkAuth() {
-            const sessionAuth = sessionStorage.getItem("admin_logged_in");
-            if (sessionAuth === "true") { 
-                document.body.style.display = "block"; 
-                initDashboard(); 
+            if (sessionStorage.getItem("admin_logged_in") === "true") {
+                document.body.style.display = "block";
+                initDashboard();
             } else {
-                const pass = prompt("🔐 እባክዎ የአድሚን ይለፍ ቃል ያስገቡ፦");
-                if (pass === ADMIN_PASSWORD) { 
-                    sessionStorage.setItem("admin_logged_in", "true"); 
-                    document.body.style.display = "block"; 
-                    initDashboard(); 
-                } else { 
-                    alert("❌ የተሳሳተ ይለፍ ቃል!"); 
-                    window.location.reload(); 
-                }
+                const pass = prompt("🔐 የአድሚን ይለፍ ቃል ያስገቡ፦");
+                if (pass === ADMIN_PASSWORD) {
+                    sessionStorage.setItem("admin_logged_in", "true");
+                    document.body.style.display = "block";
+                    initDashboard();
+                } else { alert("❌ የተሳሳተ ይለፍ ቃል!"); window.location.reload(); }
             }
         }
         window.onload = checkAuth;
@@ -246,146 +117,32 @@
         function initDashboard() {
             const firebaseConfig = {
                 apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
-                authDomain: "my-app-project-1e0bb.firebaseapp.com",
-                databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com",
-                projectId: "my-app-project-1e0bb",
-                storageBucket: "my-app-project-1e0bb.firebasestorage.app",
-                messagingSenderId: "280130045202",
-                appId: "1:280130045202:web:90c9a40d313b4d0b905fcb",
-                measurementId: "G-WCWWP0GQ0G"
+                databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com"
             };
-            
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
+            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
-            db.ref(".info/connected").on("value", (snap) => {
-                document.getElementById("connection-status").innerHTML = snap.val() ? '<i class="fa-solid fa-circle-dot me-1"></i> ኦንላይን' : '<i class="fa-solid fa-circle-dot me-1"></i> ኦፍላይን';
-                document.getElementById("connection-status").className = snap.val() ? "navbar-text text-success" : "navbar-text text-danger";
-            });
-
-            db.ref("settings/ai_win_rate").on("value", (snapshot) => {
-                const currentRate = snapshot.exists() ? snapshot.val() : 50;
-                document.getElementById("ai-win-range").value = currentRate;
-                document.getElementById("ai-win-percent-label").innerText = currentRate + "%";
-            });
-
-            db.ref("settings/bot_status").on("value", (snapshot) => {
-                const isOnline = snapshot.exists() ? snapshot.val() : true;
-                const toggle = document.getElementById("bot-status-toggle");
-                const label = document.getElementById("bot-status-label");
-                if(toggle && label) {
-                    toggle.checked = isOnline;
-                    label.innerText = isOnline ? "Bot: ON🟢" : "Bot: OFF🔴";
-                }
-            });
-
-            window.toggleBotStatus = function(status) { if(db) db.ref("settings/bot_status").set(status); };
-
-            // 📥 1. የዲፖዚት ጥያቄዎችን ከFirebase አንብቦ የሚያሳይ ክፍል
-            db.ref("deposit_requests").on("value", snapshot => {
-                const container = document.getElementById("deposit-requests-body");
-                if (!container) return;
-                container.innerHTML = "";
-
-                if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        const data = childSnapshot.val();
-                        const key = childSnapshot.key;
-
-                        const holderName = data.holder || "ያልታወቀ";
-                        const bankName = data.bank || "CBE";
-                        const accountNumber = data.account || "የለም";
-                        const amount = parseFloat(data.amount || 0);
-                        const status = data.status || "pending";
-                        const userId = data.userId || "guest";
-
-                        if (status === "pending") {
-                            container.innerHTML += `
-                                <tr>
-                                    <td><strong>${holderName}</strong><br><small style="color:#888;">ID: ${userId}</small></td>
-                                    <td><span style="background:#21262d; padding:4px 8px; border-radius:5px; font-weight:bold; color:#ff9800;">${bankName}</span></td>
-                                    <td>${accountNumber}</td>
-                                    <td style="color:#00ff85; font-weight:bold;">${amount} ETB</td>
-                                    <td>
-                                        <button onclick="approveDeposit('${key}', '${userId}', ${amount})" style="background:#00a852; border:none; border-radius:5px; padding:5px 10px; color:#000; cursor:pointer; font-weight:bold;">✔️ ማጽደቂያ</button>
-                                        <button onclick="rejectDeposit('${key}')" style="background:#ff3e3e; border:none; border-radius:5px; padding:5px 10px; color:#fff; cursor:pointer; font-weight:bold; margin-left:5px;">❌ ውድቅ</button>
-                                    </td>
-                                </tr>
-                            `;
-                            checkSMSAndAutoApprove(key, userId, amount, holderName);
-                        }
-                    });
-                } else {
-                    container.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
-                }
-            });
-
-            // 📥 2. ዊዝድሮዎች
-            db.ref("withdraw_requests").on("value", (snapshot) => {
-                const container = document.getElementById("withdraw-requests-body"); 
-                container.innerHTML = "";
-                
-                if (snapshot.exists()) {
-                    let hasData = false;
-                    Object.keys(snapshot.val()).forEach(reqId => {
-                        const req = snapshot.val()[reqId];
-                        
-                        if (req.status !== "completed" && req.status !== "rejected") {
-                            hasData = true;
-                            const tr = document.createElement("tr");
-
-                            const displayUsername = req.username || req.name || 'ተጫዋች';
-                            const displayUserId = req.userId || req.user_id || 'የለም';
-                            const displayBank = req.bank || req.bank_name || req.bankName || 'ቴሌብር';
-                            const displayAccount = req.account || req.account_info || req.account_number || req.accountNumber || 'የለም';
-                            const displayHolder = req.holder || req.account_owner || req.accountOwner || '-';
-                            const displayAmount = req.amount || 0;
-                            const displayStatus = req.status || 'በጥበቃ ላይ';
-
-                            tr.innerHTML = `
-                                <td><b>${displayUsername}</b><br><small class="text-muted">${displayUserId}</small></td>
-                                <td><span class="badge bg-secondary">${displayBank}</span></td>
-                                <td><code>${displayAccount}</code></td>
-                                <td><small>${displayHolder}</small></td>
-                                <td><b class="text-danger">${displayAmount} ETB</b></td>
-                                <td><span class="status-badge status-pending">${displayStatus}</span></td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-success py-0 px-1 me-1" title="ክፍያ አጽድቅ" onclick="approveWithdrawNew('${reqId}')">✔</button>
-                                    <button class="btn btn-sm btn-danger py-0 px-1" title="ጥያቄ ሰርዝ (Refund)" onclick="rejectWithdrawNew('${reqId}')">✖</button>
-                                </td>
-                            `;
-                            container.appendChild(tr);
-                        }
-                    });
-                    
-                    if(!hasData) {
-                        container.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
-                    }
-                } else { 
-                    container.innerHTML = "<tr><td colspan='7' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>"; 
-                }
-            });
-
-            // 👥 3. የተጫዋቾች መቆጣጠሪያ (የተስተካከለ የቀጥታ መቆጣጠሪያ)
+            // Users Table Live Update
             db.ref("users").on("value", (snapshot) => {
-                const usersTableBody = document.getElementById("users-table-body"); usersTableBody.innerHTML = "";
+                const usersTableBody = document.getElementById("users-table-body");
+                usersTableBody.innerHTML = "";
                 let totalUsers = 0, totalBalance = 0;
                 if (snapshot.exists()) {
-                    Object.keys(snapshot.val()).forEach(userId => {
-                        const user = snapshot.val()[userId];
-                        totalUsers++; totalBalance += Number(user.balance || 0);
-                        const currentBalance = user.balance !== undefined ? user.balance : 0;
+                    snapshot.forEach(childSnapshot => {
+                        const userId = childSnapshot.key;
+                        const user = childSnapshot.val();
+                        totalUsers++;
+                        totalBalance += Number(user.balance || 0);
                         
                         const tr = document.createElement("tr");
                         tr.setAttribute("data-search-term", `${user.username || ''}`.toLowerCase());
                         tr.innerHTML = `
-                            <td><strong>${user.username || 'ያልታወቀ'}</strong><br><small class='text-muted'>${userId}</small></td>
+                            <td><strong>${user.username || 'ያልታወቀ'}</strong></td>
+                            <td><span class="user-id-badge">${userId}</span></td>
                             <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'የለም'}</span></td>
-                            <td><strong class="text-success">${Number(currentBalance).toFixed(1)} ETB</strong></td>
+                            <td><strong class="text-success">${Number(user.balance || 0).toFixed(1)} ETB</strong></td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${currentBalance})">✏️ ባላንስ ቀይር</button>
+                                <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${user.balance || 0})">✏️ ባላንስ</button>
                                 <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄 Reset</button>
                             </td>
                         `;
@@ -395,199 +152,22 @@
                     document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
                 }
             });
-
-            // TID Cache
-            db.ref("tid_cache").on("value", (snapshot) => {
-                const list = document.getElementById("tid-cache-list"); list.innerHTML = ""; let count = 0;
-                if (snapshot.exists()) {
-                    Object.keys(snapshot.val()).forEach(tid => {
-                        count++; const div = document.createElement("div");
-                        div.className = "list-group-item d-flex justify-content-between align-items-center py-1 mb-1 border rounded";
-                        div.innerHTML = `<span><small class='badge bg-warning text-dark'>${tid}</small></span><span class='badge bg-dark'>${snapshot.val()[tid]} ETB</span>`;
-                        list.appendChild(div);
-                    });
-                }
-                document.getElementById("stat-total-tids").innerText = count;
-            });
         }
 
-        // 🔄 የተጫዋችን ባላንስ በእጅ ለመቀየር የሚረዳ ፈንክሽን
         window.editBalance = function(userId, currentBalance) {
             const newBalance = prompt(`ለተጫዋች ${userId} አዲስ የባላንስ መጠን ያስገቡ:`, currentBalance);
-            if (newBalance !== null && !isNaN(newBalance) && newBalance.trim() !== "") {
-                const updatedBalance = parseFloat(newBalance);
-                db.ref(`users/${userId}`).update({
-                    balance: updatedBalance
-                }).then(() => {
-                    alert(`✅ የተጫዋች ${userId} ባላንስ ወደ ${updatedBalance} ETB ተቀይሯል!`);
-                }).catch((error) => {
-                    alert(`❌ ስህተት አጋጥሟል: ` + error.message);
-                });
-            }
+            if (newBalance !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(newBalance) });
         };
 
-        // 🔄 የተጫዋችን ባላንስ 0 ለማድረግ
         window.resetPlayer = function(userId) {
-            if (confirm(`⚠️ እርግጠኛ ነዎት የተጫዋች ${userId} ሂሳብ 0 መሆን አለበት?`)) {
-                db.ref(`users/${userId}`).update({
-                    balance: 0
-                }).then(() => {
-                    alert(`🔄 የ ${userId} ባላንስ 0 ሆኗል!`);
-                });
-            }
+            if (confirm(`⚠️ እርግጠኛ ነዎት የ ${userId} ሂሳብ 0 ይሁን?`)) db.ref(`users/${userId}`).update({ balance: 0 });
         };
 
-        // ራስ-ሰር ኤስኤምኤስ አመሳክሮ የሚያጸድቀው ፈንክሽን
-        function checkSMSAndAutoApprove(dbKey, userId, playerAmount, holderName) {
-            db.ref('received_sms').once('value', smsSnapshot => {
-                if (smsSnapshot.exists()) {
-                    smsSnapshot.forEach(smsChild => {
-                        const smsData = smsChild.val();
-                        const smsText = smsData.body || smsData.text || "";
-                        
-                        if (smsText.includes(playerAmount.toString())) {
-                            db.ref('users/' + userId + '/balance').transaction(currentBal => {
-                                return (currentBal || 0) + playerAmount;
-                            }, (error, committed) => {
-                                if (committed) {
-                                    db.ref('deposit_requests/' + dbKey).update({ status: "approved" });
-                                    db.ref('received_sms/' + smsChild.key).remove();
-                                    console.log(`ለ ${holderName} የተላከው ${playerAmount} ETB በራስ-ሰር ጸድቋል!`);
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
-
-        // በእጅ ማጽደቂያ ፈንክሽን
-        window.approveDeposit = function(key, userId, amount) {
-            db.ref('users/' + userId + '/balance').transaction(currentBal => {
-                return (currentBal || 0) + amount;
-            }, (error, committed) => {
-                if (committed) {
-                    db.ref('deposit_requests/' + key).update({ status: "approved" });
-                    alert("ዲፖዚቱ በተሳካ ሁኔታ ጽድቋል!");
-                }
-            });
+        window.sendAICommand = function(cmd) {
+            const count = document.getElementById("botCountInput").value;
+            db.ref("aiCommands").push({ command: cmd, botCount: parseInt(count), timestamp: Date.now() });
+            alert("✅ Command Sent!");
         };
-
-        // ውድቅ ማድረጊያ ፈንክሽን
-        window.rejectDeposit = function(key) {
-            if (confirm("ይህንን የዲፖዚት ጥያቄ መሰረዝ ትፈልጋለህ?")) {
-                db.ref('deposit_requests/' + key).update({ status: "rejected" });
-            }
-        };
-
-        window.updateAIWinRateInDB = function(val) {
-            document.getElementById("ai-win-percent-label").innerText = val + "%";
-            if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
-        };
-
-        window.injectAIBots = function() {
-            if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
-            const count = parseInt(document.getElementById("ai-bot-count").value);
-            
-            for (let i = 0; i < count; i++) {
-                let bot = aiBotList[i];
-                db.ref(`users/${bot.id}`).set({ username: bot.username, phone: bot.phone, balance: bot.balance, is_ai: true });
-                db.ref(`currentGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`liveGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`current_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`live_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-            }
-            alert(`✅ ${count} AI ቦቶች በሁሉም የዳታቤዝ ክፍሎች ላይ በተሳካ ሁኔታ ተለቀቁ!`);
-        };
-
-        window.clearAIBots = function() {
-            if(!db) return;
-            for (let i = 0; i < 200; i++) {
-                let botId = aiBotList[i].id;
-                db.ref(`users/${botId}`).remove();
-                db.ref(`currentGame/players/${botId}`).remove();
-                db.ref(`liveGame/players/${botId}`).remove();
-                db.ref(`current_game/players/${botId}`).remove();
-                db.ref(`live_game/players/${botId}`).remove();
-            }
-            alert("🗑️ AI ተጫዋቾች ከሁሉም ቦታ ሙሉ በሙሉ ወጥተዋል!");
-        };
-
-        // የዊዝድሮው ማጽደቂያ ፈንክሽን
-        window.approveWithdrawNew = function(reqId) {
-            if (confirm("ይህ ክፍያ በቴሌብር/በባንክ መፈጸሙን አረጋግጠሃል? ስታተሱ ወደ 'ተከፍሏል' ይቀየራል።")) {
-                db.ref('withdraw_requests/' + reqId).update({
-                    status: "completed",
-                    processedAt: firebase.database.ServerValue.TIMESTAMP
-                }).then(() => {
-                    alert("ጥያቄው በዳሽቦርዱ ላይ ጽድቋል!");
-                }).catch(err => alert("ስህተት: " + err.message));
-            }
-        };
-
-        // የዊዝድሮው መሰረዣ ፈንክሽን (ብሩን ሪፈንድ ያደርጋል)
-        window.rejectWithdrawNew = function(reqId) {
-            if (confirm("ይህንን ጥያቄ መሰረዝ ትፈልጋለህ? የተያዘው የሰውየው ብር ወደ አካውንቱ ይመለሳል።")) {
-                db.ref('withdraw_requests/' + reqId).once('value').then(snapshot => {
-                    const req = snapshot.val();
-                    if (!req) return;
-
-                    const userId = req.userId || req.user_id;
-                    const amount = parseFloat(req.amount);
-
-                    db.ref('users/' + userId + '/balance').transaction(currentBalance => {
-                        return (currentBalance || 0) + amount;
-                    }).then(() => {
-                        db.ref('withdraw_requests/' + reqId).update({
-                            status: "rejected",
-                            processedAt: firebase.database.ServerValue.TIMESTAMP
-                        }).then(() => {
-                            alert("ጥያቄው ተሰርዟል! ገንዘቡ ወደ ተጫዋቹ ተመልሷል።");
-                        });
-                    });
-                }).catch(err => alert("ስህተት: " + err.message));
-            }
-        };
-
-        document.getElementById("user-search").addEventListener("input", function(e) {
-            const term = e.target.value.toLowerCase();
-            document.querySelectorAll("#users-table-body tr").forEach(row => {
-                const txt = row.getAttribute("data-search-term");
-                row.style.display = txt && txt.includes(term) ? "" : "none";
-            });
-        });
-// ✅ SEND COMMAND TO PYTHON AI
-
-function sendAICommand(command) {
-    // 1. የቦት ብዛትን ከ input ውሰድ
-    var botCount = document.getElementById("botCountInput").value;
-
-    firebase.database()
-    .ref("aiCommands")
-    .push({
-        command: command,
-        botCount: parseInt(botCount), // የቦት ብዛትን ይዞ ይሄዳል
-        timestamp: Date.now()
-    });
-
-    alert("✅ Command Sent: " + command + " with " + botCount + " bots");
-}        
-window.manageBots = function(action) {
-    const count = parseInt(document.getElementById("botCount").value);
-    
-    if (action === 'add') {
-        // የቦት ብዛትን ወደ Firebase ይልካል
-        db.ref("settings/active_bot_count").set(count);
-        // እና ቀድሞ የነበረውን የቦት መክተቻ (injectAIBots) ይጠራል
-        injectAIBots(); 
-        alert(count + " ቦቶች እየተጨመሩ ነው...");
-    } else {
-        // ቦቶችን በሙሉ ያስወግዳል
-        db.ref("settings/active_bot_count").set(0);
-        clearAIBots();
-        alert("ቦቶች ከጨዋታው ተወግደዋል!");
-    }
-}; 
     </script>
 </body>
 </html>
