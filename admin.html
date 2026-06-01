@@ -144,7 +144,7 @@
                             <thead class="table-success">
                                 <tr><th>ተጫዋች / ID</th><th>ባንክ</th><th>አካውንት</th><th>ብር</th><th class="text-center">ድርጊት</th></tr>
                             </thead>
-                            <tbody id="deposit-requests-body">
+                            <tbody def gid="deposit-requests-body">
                                 <tr><td colspan="5" class="text-center text-muted">የሚጠባበቅ የለም</td></tr>
                             </tbody>
                         </table>
@@ -572,6 +572,22 @@ function sendAICommand(command) {
 
     alert("✅ Command Sent: " + command + " with " + botCount + " bots");
 }        
+window.manageBots = function(action) {
+    const count = parseInt(document.getElementById("botCount").value);
+    
+    if (action === 'add') {
+        // የቦት ብዛትን ወደ Firebase ይልካል
+        db.ref("settings/active_bot_count").set(count);
+        // እና ቀድሞ የነበረውን የቦት መክተቻ (injectAIBots) ይጠራል
+        injectAIBots(); 
+        alert(count + " ቦቶች እየተጨመሩ ነው...");
+    } else {
+        // ቦቶችን በሙሉ ያስወግዳል
+        db.ref("settings/active_bot_count").set(0);
+        clearAIBots();
+        alert("ቦቶች ከጨዋታው ተወግደዋል!");
+    }
+}; 
     </script>
 </body>
 </html>
