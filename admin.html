@@ -169,42 +169,36 @@
             alert("✅ Command Sent!");
         };
         // ይሄኛው ፈንክሽን አዲስ ስለሆነ ከሌሎች ፈንክሽኖች በታች ይጨምሩት
-        window.injectAIBots = function() {
-            if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
-            
-            const count = parseInt(document.getElementById("ai-bot-count").value);
-            const updates = {};
-            const timestamp = Date.now();
+        // ይህን ኮድ በ HTML ፋይልህ ውስጥ ካለው <script> መለያ ውስጥ ብቻ አስገባ
+window.injectAIBots = function() {
+    if(typeof db === 'undefined') { alert("❌ Firebase አልተገናኘም!"); return; }
+    
+    const count = parseInt(document.getElementById("ai-bot-count").value);
+    const updates = {};
+    const timestamp = Date.now();
 
-            for (let i = 1; i <= count; i++) {
-                const aiId = "ai_bot_" + i + "_" + Math.floor(Math.random() * 1000);
-                
-                updates[`users/${aiId}`] = {
-                    username: "Bot_" + i,
-                    is_ai: true,
-                    balance: 1000,
-                    status: "active" 
-                };
-
-                updates[`active_game/players/${aiId}`] = {
-                    username: "Bot_" + i,
-                    joined_at: timestamp,
-                    is_ai: true
-                };
-            }
-
-            db.ref().update(updates)
-                .then(() => alert(`✅ ${count} AI ቦቶች ወደ ጨዋታው ተጨምረዋል!`))
-                .catch(err => alert("❌ ስህተት ተፈጥሯል: " + err.message));
+    for (let i = 1; i <= count; i++) {
+        const aiId = "bot_" + Math.floor(Math.random() * 10000);
+        updates[`liveGame/selectedCards/${aiId}`] = {
+            userId: aiId,
+            username: "Bot_" + i,
+            is_ai: true,
+            joined_at: timestamp,
+            card: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25] 
         };
+    }
 
-        window.clearAIBots = function() {
-            if(!db) return;
-            if (confirm("⚠️ ሁሉም AI ቦቶች ከጨዋታው እንዲወጡ ይፈልጋሉ?")) {
-                db.ref("active_game/players").remove();
-                alert("🗑️ AI ቦቶች ተወግደዋል!");
-            }
-        };
+    db.ref().update(updates)
+        .then(() => alert(`✅ ${count} ቦቶች ተጨምረዋል!`))
+        .catch(err => alert("❌ ስህተት: " + err.message));
+};
+window.clearAIBots = function() {
+    if (confirm("⚠️ ቦቶችን ከጨዋታው ማውጣት ይፈልጋሉ?")) {
+        db.ref("liveGame/selectedCards").remove()
+            .then(() => alert("🗑️ ቦቶች ተወግደዋል!"))
+            .catch(err => alert("❌ ስህተት: " + err.message));
+    }
+};
     </script>
 </body>
 </html>
