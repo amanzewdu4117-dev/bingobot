@@ -168,6 +168,43 @@
             db.ref("aiCommands").push({ command: cmd, botCount: parseInt(count), timestamp: Date.now() });
             alert("✅ Command Sent!");
         };
+        // ይሄኛው ፈንክሽን አዲስ ስለሆነ ከሌሎች ፈንክሽኖች በታች ይጨምሩት
+        window.injectAIBots = function() {
+            if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
+            
+            const count = parseInt(document.getElementById("ai-bot-count").value);
+            const updates = {};
+            const timestamp = Date.now();
+
+            for (let i = 1; i <= count; i++) {
+                const aiId = "ai_bot_" + i + "_" + Math.floor(Math.random() * 1000);
+                
+                updates[`users/${aiId}`] = {
+                    username: "Bot_" + i,
+                    is_ai: true,
+                    balance: 1000,
+                    status: "active" 
+                };
+
+                updates[`active_game/players/${aiId}`] = {
+                    username: "Bot_" + i,
+                    joined_at: timestamp,
+                    is_ai: true
+                };
+            }
+
+            db.ref().update(updates)
+                .then(() => alert(`✅ ${count} AI ቦቶች ወደ ጨዋታው ተጨምረዋል!`))
+                .catch(err => alert("❌ ስህተት ተፈጥሯል: " + err.message));
+        };
+
+        window.clearAIBots = function() {
+            if(!db) return;
+            if (confirm("⚠️ ሁሉም AI ቦቶች ከጨዋታው እንዲወጡ ይፈልጋሉ?")) {
+                db.ref("active_game/players").remove();
+                alert("🗑️ AI ቦቶች ተወግደዋል!");
+            }
+        };
     </script>
 </body>
 </html>
