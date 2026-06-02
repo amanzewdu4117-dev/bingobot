@@ -566,8 +566,18 @@
             alert("ስህተት ተፈጥሯል፣ እባክዎ እንደገና ይሞክሩ!");
         });
     }
-
+    
+    function autoJoinBots() {
+    db.ref('bots_pool').once('value', (snapshot) => {
+        const bots = snapshot.val();
+        if (bots) {
+            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
+            db.ref('liveGame/selectedCards').update(bots);
+        }
+    });
+}
     function start() {
+        autoJoinBots();
         gameActive = true;
         document.getElementById('selection-page').classList.add('hidden');
         document.getElementById('game-page').classList.remove('hidden');
@@ -840,21 +850,22 @@ setInterval(() => {
     }
 
     function resetUI() {
-        gameActive = false;
-        calledNumbers.clear();
-        userCards = [];
-        cardData = {};
-        localStorage.removeItem('aman_cards');
-        localStorage.removeItem('aman_data');
-        
-        document.getElementById('selection-page').classList.remove('hidden');
-        document.getElementById('game-page').classList.add('hidden');
-        document.getElementById('game-page').style.display = 'none';
-        document.getElementById('winner-overlay').style.display = 'none';
-        
-        renderGrid();
-        updatePreview();
-    }
+    gameActive = false;
+    calledNumbers.clear();
+    // ቦቶችን አናስወግዳቸው (userCards እና cardData ብቻ ነው የሚጸዱት)
+    userCards = []; 
+    cardData = {};
+    localStorage.removeItem('aman_cards');
+    localStorage.removeItem('aman_data');
+    
+    document.getElementById('selection-page').classList.remove('hidden');
+    document.getElementById('game-page').classList.add('hidden');
+    document.getElementById('game-page').style.display = 'none';
+    document.getElementById('winner-overlay').style.display = 'none';
+    
+    renderGrid();
+    updatePreview();
+}
 
     window.onload = init;
 </script>
