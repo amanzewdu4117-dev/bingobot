@@ -173,24 +173,20 @@
 
         window.injectAIBots = () => {
     const count = parseInt(document.getElementById("ai-bot-count").value);
+    const ethiopianNames = ["አማኑኤል", "ቤተልሔም", "ዳዊት", "ሰላም", "ኪሩቤል", "ሩት", "አቤል"];
     const updates = {};
+    
     for (let i = 1; i <= count; i++) {
         const aiId = "bot_" + Math.floor(Math.random() * 10000);
-        // ቦቶችን በ users ዝርዝር ውስጥም አስገባ
-        updates[`users/${aiId}`] = {
-            username: "🤖 Bot_" + i,
-            balance: 500, // የቦት መነሻ ባላንስ
-            is_ai: true,
-            is_bot: true
-        };
-        // እንዲሁም በጨዋታው ውስጥ እንዲገቡ
-        updates[`liveGame/selectedCards/${aiId}`] = {
-            username: "🤖 Bot_" + i,
+        const randomName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
+        
+        updates[`bots_pool/${aiId}`] = {
+            username: randomName, // እዚህ ጋር ነው ሀገር በቀል ስሙን የምንሰጠው
             is_ai: true,
             joined_at: Date.now()
         };
     }
-    db.ref().update(updates).then(() => alert("✅ " + count + " ቦቶች ተጨመሩ!"));
+    db.ref().update(updates).then(() => alert("✅ ቦቶች በሀገር በቀል ስም ተፈጠሩ!"));
 };
 
         window.clearAIBots = () => {
