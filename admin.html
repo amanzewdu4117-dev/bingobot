@@ -122,82 +122,85 @@
             if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
             db = firebase.database();
 
+            // Connection monitor
+            db.ref(".info/connected").on("value", snap => {
+                const status = document.getElementById("connection-status");
+                if (snap.val() === true) {
+                    status.innerHTML = '<i class="fa-solid fa-circle-dot text-success"></i> ተገናኝቷል';
+                } else {
+                    status.innerHTML = '<i class="fa-solid fa-circle-dot text-danger"></i> በመገናኘት ላይ...';
+                }
+            });
+
             // Users Table Live Update
             db.ref("users").on("value", (snapshot) => {
                 const usersTableBody = document.getElementById("users-table-body");
                 usersTableBody.innerHTML = "";
                 let totalUsers = 0, totalBalance = 0;
-                if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        const userId = childSnapshot.key;
-                        const user = childSnapshot.val();
-                        totalUsers++;
-                        totalBalance += Number(user.balance || 0);
-                        
-                        const tr = document.createElement("tr");
-                        tr.setAttribute("data-search-term", `${user.username || ''}`.toLowerCase());
-                        tr.innerHTML = `
-                            <td><strong>${user.username || 'ያልታወቀ'}</strong></td>
-                            <td><span class="user-id-badge">${userId}</span></td>
-                            <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'የለም'}</span></td>
-                            <td><strong class="text-success">${Number(user.balance || 0).toFixed(1)} ETB</strong></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${user.balance || 0})">✏️ ባላንስ</button>
-                                <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄 Reset</button>
-                            </td>
-                        `;
-                        usersTableBody.appendChild(tr);
-                    });
-                    document.getElementById("stat-total-users").innerText = totalUsers;
-                    document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
-                }
+                
+                snapshot.forEach(childSnapshot => {
+                    const userId = childSnapshot.key;
+                    const user = childSnapshot.val();
+                    totalUsers++;
+                    totalBalance += Number(user.balance || 0);
+                    
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td><strong>${user.username || 'ያልታወቀ'}</strong></td>
+                        <td><span class="user-id-badge">${userId}</span></td>
+                        <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'N/A'}</span></td>
+                        <td><strong class="text-success">${Number(user.balance || 0).toFixed(1)} ETB</strong></td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-primary py-0 px-2" onclick="editBalance('${userId}', ${user.balance || 0})">✏️</button>
+                            <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄</button>
+                        </td>
+                    `;
+                    usersTableBody.appendChild(tr);
+                });
+                document.getElementById("stat-total-users").innerText = totalUsers;
+                document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
             });
         }
 
-        window.editBalance = function(userId, currentBalance) {
-            const newBalance = prompt(`ለተጫዋች ${userId} አዲስ የባላንስ መጠን ያስገቡ:`, currentBalance);
-            if (newBalance !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(newBalance) });
+        window.editBalance = (userId, current) => {
+            const val = prompt("አዲስ ባላንስ ያስገቡ:", current);
+            if (val !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(val) });
         };
 
-        window.resetPlayer = function(userId) {
-            if (confirm(`⚠️ እርግጠኛ ነዎት የ ${userId} ሂሳብ 0 ይሁን?`)) db.ref(`users/${userId}`).update({ balance: 0 });
+        window.resetPlayer = (userId) => {
+            if (confirm("ሒሳብ ወደ 0 ይሁን?")) db.ref(`users/${userId}`).update({ balance: 0 });
         };
 
-        window.sendAICommand = function(cmd) {
-            const count = document.getElementById("botCountInput").value;
-            db.ref("aiCommands").push({ command: cmd, botCount: parseInt(count), timestamp: Date.now() });
-            alert("✅ Command Sent!");
-        };
-        // ይሄኛው ፈንክሽን አዲስ ስለሆነ ከሌሎች ፈንክሽኖች በታች ይጨምሩት
-        // ይህን ኮድ በ HTML ፋይልህ ውስጥ ካለው <script> መለያ ውስጥ ብቻ አስገባ
-window.injectAIBots = function() {
-    if(typeof db === 'undefined') { alert("❌ Firebase አልተገናኘም!"); return; }
-    
+        window.injectAIBots = () => {
     const count = parseInt(document.getElementById("ai-bot-count").value);
     const updates = {};
-    const timestamp = Date.now();
-
     for (let i = 1; i <= count; i++) {
         const aiId = "bot_" + Math.floor(Math.random() * 10000);
-        updates[`liveGame/selectedCards/${aiId}`] = {
-            userId: aiId,
-            username: "Bot_" + i,
+        // ቦቶችን በ users ዝርዝር ውስጥም አስገባ
+        updates[`users/${aiId}`] = {
+            username: "🤖 Bot_" + i,
+            balance: 500, // የቦት መነሻ ባላንስ
             is_ai: true,
-            joined_at: timestamp,
-            card: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25] 
+            is_bot: true
+        };
+        // እንዲሁም በጨዋታው ውስጥ እንዲገቡ
+        updates[`liveGame/selectedCards/${aiId}`] = {
+            username: "🤖 Bot_" + i,
+            is_ai: true,
+            joined_at: Date.now()
         };
     }
-
-    db.ref().update(updates)
-        .then(() => alert(`✅ ${count} ቦቶች ተጨምረዋል!`))
-        .catch(err => alert("❌ ስህተት: " + err.message));
+    db.ref().update(updates).then(() => alert("✅ " + count + " ቦቶች ተጨመሩ!"));
 };
-window.clearAIBots = function() {
-    if (confirm("⚠️ ቦቶችን ከጨዋታው ማውጣት ይፈልጋሉ?")) {
-        db.ref("liveGame/selectedCards").remove()
-            .then(() => alert("🗑️ ቦቶች ተወግደዋል!"))
-            .catch(err => alert("❌ ስህተት: " + err.message));
-    }
+
+        window.clearAIBots = () => {
+    // ከሁለቱም ቦታዎች ቦቶችን ያስወግዳል
+    db.ref("users").orderByChild("is_ai").equalTo(true).once("value", (snapshot) => {
+        const updates = {};
+        snapshot.forEach(child => { updates[`users/${child.key}`] = null; });
+        updates["liveGame/selectedCards"] = null;
+        db.ref().update(updates).then(() => alert("🗑️ ቦቶች በሙሉ ከሲስተሙ ወጥተዋል!"));
+    });
 };
     </script>
 </body>
