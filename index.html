@@ -407,6 +407,11 @@
     let calledNumbers = new Set();
     let countdownInterval;
 
+    const ethiopianNames = [
+    "አማኑኤል", "ቤተልሔም", "ዳዊት", "ጽዮን", "ቴዎድሮስ", 
+    "ሰላም", "ኪሩቤል", "ማህደር", "ዮናታን", "ሶፊያ", 
+    "ኤፍሬም", "ሩት", "አቤል", "ህይወት", "ሙሉቀን"
+];
     function save() {
         localStorage.setItem('aman_cards', JSON.stringify(userCards));
         localStorage.setItem('aman_data', JSON.stringify(cardData));
@@ -717,12 +722,7 @@ b.innerHTML = `
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
 function aiMakeMove() {
-    // 1. መጀመሪያ በ Firebase ውስጥ ያሉትን የቦቶች ቁጥር ማወቅ ያስፈልግሃል
-    // 2. ቦቶቹ የሰውን ካርቴላ እንዳይመርጡ፣ የቦት መታወቂያ ያላቸውን ብቻ መፍቀድ አለብህ
-    
-    // ለጊዜው ቦቶቹ እንዳይጫወቱ ይህንን አስተካክል ወይም ቦቶችን የሚለይ logic ጨምርበት
-    if (Math.random() > 0.5) return; // ቦቶቹ በየ 5 ሰከንዱ በዘፈቀደ እንዲጫወቱ
-
+    // 1. የሚገኙ ባዶ ቦታዎችን መለየት
     let availableSlots = [];
     for(let i=1; i<=500; i++) {
         if(!allSelected['c' + i]) {
@@ -731,10 +731,19 @@ function aiMakeMove() {
     }
 
     if(availableSlots.length > 0) {
+        // 2. በዘፈቀደ አንድ ባዶ ቦታ መምረጥ
         let randomSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
         
-        // ቦት ሲመርጥ Firebase ላይ የቦቱን ID በመጠቀም መመዝገብ አለበት
-        // selectCard(randomSlot); // ይሄ የሰውየውን ID ነው የሚጠቀመው፣ ለቦት መቀየር አለበት
+        // 3. ሀገር በቀል ስም መምረጥ
+        const botName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
+        
+        // 4. ወደ Firebase መላክ (ቦቱ ሲመርጥ)
+        db.ref('liveGame/selectedCards/c' + randomSlot).set({
+            id: randomSlot,
+            playerName: botName, // የዘፈቀደ ሀገር በቀል ስም
+            is_ai: true,
+            numbers: generateCard().flat().filter(n => n !== 'F') // የቦቱ ቁጥሮች
+        });
     }
 }
 
