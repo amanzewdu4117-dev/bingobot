@@ -475,18 +475,25 @@
             renderGrid();
 
             if(data.status === "waiting" && data.timerStartTime) {
-                const now = Date.now();
-                const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-                const remaining = 40 - elapsed;
-                
-                if (remaining > 0) {
-                    startCountdown(remaining);
-                } else {
-                    document.getElementById('timer').innerText = "0";
-                }
-                
-                if(gameActive) resetUI();
-            }
+    const now = Date.now();
+    const elapsed = Math.floor((now - data.timerStartTime) / 1000);
+    const remaining = 40 - elapsed;
+    
+    // ቦቶቹ እንዲመርጡ የሚቀሰቅሰው መስመር እዚህ ይጨመራል
+    if (remaining > 0) {
+        startCountdown(remaining);
+        
+        // ቦቶቹ መምረጥ እንዲጀምሩ (አንዴ ብቻ እንዲነሳ)
+        if (!botSelectionStarted) { 
+            startBotAutoSelection(); 
+            botSelectionStarted = true;
+        }
+    } else {
+        document.getElementById('timer').innerText = "0";
+    }
+    
+    if(gameActive) resetUI();
+}
 
             if(data.status === "started") {
                 clearInterval(countdownInterval);
