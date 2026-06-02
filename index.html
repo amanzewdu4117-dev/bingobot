@@ -639,51 +639,49 @@
     }
 
     function renderGrid() {
-        const grid = document.getElementById('slots-grid');
-        grid.innerHTML = "";
+    const grid = document.getElementById('slots-grid');
+    grid.innerHTML = "";
+    
+    for(let i=1; i<=500; i++) {
+        let b = document.createElement('div');
+        b.className = 'slot-btn'; 
+        b.id = `cartela-${i}`;
         
-        for(let i=1; i<=500; i++) {
-            let b = document.createElement('div');
-            b.className = 'slot-btn'; 
-            b.id = `cartela-${i}`;
-            
-            let cardKey = 'c' + i;
+        let cardKey = 'c' + i;
 
-            if(allSelected && allSelected[cardKey]) {
-                // 1. ሌላ ሰው የመረጠው ካርቴላ ከሆነ የያዘውን ሰው ትክክለኛ ስም ከFirebase ያነባል
-                const playerData = allSelected[cardKey];
-                const displayName = playerData.playerName || playerData.username || playerData.UserName || playerData.Name || "ተጫዋች";
-                
-                b.innerHTML = `
-                    <div class="card-number">${i}</div>
-                    <div class="player-name">${displayName}</div>
-                `;
-                
-                if(!userCards.includes(i)) {
-                    b.classList.add('occupied');
-                }
-            } else {
-                // 2. ካርቴላው ገና ያልተመረጠ (ባዶ) ከሆነ "ተጫዋች" ብሎ ያሳያል
-                // አዲሱ የተስተካከለ ኮድ
-b.innerHTML = `
-    <div class="card-number">${i}</div>
-    <div class="player-name"></div>
-`;
-            }
+        if(allSelected && allSelected[cardKey]) {
+            // ይህ ክፍል ቦቶችንም ሆነ ሰዎችን ያካትታል
+            const playerData = allSelected[cardKey];
+            const displayName = playerData.playerName || playerData.username || "ተጫዋች";
             
-            // 3. ራሱ ተጫዋቹ (አንተ ወይም ማንኛውም የቦቱ ተጠቃሚ) የራሱን ካርቴላ ሲመርጥ
-            if(userCards.includes(i)) {
-                b.classList.add('selected');
-                b.innerHTML = `
-                    <div class="card-number">${i}</div>
-                    <div class="player-name">${tgUser}</div>
-                `;
+            b.innerHTML = `
+                <div class="card-number">${i}</div>
+                <div class="player-name">${displayName}</div>
+            `;
+            
+            if(!userCards.includes(i)) {
+                b.classList.add('occupied');
             }
-
-            b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
-            grid.appendChild(b);
+        } else {
+            b.innerHTML = `
+                <div class="card-number">${i}</div>
+                <div class="player-name"></div>
+            `;
         }
+        
+        // ራስህ የመረጥከው ካርቴላ (የአንተ ስም ይታያል)
+        if(userCards.includes(i)) {
+            b.classList.add('selected');
+            b.innerHTML = `
+                <div class="card-number">${i}</div>
+                <div class="player-name">${tgUser}</div>
+            `;
+        }
+
+        b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
+        grid.appendChild(b);
     }
+}
 
 
     function selectCard(i) {
