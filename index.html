@@ -704,7 +704,37 @@ b.innerHTML = `
         renderGrid(); 
         updatePreview();
     }
+    
+    // በ script.js መጨረሻ ላይ ይህንን አስገባ
+function aiMakeMove() {
+    // 1. መጀመሪያ በ Firebase ውስጥ ያሉትን የቦቶች ቁጥር ማወቅ ያስፈልግሃል
+    // 2. ቦቶቹ የሰውን ካርቴላ እንዳይመርጡ፣ የቦት መታወቂያ ያላቸውን ብቻ መፍቀድ አለብህ
+    
+    // ለጊዜው ቦቶቹ እንዳይጫወቱ ይህንን አስተካክል ወይም ቦቶችን የሚለይ logic ጨምርበት
+    if (Math.random() > 0.5) return; // ቦቶቹ በየ 5 ሰከንዱ በዘፈቀደ እንዲጫወቱ
 
+    let availableSlots = [];
+    for(let i=1; i<=500; i++) {
+        if(!allSelected['c' + i]) {
+            availableSlots.push(i);
+        }
+    }
+
+    if(availableSlots.length > 0) {
+        let randomSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
+        
+        // ቦት ሲመርጥ Firebase ላይ የቦቱን ID በመጠቀም መመዝገብ አለበት
+        // selectCard(randomSlot); // ይሄ የሰውየውን ID ነው የሚጠቀመው፣ ለቦት መቀየር አለበት
+    }
+}
+
+// ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
+setInterval(() => {
+    // ጨዋታው እየሰራ ከሆነ ብቻ
+    if(typeof gameActive !== 'undefined' && gameActive) {
+        aiMakeMove();
+    }
+}, 5000);
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
