@@ -54,7 +54,7 @@
             font-size: 18px;
             text-shadow: 0 0 10px rgba(255, 157, 0, 0.5);
         }
-
+        
         @keyframes glow-border {
             from { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 5px rgba(0, 242, 255, 0.1); }
             to { border-color: rgba(157, 80, 187, 0.5); box-shadow: 0 0 20px rgba(157, 80, 187, 0.2); }
@@ -157,34 +157,65 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        .slot-btn { 
-            height: 50px; background: var(--glass); border: 1px solid var(--glass-border); 
-            border-radius: 12px; display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; font-weight: bold; transition: 0.3s; color: #fff; position: relative;
-        }
-        
-        .slot-btn.selected { 
-            background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%) !important;
-            box-shadow: 0 0 15px rgba(0, 210, 255, 0.8);
-            border: 2px solid #ffffff;
-            color: white;
-            transform: scale(1.05);
-        }
+        .slot-btn {
+    height: 50px;
+    width: 50px; /* ሙሉ ክብ እንዲሆን ስፋት እና ቁመት እኩል ይሁኑ */
+    background: rgba(255, 255, 255, 0.03); /* የጀርባው ጥቁር ቀለም */
+    
+    /* 👈 እዚህ ጋር ነው የቦርደሩን ውበት የምንሰራው */
+    border: 2px solid rgba(0, 242, 255, 0.2); /* መጀመሪያ ላይ ያለው ቀለል ያለ ቦርደር */
+    border-radius: 50%; /* ክብ ቅርጽ */
+    
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #fff;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+/* የተመረጠው ቁጥር ላይ የሚታየው ብሩህ (Glow) ቦርደር */
+.slot-btn.selected {
+    background: linear-gradient(135deg, #00d2ff, #3a7bd5);
+    border: 2px solid #ffffff; /* ነጭ ቦርደር */
+    box-shadow: 0 0 15px 3px rgba(0, 242, 255, 0.6); /* የብርሃን ነጸብራቅ (Glow Effect) */
+    transform: scale(1.1); /* ትንሽ ማሳደግ */
+}
 
         .slot-btn.occupied { border: 2px solid var(--purple); position: relative; opacity: 0.6; pointer-events: none; }
 
         #selection-preview {
-            height: 120px; background: rgba(0, 0, 0, 0.4);
-            border-top: 1px solid var(--glass-border); display: flex; 
-            gap: 12px; padding: 10px 15px; overflow-x: auto; align-items: center;
-        }
+    height: 100px; /* ትንሽ አሳነስነው */
+    margin-top: 15px; /* ከቁጥሮቹ እንዲርቅ */
+    background: rgba(0, 0, 0, 0.4);
+    border-top: 1px solid var(--glass-border);
+    display: flex;
+    gap: 12px;
+    padding: 10px 15px;
+    overflow-x: auto;
+    align-items: center;
+}
         
         .slot-btn .card-number {
 
             font-weight: bold; font-size: 14px;
 
         }
-
+        .numbers-grid { /* ወይም የእርስዎ የኮድ container ስም */
+    padding: 15px;
+    background: rgba(10, 15, 25, 0.5); /* ጥቁር የጀርባ ቀለም */
+    
+    /* 👈 እዚህ ነው ዋናው ማስተካከያ */
+    border: 1px solid rgba(0, 242, 255, 0.4); /* ቀጭን ሰማያዊ ቦርደር */
+    border-radius: 20px; /* ማዕዘኖቹን ክብ ማድረግ */
+    
+    /* ለበለጠ ውበት የውስጥ ብርሃን መጨመር */
+    box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2), 
+                0 0 20px rgba(0, 0, 0, 0.5);
+    
+    backdrop-filter: blur(5px); /* የውሃ መስተዋት መልክ */
+}
         .slot-btn .player-name {
             font-size: 8px; color: #ffc107; font-weight: bold; display: block; 
             white-space: nowrap; text-align: center; max-width: 90%; overflow: hidden;
@@ -304,10 +335,18 @@
         </div>
         
         <div class="search-container">
-            <input type="number" id="searchCard" placeholder="ካርቴላ ቁጥር ይፈልጉ (1-500)...">
-        </div>
+    <input type="number" id="searchCard" placeholder="ካርቴላ ቁጥር ይፈልጉ (1-500)...">
+</div>
 
-        <div id="slots-grid"></div>
+<div class="bingo-header-container">
+    <span class="cl-b">B</span>
+    <span class="cl-i">I</span>
+    <span class="cl-n">N</span>
+    <span class="cl-g">G</span>
+    <span class="cl-o">O</span>
+</div>
+
+<div id="slots-grid" class="numbers-grid"></div>
         <div id="selection-preview"></div>
     </div>
 
@@ -630,6 +669,7 @@ b.innerHTML = `
             grid.appendChild(b);
         }
     }
+
 
     function selectCard(i) {
         const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
