@@ -95,116 +95,100 @@
     </div>
 
     <script>
-        const ADMIN_PASSWORD = "aman";
-        let db;
+    const ADMIN_PASSWORD = "aman";
+    let db;
 
-        // Firebase Initialization
-        function checkAuth() {
-            if (sessionStorage.getItem("admin_logged_in") === "true") {
+    // Firebase Initialization
+    function checkAuth() {
+        if (sessionStorage.getItem("admin_logged_in") === "true") {
+            document.body.style.display = "block";
+            initDashboard();
+        } else {
+            const pass = prompt("🔐 የአድሚን ይለፍ ቃል ያስገቡ፦");
+            if (pass === ADMIN_PASSWORD) {
+                sessionStorage.setItem("admin_logged_in", "true");
                 document.body.style.display = "block";
                 initDashboard();
-            } else {
-                const pass = prompt("🔐 የአድሚን ይለፍ ቃል ያስገቡ፦");
-                if (pass === ADMIN_PASSWORD) {
-                    sessionStorage.setItem("admin_logged_in", "true");
-                    document.body.style.display = "block";
-                    initDashboard();
-                } else { alert("❌ የተሳሳተ ይለፍ ቃል!"); window.location.reload(); }
-            }
+            } else { alert("❌ የተሳሳተ ይለፍ ቃል!"); window.location.reload(); }
         }
-        window.onload = checkAuth;
+    }
+    window.onload = checkAuth;
 
-        function initDashboard() {
-            const firebaseConfig = {
-                apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
-                databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com"
-            };
-            if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-            db = firebase.database();
+    function initDashboard() {
+        const firebaseConfig = {
+            apiKey: "AIzaSyD2l0Q4JCedRIshH0vqacqCee0L1qVwN_g",
+            databaseURL: "https://my-app-project-1e0bb-default-rtdb.firebaseio.com"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
 
-            // Connection monitor
-            db.ref(".info/connected").on("value", snap => {
-                const status = document.getElementById("connection-status");
-                if (snap.val() === true) {
-                    status.innerHTML = '<i class="fa-solid fa-circle-dot text-success"></i> ተገናኝቷል';
-                } else {
-                    status.innerHTML = '<i class="fa-solid fa-circle-dot text-danger"></i> በመገናኘት ላይ...';
-                }
-            });
-
-            // Users Table Live Update
-            db.ref("users").on("value", (snapshot) => {
-                const usersTableBody = document.getElementById("users-table-body");
-                usersTableBody.innerHTML = "";
-                let totalUsers = 0, totalBalance = 0;
+        // Users Table Live Update
+        db.ref("users").on("value", (snapshot) => {
+            const usersTableBody = document.getElementById("users-table-body");
+            usersTableBody.innerHTML = "";
+            let totalUsers = 0, totalBalance = 0;
+            
+            snapshot.forEach(childSnapshot => {
+                const userId = childSnapshot.key;
+                const user = childSnapshot.val();
+                totalUsers++;
+                totalBalance += Number(user.balance || 0);
                 
-                snapshot.forEach(childSnapshot => {
-                    const userId = childSnapshot.key;
-                    const user = childSnapshot.val();
-                    totalUsers++;
-                    totalBalance += Number(user.balance || 0);
-                    
-                    const tr = document.createElement("tr");
-                    tr.innerHTML = `
-                        <td><strong>${user.username || 'ያልታወቀ'}</strong></td>
-                        <td><span class="user-id-badge">${userId}</span></td>
-                        <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'N/A'}</span></td>
-                        <td><strong class="text-success">${Number(user.balance || 0).toFixed(1)} ETB</strong></td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-primary py-0 px-2" onclick="editBalance('${userId}', ${user.balance || 0})">✏️</button>
-                            <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄</button>
-                        </td>
-                    `;
-                    usersTableBody.appendChild(tr);
-                });
-                document.getElementById("stat-total-users").innerText = totalUsers;
-                document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td><strong>${user.username || 'ያልታወቀ'}</strong></td>
+                    <td><span class="user-id-badge">${userId}</span></td>
+                    <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'N/A'}</span></td>
+                    <td><strong class="text-success">${Number(user.balance || 0).toFixed(1)} ETB</strong></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-primary py-0 px-2" onclick="editBalance('${userId}', ${user.balance || 0})">✏️</button>
+                        <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄</button>
+                    </td>
+                `;
+                usersTableBody.appendChild(tr);
             });
+            document.getElementById("stat-total-users").innerText = totalUsers;
+            document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
+        });
+    }
+
+    // ቦቶችን ለመክተት
+    window.injectAIBots = async () => {
+        const statusSnapshot = await db.ref("liveGame/status").once("value");
+        if (statusSnapshot.val() === "PLAYING") {
+            alert("❌ ጨዋታው ተጀምሯል፣ ቦት መጨመር አይቻልም!");
+            return;
         }
 
-        window.editBalance = (userId, current) => {
-            const val = prompt("አዲስ ባላንስ ያስገቡ:", current);
-            if (val !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(val) });
-        };
-
-        window.injectAIBots = async () => {
-    // 1. የጨዋታውን ሁኔታ ከFirebase ያረጋግጡ
-    const statusSnapshot = await db.ref("liveGame/status").once("value");
-    const status = statusSnapshot.val();
-
-    // 2. ጨዋታው "PLAYING" ከሆነ ቦት መፍጠር ይከለከላል
-    if (status === "PLAYING") {
-        alert("❌ ስህተት! ጨዋታው ተጀምሯል፣ አሁን ቦት መጨመር አይቻልም!");
-        return;
-    }
-
-    // 3. ቦቶችን የመፍጠሪያ ሎጅክ
-    const count = parseInt(document.getElementById("ai-bot-count").value);
-    const ethiopianNames = ["አማኑኤል", "ቤተልሔም", "ዳዊት", "ሰላም", "ኪሩቤል", "ሩት", "አቤል"];
-    const updates = {};
-    
-    for (let i = 1; i <= count; i++) {
-        const aiId = "bot_" + Math.floor(Math.random() * 10000);
-        const randomName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
+        const count = parseInt(document.getElementById("ai-bot-count").value);
+        const ethiopianNames = ["አማኑኤል", "ቤተልሔም", "ዳዊት", "ሰላም", "ኪሩቤል", "ሩት", "አቤል"];
+        const updates = {};
         
-        // ቦቶችን నేరుగా ወደ 'users' ፎልደር ነው የምንከታቸው
-        updates[`users/${aiId}`] = {
-            username: randomName,
-            is_ai: true,
-            balance: 0,
-            joined_at: Date.now()
-        };
-    }
-    
-    // 4. ወደ Firebase መላክ
-    db.ref().update(updates)
-        .then(() => {
-            alert(`✅ ${count} ቦቶች በተሳካ ሁኔታ ተመዝግበዋል!`);
-        })
-        .catch((error) => {
-            alert("❌ ቦቶችን ለመክተት አልተቻለም: " + error.message);
+        for (let i = 1; i <= count; i++) {
+            const aiId = "bot_" + Math.floor(Math.random() * 100000);
+            updates[`users/${aiId}`] = {
+                username: ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)],
+                is_ai: true,
+                balance: 0
+            };
+        }
+        
+        await db.ref().update(updates);
+        alert(`✅ ${count} ቦቶች ተጨመሩ!`);
+    };
+
+    // ቦቶችን ለማጽዳት (የካርቴላ ቁጥርን ወደ 0 ይመልሳል)
+    window.clearAIBots = () => {
+        db.ref("users").orderByChild("is_ai").equalTo(true).once("value", snapshot => {
+            snapshot.forEach(child => child.ref.remove());
         });
-};
-    </script>
+        alert("🧹 ሁሉም ቦቶች ተወግደዋል።");
+    };
+
+    window.editBalance = (userId, current) => {
+        const val = prompt("አዲስ ባላንስ:", current);
+        if (val !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(val) });
+    };
+</script>
 </body>
 </html>
