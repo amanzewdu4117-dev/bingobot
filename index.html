@@ -692,38 +692,46 @@
 
 
     function selectCard(i) {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-
-        if (userCards.includes(i)) {
-            userCards = userCards.filter(x => x !== i);
-            delete cardData[i];
-            currentBalance += 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            db.ref('liveGame/selectedCards/c' + i).remove();
-
-        } else if (userCards.length < 3 && currentBalance >= 10) {
-            userCards.push(i);
-            const newNumbers = generateCard();
-            cardData[i] = newNumbers;
-            currentBalance -= 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            
-            db.ref('liveGame/selectedCards/c' + i).set({
-                id: i,
-                playerName: tgUser,
-                numbers: newNumbers.flat().filter(n => n !== 'F')
-            });
-        } else if (currentBalance < 10) {
-            alert("በቂ ሂሳብ የሎትም!");
-            return;
-        }
-        
-        save(); 
-        renderGrid(); 
-        updatePreview();
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+    
+    // 🛑 ቦቶች እንዳይመዘገቡ ማረጋገጫ (User ID ካለ ብቻ እንዲመዘገብ ማድረግ)
+    if (userId === "guest_user") {
+        alert("እባክዎ በቴሌግራም በኩል ብቻ ይግቡ!");
+        return;
     }
+
+    if (userCards.includes(i)) {
+        userCards = userCards.filter(x => x !== i);
+        delete cardData[i];
+        currentBalance += 10;
+        
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        db.ref('liveGame/selectedCards/c' + i).remove();
+
+    } else if (userCards.length < 3 && currentBalance >= 10) {
+        userCards.push(i);
+        const newNumbers = generateCard();
+        cardData[i] = newNumbers;
+        currentBalance -= 10;
+        
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        
+        // 🛑 እዚህ ጋር playerName የሚለው ላይ ትክክለኛው የቴሌግራም User ID መመዝገቡን አረጋግጥ
+        db.ref('liveGame/selectedCards/c' + i).set({
+            id: i,
+            playerId: userId, // playerName ፈንታ playerId ተጠቀም
+            playerName: tgUser,
+            numbers: newNumbers.flat().filter(n => n !== 'F')
+        });
+    } else if (currentBalance < 10) {
+        alert("በቂ ሂሳብ የሎትም!");
+        return;
+    }
+    
+    save(); 
+    renderGrid(); 
+    updatePreview();
+}
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
 function aiMakeMove() {
