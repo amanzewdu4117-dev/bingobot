@@ -167,11 +167,18 @@
             if (val !== null) db.ref(`users/${userId}`).update({ balance: parseFloat(val) });
         };
 
-        window.resetPlayer = (userId) => {
-            if (confirm("ሒሳብ ወደ 0 ይሁን?")) db.ref(`users/${userId}`).update({ balance: 0 });
-        };
+        window.injectAIBots = async () => {
+    // 1. የጨዋታውን ሁኔታ ከFirebase ያረጋግጡ
+    const statusSnapshot = await db.ref("liveGame/status").once("value");
+    const status = statusSnapshot.val();
 
-        window.injectAIBots = () => {
+    // 2. ጨዋታው "PLAYING" ከሆነ ቦት መፍጠር ይከለከላል
+    if (status === "PLAYING") {
+        alert("❌ ስህተት! ጨዋታው ተጀምሯል፣ አሁን ቦት መጨመር አይቻልም!");
+        return;
+    }
+
+    // 3. ቦቶችን የመፍጠሪያ ሎጅክ
     const count = parseInt(document.getElementById("ai-bot-count").value);
     const ethiopianNames = ["አማኑኤል", "ቤተልሔም", "ዳዊት", "ሰላም", "ኪሩቤል", "ሩት", "አቤል"];
     const updates = {};
@@ -180,23 +187,23 @@
         const aiId = "bot_" + Math.floor(Math.random() * 10000);
         const randomName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
         
-        updates[`bots_pool/${aiId}`] = {
-            username: randomName, // እዚህ ጋር ነው ሀገር በቀል ስሙን የምንሰጠው
+        // ቦቶችን నేరుగా ወደ 'users' ፎልደር ነው የምንከታቸው
+        updates[`users/${aiId}`] = {
+            username: randomName,
             is_ai: true,
+            balance: 0,
             joined_at: Date.now()
         };
     }
-    db.ref().update(updates).then(() => alert("✅ ቦቶች በሀገር በቀል ስም ተፈጠሩ!"));
-};
-
-        window.clearAIBots = () => {
-    // ከሁለቱም ቦታዎች ቦቶችን ያስወግዳል
-    db.ref("users").orderByChild("is_ai").equalTo(true).once("value", (snapshot) => {
-        const updates = {};
-        snapshot.forEach(child => { updates[`users/${child.key}`] = null; });
-        updates["liveGame/selectedCards"] = null;
-        db.ref().update(updates).then(() => alert("🗑️ ቦቶች በሙሉ ከሲስተሙ ወጥተዋል!"));
-    });
+    
+    // 4. ወደ Firebase መላክ
+    db.ref().update(updates)
+        .then(() => {
+            alert(`✅ ${count} ቦቶች በተሳካ ሁኔታ ተመዝግበዋል!`);
+        })
+        .catch((error) => {
+            alert("❌ ቦቶችን ለመክተት አልተቻለም: " + error.message);
+        });
 };
     </script>
 </body>
