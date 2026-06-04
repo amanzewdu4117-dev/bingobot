@@ -710,7 +710,7 @@
 
     } else if (userCards.length < 3 && currentBalance >= 10) {
         userCards.push(i);
-        
+        const newNumbers = generateCard();
         cardData[i] = newNumbers;
         currentBalance -= 10;
         
