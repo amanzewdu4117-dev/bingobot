@@ -579,28 +579,34 @@
         });
     }
     
-    function autoJoinBots() {
+    // ይህንን ከፋንክሽኑ ውጭ አስቀምጠው
+let isBotJoined = false; 
+
+function autoJoinBots() {
+    // 🛑 ጨዋታው እንደጀመረ አንዴ ብቻ እንዲገቡ ይደረጋል
+    if (isBotJoined) {
+        console.log("ቦቶች ቀድሞውኑ ገብተዋል፣ እንደገና አይገቡም");
+        return;
+    }
+
+    // Firebase ላይ ዳታውን በአዲስ መልክ በግዳጅ (set) አድርግ
     db.ref('bots_pool').once('value', (snapshot) => {
         const bots = snapshot.val();
         if (bots) {
-            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
-            db.ref('liveGame/selectedCards').update(bots);
+            // በየዙሩ አዲስ ዙር ሲጀመር የድሮውን አጥፍቶ አዲሱን ብቻ ያስገባል
+            db.ref('liveGame/selectedCards').set(bots); 
+            isBotJoined = true; 
+            console.log("ቦቶች በስኬት ገብተዋል!");
         }
     });
-}
-    // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
-let hasBotsJoined = false; 
+} 
 
+let isBotJoined = false;
 function start() {
     // 1. ቦቶች አንዴ ብቻ እንዲገቡ ማድረግ
-    if (!hasBotsJoined) {
-        autoJoinBots();
-        hasBotsJoined = true;
-    }
-    
-    // 2. ጨዋታው ሲጀመር የድሮ ካርዶችን ከ Firebase ማጽዳት (አስፈላጊ ከሆነ)
-    // db.ref('liveGame/selectedCards').remove(); 
-    
+    isBotJoined = false;
+    autoJoinBots();
+  
     gameActive = true;
     
     document.getElementById('selection-page').classList.add('hidden');
