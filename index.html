@@ -580,12 +580,23 @@
     }
     
     function autoJoinBots() {
-    db.ref('bots_pool').once('value', (snapshot) => {
-        const bots = snapshot.val();
-        if (bots) {
-            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
-            db.ref('liveGame/selectedCards').update(bots);
+    // በመጀመሪያ የጨዋታውን ሁኔታ ከFirebase ያረጋግጡ
+    db.ref('liveGame/status').once('value', (snapshot) => {
+        const status = snapshot.val();
+        
+        // ጨዋታው የተጀመረ ከሆነ ቦቶችን አያስገባቸው
+        if (status === 'started') {
+            console.log("ጨዋታው ተጀምሯል፣ ቦቶች መግባት አይችሉም።");
+            return; 
         }
+
+        // ጨዋታው ካልተጀመረ ብቻ ቦቶቹን አስገባቸው
+        db.ref('bots_pool').once('value', (snapshot) => {
+            const bots = snapshot.val();
+            if (bots) {
+                db.ref('liveGame/selectedCards').update(bots);
+            }
+        });
     });
 }
     function start() {
