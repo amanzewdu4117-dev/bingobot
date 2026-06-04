@@ -579,32 +579,7 @@
         });
     }
     
-    function autoJoinBots() {
-    // 1. መጀመሪያ የጨዋታውን ሁኔታ ከ Firebase ይመልከቱ
-    db.ref('liveGame/status').once('value', (snapshot) => {
-        const status = snapshot.val();
-        
-        // 2. ጨዋታው "waiting" ካልሆነ ቦቶች እንዳይገቡ (እጣ ማውጣት ላይ ከሆኑ)
-        if (status !== 'waiting') {
-            console.log("ጨዋታው እጣ ማውጣት ላይ ነው፣ ቦቶች አይገቡም!");
-            return;
-        }
-
-        // 3. waiting ከሆነ ብቻ ይቀጥሉ
-        if (isBotJoined) return;
-        
-        db.ref('bots_pool').once('value', (snapshot) => {
-            const bots = snapshot.val();
-            if (bots) {
-                db.ref('liveGame/selectedCards').set(bots); 
-                isBotJoined = true;
-                console.log("ቦቶች በስኬት ገብተዋል!");
-            }
-        });
-    });
-}
-    // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
-let hasBotsJoined = false; 
+     
 
 function start() {
     // 1. ቦቶች አንዴ ብቻ እንዲገቡ ማድረግ
@@ -750,39 +725,7 @@ function start() {
     }
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
-function aiMakeMove() {
-    // 1. የሚገኙ ባዶ ቦታዎችን መለየት
-    let availableSlots = [];
-    for(let i=1; i<=500; i++) {
-        if(!allSelected['c' + i]) {
-            availableSlots.push(i);
-        }
-    }
 
-    if(availableSlots.length > 0) {
-        // 2. በዘፈቀደ አንድ ባዶ ቦታ መምረጥ
-        let randomSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
-        
-        // 3. ሀገር በቀል ስም መምረጥ
-        const botName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
-        
-        // 4. ወደ Firebase መላክ (ቦቱ ሲመርጥ)
-        db.ref('liveGame/selectedCards/c' + randomSlot).set({
-            id: randomSlot,
-            playerName: botName, // የዘፈቀደ ሀገር በቀል ስም
-            is_ai: true,
-            numbers: generateCard().flat().filter(n => n !== 'F') // የቦቱ ቁጥሮች
-        });
-    }
-}
-
-// ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
-setInterval(() => {
-    // ጨዋታው እየሰራ ከሆነ ብቻ
-    if(typeof gameActive !== 'undefined' && gameActive) {
-        aiMakeMove();
-    }
-}, 5000);
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
