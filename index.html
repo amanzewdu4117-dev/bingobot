@@ -580,17 +580,14 @@
     }
     
     function autoJoinBots() {
-    // በመጀመሪያ የጨዋታውን ሁኔታ ከFirebase ያረጋግጡ
+    // ጨዋታው መጀመሩን ወይም አለመጀመሩን ከ Firebase ፈትሽ
     db.ref('liveGame/status').once('value', (snapshot) => {
-        const status = snapshot.val();
-        
-        // ጨዋታው የተጀመረ ከሆነ ቦቶችን አያስገባቸው
-        if (status === 'started') {
-            console.log("ጨዋታው ተጀምሯል፣ ቦቶች መግባት አይችሉም።");
-            return; 
+        if (snapshot.val() === 'started') {
+            console.log("ጨዋታው ተጀምሯል፣ ቦት አይገባም");
+            return; // ጨዋታው ከተጀመረ ቦት አይጨምርም
         }
-
-        // ጨዋታው ካልተጀመረ ብቻ ቦቶቹን አስገባቸው
+        
+        // ጨዋታው ካልተጀመረ ብቻ አስገባቸው
         db.ref('bots_pool').once('value', (snapshot) => {
             const bots = snapshot.val();
             if (bots) {
@@ -601,7 +598,7 @@
 }
     function start() {
         autoJoinBots();
-        gameActive = false;
+        gameActive = true;
         document.getElementById('selection-page').classList.add('hidden');
         document.getElementById('game-page').classList.remove('hidden');
         document.getElementById('game-page').style.display = 'flex';
