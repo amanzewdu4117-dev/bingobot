@@ -579,25 +579,25 @@
         });
     }
     
-    function autoJoinBots() {
-    // ጨዋታው መጀመሩን ወይም አለመጀመሩን ከ Firebase ፈትሽ
+    // ይህን አዲስ ፋንክሽን ተጠቀም
+function joinBotsManually() {
+    // 1. መጀመሪያ ጨዋታው ምን ደረጃ ላይ እንዳለ ፈትሽ
     db.ref('liveGame/status').once('value', (snapshot) => {
-        if (snapshot.val() === 'started') {
-            console.log("ጨዋታው ተጀምሯል፣ ቦት አይገባም");
-            return; // ጨዋታው ከተጀመረ ቦት አይጨምርም
+        // 2. ጨዋታው 'waiting' ከሆነ ብቻ ቦቶችን አስገባ
+        if (snapshot.val() === 'waiting') {
+            db.ref('bots_pool').once('value', (snapshot) => {
+                const bots = snapshot.val();
+                if (bots) {
+                    db.ref('liveGame/selectedCards').update(bots);
+                }
+            });
+        } else {
+            console.log("ጨዋታው እየተካሄደ ነው፣ ቦቶች መግባት አይችሉም።");
         }
-        
-        // ጨዋታው ካልተጀመረ ብቻ አስገባቸው
-        db.ref('bots_pool').once('value', (snapshot) => {
-            const bots = snapshot.val();
-            if (bots) {
-                db.ref('liveGame/selectedCards').update(bots);
-            }
-        });
     });
 }
     function start() {
-        
+        autoJoinBots
         gameActive = true;
         document.getElementById('selection-page').classList.add('hidden');
         document.getElementById('game-page').classList.remove('hidden');
