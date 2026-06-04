@@ -637,21 +637,27 @@ function joinBotsManually() {
     }
 
     function startCountdown(seconds) {
-        clearInterval(countdownInterval);
-        let counter = seconds;
-        const timerEl = document.getElementById('timer');
+    clearInterval(countdownInterval);
+    let counter = seconds;
+    const timerEl = document.getElementById('timer');
 
-        countdownInterval = setInterval(() => {
-            if (timerEl) {
-                timerEl.innerText = counter;
-                timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
-            }
-            if (counter <= 0) {
-                clearInterval(countdownInterval);
-            }
-            counter--;
-        }, 1000);
-    }
+    countdownInterval = setInterval(() => {
+        if (timerEl) {
+            timerEl.innerText = counter;
+            timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
+        }
+        
+        // ቆጠራው ሲያልቅ (0 ሲደርስ)
+        if (counter <= 0) {
+            clearInterval(countdownInterval);
+            
+            // 🛑 አዲሱ መጨመር ያለብህ ኮድ ይሄ ነው
+            console.log("ጊዜው አልቋል! ጨዋታው ይጀምራል...");
+            start(); // ይሄ ነው ጨዋታውን የሚቀጥለው
+        }
+        counter--;
+    }, 1000);
+}
 
     function renderGrid() {
     const grid = document.getElementById('slots-grid');
