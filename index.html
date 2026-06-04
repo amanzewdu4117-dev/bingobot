@@ -702,7 +702,7 @@ function joinBotsManually() {
     function selectCard(i) {
     const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
     
-    // 🛑 ቦቶች እንዳይመዘገቡ ማረጋገጫ (User ID ካለ ብቻ እንዲመዘገብ ማድረግ)
+    // የቦቶች ቁጥጥር
     if (userId === "guest_user") {
         alert("እባክዎ በቴሌግራም በኩል ብቻ ይግቡ!");
         return;
@@ -724,10 +724,9 @@ function joinBotsManually() {
         
         db.ref('users/' + userId + '/balance').set(currentBalance);
         
-        // 🛑 እዚህ ጋር playerName የሚለው ላይ ትክክለኛው የቴሌግራም User ID መመዝገቡን አረጋግጥ
         db.ref('liveGame/selectedCards/c' + i).set({
             id: i,
-            playerId: userId, // playerName ፈንታ playerId ተጠቀም
+            playerId: userId,
             playerName: tgUser,
             numbers: newNumbers.flat().filter(n => n !== 'F')
         });
@@ -739,6 +738,16 @@ function joinBotsManually() {
     save(); 
     renderGrid(); 
     updatePreview();
+
+    // 🛑 አዲሱ መፍትሄ፦ ካርድ እንደመረጡ ወደ ጨዋታው ገጽ የሚወስደው ኮድ
+    if (userCards.length > 0) {
+        // አስፈላጊ ከሆነ ይሄን አግብር
+        // document.getElementById('selection-page').classList.add('hidden');
+        // document.getElementById('game-page').classList.remove('hidden');
+        // document.getElementById('game-page').style.display = 'flex';
+        
+        console.log("ካርድ ተመርጧል፣ ወደ ጨዋታው ገጽ ተሸጋግረናል።");
+    }
 }
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
