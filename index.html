@@ -580,12 +580,27 @@
     }
     
     function autoJoinBots() {
-    db.ref('bots_pool').once('value', (snapshot) => {
-        const bots = snapshot.val();
-        if (bots) {
-            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
-            db.ref('liveGame/selectedCards').update(bots);
+    // 1. መጀመሪያ የጨዋታውን ሁኔታ ከ Firebase ይመልከቱ
+    db.ref('liveGame/status').once('value', (snapshot) => {
+        const status = snapshot.val();
+        
+        // 2. ጨዋታው "waiting" ካልሆነ ቦቶች እንዳይገቡ (እጣ ማውጣት ላይ ከሆኑ)
+        if (status !== 'waiting') {
+            console.log("ጨዋታው እጣ ማውጣት ላይ ነው፣ ቦቶች አይገቡም!");
+            return;
         }
+
+        // 3. waiting ከሆነ ብቻ ይቀጥሉ
+        if (isBotJoined) return;
+        
+        db.ref('bots_pool').once('value', (snapshot) => {
+            const bots = snapshot.val();
+            if (bots) {
+                db.ref('liveGame/selectedCards').set(bots); 
+                isBotJoined = true;
+                console.log("ቦቶች በስኬት ገብተዋል!");
+            }
+        });
     });
 }
     // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
