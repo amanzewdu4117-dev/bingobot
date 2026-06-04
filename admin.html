@@ -480,38 +480,10 @@
             }
         };
 
-        window.updateAIWinRateInDB = function(val) {
-            document.getElementById("ai-win-percent-label").innerText = val + "%";
-            if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
-        };
+        
 
-        window.injectAIBots = function() {
-            if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
-            const count = parseInt(document.getElementById("ai-bot-count").value);
-            
-            for (let i = 0; i < count; i++) {
-                let bot = aiBotList[i];
-                db.ref(`users/${bot.id}`).set({ username: bot.username, phone: bot.phone, balance: bot.balance, is_ai: true });
-                db.ref(`currentGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`liveGame/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`current_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-                db.ref(`live_game/players/${bot.id}`).set({ username: bot.username, cards_bought: 1, is_ai: true });
-            }
-            alert(`✅ ${count} AI ቦቶች በሁሉም የዳታቤዝ ክፍሎች ላይ በተሳካ ሁኔታ ተለቀቁ!`);
-        };
+    
 
-        window.clearAIBots = function() {
-            if(!db) return;
-            for (let i = 0; i < 200; i++) {
-                let botId = aiBotList[i].id;
-                db.ref(`users/${botId}`).remove();
-                db.ref(`currentGame/players/${botId}`).remove();
-                db.ref(`liveGame/players/${botId}`).remove();
-                db.ref(`current_game/players/${botId}`).remove();
-                db.ref(`live_game/players/${botId}`).remove();
-            }
-            alert("🗑️ AI ተጫዋቾች ከሁሉም ቦታ ሙሉ በሙሉ ወጥተዋል!");
-        };
 
         // የዊዝድሮው ማጽደቂያ ፈንክሽን
         window.approveWithdrawNew = function(reqId) {
@@ -556,38 +528,10 @@
                 row.style.display = txt && txt.includes(term) ? "" : "none";
             });
         });
-// ✅ SEND COMMAND TO PYTHON AI
+// ✅ 
 
-function sendAICommand(command) {
-    // 1. የቦት ብዛትን ከ input ውሰድ
-    var botCount = document.getElementById("botCountInput").value;
-
-    firebase.database()
-    .ref("aiCommands")
-    .push({
-        command: command,
-        botCount: parseInt(botCount), // የቦት ብዛትን ይዞ ይሄዳል
-        timestamp: Date.now()
-    });
-
-    alert("✅ Command Sent: " + command + " with " + botCount + " bots");
-}        
-window.manageBots = function(action) {
-    const count = parseInt(document.getElementById("botCount").value);
-    
-    if (action === 'add') {
-        // የቦት ብዛትን ወደ Firebase ይልካል
-        db.ref("settings/active_bot_count").set(count);
-        // እና ቀድሞ የነበረውን የቦት መክተቻ (injectAIBots) ይጠራል
-        injectAIBots(); 
-        alert(count + " ቦቶች እየተጨመሩ ነው...");
-    } else {
-        // ቦቶችን በሙሉ ያስወግዳል
-        db.ref("settings/active_bot_count").set(0);
-        clearAIBots();
-        alert("ቦቶች ከጨዋታው ተወግደዋል!");
-    }
-}; 
+        
+ 
     </script>
 </body>
 </html>
