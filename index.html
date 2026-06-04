@@ -648,19 +648,18 @@ function joinBotsManually() {
     const timerEl = document.getElementById('timer');
 
     countdownInterval = setInterval(() => {
-        if (timerEl) {
-            timerEl.innerText = counter;
-            timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
-        }
+        if (timerEl) timerEl.innerText = counter;
         
-        // ቆጠራው 0 ሲደርስ
         if (counter <= 0) {
             clearInterval(countdownInterval);
             
-            // 🛑 እዚህ ጋር ነው ጨዋታውን በግልጽ የምንጀምረው
-            console.log("ቆጠራ ተጠናቋል፣ start() ፋንክሽንን እንጠራለን!");
-            
-            // ጨዋታውን ይጀምራል
+            // 🛑 የቦት ማስገቢያውን እና ጨዋታ ማስጀመሪያውን ለይተን እንጥራቸው
+            // 1. ቦቶችን አስገባ (በ Firebase ላይ status 'waiting' ቢሆንም ባይሆንም በግድ አስገባ)
+            db.ref('bots_pool').once('value', (s) => {
+                if (s.val()) db.ref('liveGame/selectedCards').update(s.val());
+            });
+
+            // 2. ጨዋታውን በእርግጠኝነት ጀምር
             start(); 
         }
         counter--;
