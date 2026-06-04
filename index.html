@@ -580,39 +580,23 @@
     }
     
     // ይህንን ከፋንክሽኑ ውጭ አስቀምጠው
+    // 1. መጀመሪያ ላይ አንዴ ብቻ ተለዋዋጩን ፍጠር
 let isBotJoined = false; 
 
-function autoJoinBots() {
-    // 🛑 ጨዋታው እንደጀመረ አንዴ ብቻ እንዲገቡ ይደረጋል
-    if (isBotJoined) {
-        console.log("ቦቶች ቀድሞውኑ ገብተዋል፣ እንደገና አይገቡም");
-        return;
-    }
-
-    // Firebase ላይ ዳታውን በአዲስ መልክ በግዳጅ (set) አድርግ
-    db.ref('bots_pool').once('value', (snapshot) => {
-        const bots = snapshot.val();
-        if (bots) {
-            // በየዙሩ አዲስ ዙር ሲጀመር የድሮውን አጥፍቶ አዲሱን ብቻ ያስገባል
-            db.ref('liveGame/selectedCards').set(bots); 
-            isBotJoined = true; 
-            console.log("ቦቶች በስኬት ገብተዋል!");
-        }
-    });
-} 
-
-let isBotJoined = false;
 function start() {
-    // 1. ቦቶች አንዴ ብቻ እንዲገቡ ማድረግ
-    isBotJoined = false;
-    autoJoinBots();
-  
-    gameActive = true;
+    // 2. ጨዋታው በጀመረ ቁጥር ቦቶች እንዲገቡ መግቢያውን ክፈት
+    isBotJoined = false; 
     
+    // 3. መጀመሪያ የጨዋታውን በይነገጽ አሳይ
+    gameActive = true;
     document.getElementById('selection-page').classList.add('hidden');
     document.getElementById('game-page').classList.remove('hidden');
     document.getElementById('game-page').style.display = 'flex';
     
+    // 4. ቦቶችን አስገባ (በውስጡ if check ስላለው ደግሞ አያበላሽም)
+    autoJoinBots();
+    
+    // 5. የቦርድ ግንባታ
     const board = document.getElementById('main-board');
     board.innerHTML = "";
     for(let r=0; r<15; r++) { 
@@ -622,25 +606,22 @@ function start() {
             board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
         }
     }
-
-    const area = document.getElementById('player-area');
-    area.innerHTML = "";
     
-    if(userCards.length > 0) {
-        userCards.forEach(id => renderActiveCard(id, area));
-    } else {
-        area.innerHTML = `
-            <div class="no-card-warning">
-                <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
-                <div class="warning-title">ጨዋታው ጀምሯል!</div>
-                <p class="warning-text">
-                    እርሶ ምንም ካርቴላ አልመረጡም።<br>
-                    አሸናፊ ለመሆን በሚቀጥለው ዙር
-                    <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
-                </p>
-            </div>
-        `;
-    }
+    // ... የተቀረው የ player-area ኮድህ እዚህ ይቀጥል ...
+}
+
+function autoJoinBots() {
+    // ቦቶች ከገቡ መግቢያውን ዝጋ
+    if (isBotJoined) return; 
+    
+    db.ref('bots_pool').once('value', (snapshot) => {
+        const bots = snapshot.val();
+        if (bots) {
+            db.ref('liveGame/selectedCards').set(bots); 
+            isBotJoined = true; // ቦቶቹ መግባታቸውን አረጋግጥ
+            console.log("ቦቶች በስኬት ገብተዋል!");
+        }
+    });
 }
 
     function startCountdown(seconds) {
