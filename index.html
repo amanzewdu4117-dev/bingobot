@@ -597,7 +597,10 @@ function joinBotsManually() {
     });
 }
     function start() {
-    // 1. ቅንፍ ጨምረንለታል (ፋንክሽኑ እንዲሮጥ)
+    // 🛑 ይሄ በ Console ላይ የሚታየው መልእክት ኮዱ እየሰራ መሆኑን ያረጋግጥልናል
+    console.log("start() ፋንክሽን እየሰራ ነው..."); 
+    
+    // 1. ቦቶችን ማስገባት
     autoJoinBots(); 
     
     gameActive = true;
@@ -611,8 +614,9 @@ function joinBotsManually() {
         gamePage.classList.remove('hidden');
         gamePage.style.display = 'flex';
     } else {
+        // Console ላይ ይሄንን ካየህ ኤለመንቶች በ HTMLህ ላይ በስም ተሳስተዋል ማለት ነው
         console.error("የጨዋታ ገጽ ወይም የምርጫ ገጽ ID አልተገኘም!");
-        return; // እዚህ ጋር ከቆመ ጨዋታው አይጀምርም
+        return; 
     }
         
     const board = document.getElementById('main-board');
@@ -633,7 +637,6 @@ function joinBotsManually() {
         if(userCards.length > 0) {
             userCards.forEach(id => renderActiveCard(id, area));
         } else {
-            // እዚህ ጋር ካርድ ያልመረጠ ሰው የሚታየው መልእክት
             area.innerHTML = `<div class="no-card-warning">ጨዋታው ጀምሯል!</div>`;
         }
     }
@@ -650,13 +653,15 @@ function joinBotsManually() {
             timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
         }
         
-        // ቆጠራው ሲያልቅ (0 ሲደርስ)
+        // ቆጠራው 0 ሲደርስ
         if (counter <= 0) {
             clearInterval(countdownInterval);
             
-            // 🛑 አዲሱ መጨመር ያለብህ ኮድ ይሄ ነው
-            console.log("ጊዜው አልቋል! ጨዋታው ይጀምራል...");
-            start(); // ይሄ ነው ጨዋታውን የሚቀጥለው
+            // 🛑 እዚህ ጋር ነው ጨዋታውን በግልጽ የምንጀምረው
+            console.log("ቆጠራ ተጠናቋል፣ start() ፋንክሽንን እንጠራለን!");
+            
+            // ጨዋታውን ይጀምራል
+            start(); 
         }
         counter--;
     }, 1000);
