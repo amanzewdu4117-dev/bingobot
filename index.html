@@ -588,45 +588,54 @@
         }
     });
 }
-    function start() {
-        autoJoinBots();
-        gameActive = true;
-        document.getElementById('selection-page').classList.add('hidden');
-        document.getElementById('game-page').classList.remove('hidden');
-        document.getElementById('game-page').style.display = 'flex';
-        
-        const board = document.getElementById('main-board');
-        board.innerHTML = "";
-        for(let r=0; r<15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let n = (c * 15) + r + 1;
-                let colorClass = calledNumbers.has(n) ? 'called' : '';
-                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
-            }
-        }
+    // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
+let hasBotsJoined = false; 
 
-        const area = document.getElementById('player-area');
-        area.innerHTML = "";
-        
-        if(userCards.length > 0) {
-            userCards.forEach(id => renderActiveCard(id, area));
-        } else {
-            area.innerHTML = `
-                <div class="no-card-warning">
-                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
-                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
-                    <p class="warning-text">
-                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
-                        አሸናፊ ለመሆን በሚቀጥለው ዙር
-                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
-                    </p>
-                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
-                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
-                    </div>
-                </div>
-            `;
+function start() {
+    // 1. ቦቶች አንዴ ብቻ እንዲገቡ ማድረግ
+    if (!hasBotsJoined) {
+        autoJoinBots();
+        hasBotsJoined = true;
+    }
+    
+    // 2. ጨዋታው ሲጀመር የድሮ ካርዶችን ከ Firebase ማጽዳት (አስፈላጊ ከሆነ)
+    // db.ref('liveGame/selectedCards').remove(); 
+    
+    gameActive = true;
+    
+    document.getElementById('selection-page').classList.add('hidden');
+    document.getElementById('game-page').classList.remove('hidden');
+    document.getElementById('game-page').style.display = 'flex';
+    
+    const board = document.getElementById('main-board');
+    board.innerHTML = "";
+    for(let r=0; r<15; r++) { 
+        for(let c=0; c<5; c++) { 
+            let n = (c * 15) + r + 1;
+            let colorClass = calledNumbers.has(n) ? 'called' : '';
+            board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
         }
     }
+
+    const area = document.getElementById('player-area');
+    area.innerHTML = "";
+    
+    if(userCards.length > 0) {
+        userCards.forEach(id => renderActiveCard(id, area));
+    } else {
+        area.innerHTML = `
+            <div class="no-card-warning">
+                <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
+                <div class="warning-title">ጨዋታው ጀምሯል!</div>
+                <p class="warning-text">
+                    እርሶ ምንም ካርቴላ አልመረጡም።<br>
+                    አሸናፊ ለመሆን በሚቀጥለው ዙር
+                    <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
+                </p>
+            </div>
+        `;
+    }
+}
 
     function startCountdown(seconds) {
         clearInterval(countdownInterval);
