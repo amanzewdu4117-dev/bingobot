@@ -597,44 +597,47 @@ function joinBotsManually() {
     });
 }
     function start() {
-        autoJoinBots
-        gameActive = true;
-        document.getElementById('selection-page').classList.add('hidden');
-        document.getElementById('game-page').classList.remove('hidden');
-        document.getElementById('game-page').style.display = 'flex';
+    // 1. ቅንፍ ጨምረንለታል (ፋንክሽኑ እንዲሮጥ)
+    autoJoinBots(); 
+    
+    gameActive = true;
+    
+    // 2. ኤለመንቶቹን በ ID ፍለጋ ማረጋገጥ
+    const selectionPage = document.getElementById('selection-page');
+    const gamePage = document.getElementById('game-page');
+    
+    if (selectionPage && gamePage) {
+        selectionPage.classList.add('hidden');
+        gamePage.classList.remove('hidden');
+        gamePage.style.display = 'flex';
+    } else {
+        console.error("የጨዋታ ገጽ ወይም የምርጫ ገጽ ID አልተገኘም!");
+        return; // እዚህ ጋር ከቆመ ጨዋታው አይጀምርም
+    }
         
-        const board = document.getElementById('main-board');
-        board.innerHTML = "";
-        for(let r=0; r<15; r++) { 
-            for(let c=0; c<5; c++) { 
-                let n = (c * 15) + r + 1;
-                let colorClass = calledNumbers.has(n) ? 'called' : '';
-                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
-            }
+    const board = document.getElementById('main-board');
+    if (!board) return;
+    
+    board.innerHTML = "";
+    for(let r=0; r<15; r++) { 
+        for(let c=0; c<5; c++) { 
+            let n = (c * 15) + r + 1;
+            let colorClass = calledNumbers.has(n) ? 'called' : '';
+            board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
         }
+    }
 
-        const area = document.getElementById('player-area');
+    const area = document.getElementById('player-area');
+    if (area) {
         area.innerHTML = "";
-        
         if(userCards.length > 0) {
             userCards.forEach(id => renderActiveCard(id, area));
         } else {
-            area.innerHTML = `
-                <div class="no-card-warning">
-                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
-                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
-                    <p class="warning-text">
-                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
-                        አሸናፊ ለመሆን በሚቀጥለው ዙር
-                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
-                    </p>
-                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
-                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
-                    </div>
-                </div>
-            `;
+            // እዚህ ጋር ካርድ ያልመረጠ ሰው የሚታየው መልእክት
+            area.innerHTML = `<div class="no-card-warning">ጨዋታው ጀምሯል!</div>`;
         }
     }
+}
 
     function startCountdown(seconds) {
     clearInterval(countdownInterval);
