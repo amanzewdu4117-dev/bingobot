@@ -649,32 +649,7 @@
     const grid = document.getElementById('slots-grid');
     grid.innerHTML = "";
     
-    for(let i=1; i<=500; i++) {
-        let b = document.createElement('div');
-        b.className = 'slot-btn'; 
-        
-        
-        let cardKey = 'c' + i;
-
-        if(allSelected && allSelected[cardKey]) {
-            // ይህ ክፍል ቦቶችንም ሆነ ሰዎችን ያካትታል
-            const playerData = allSelected[cardKey];
-            const displayName = playerData.playerName || playerData.username || "ተጫዋች";
-            
-            b.innerHTML = `
-                <div class="card-number">${i}</div>
-                <div class="player-name">${displayName}</div>
-            `;
-            
-            if(!userCards.includes(i)) {
-                b.classList.add('occupied');
-            }
-        } else {
-            b.innerHTML = `
-                <div class="card-number">${i}</div>
-                <div class="player-name"></div>
-            `;
-        }
+    
         
         // ራስህ የመረጥከው ካርቴላ (የአንተ ስም ይታያል)
         if(userCards.includes(i)) {
