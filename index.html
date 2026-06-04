@@ -579,98 +579,77 @@
         });
     }
     
-    // ይህን አዲስ ፋንክሽን ተጠቀም
-function joinBotsManually() {
-    // 1. መጀመሪያ ጨዋታው ምን ደረጃ ላይ እንዳለ ፈትሽ
-    db.ref('liveGame/status').once('value', (snapshot) => {
-        // 2. ጨዋታው 'waiting' ከሆነ ብቻ ቦቶችን አስገባ
-        if (snapshot.val() === 'waiting') {
-            db.ref('bots_pool').once('value', (snapshot) => {
-                const bots = snapshot.val();
-                if (bots) {
-                    db.ref('liveGame/selectedCards').update(bots);
-                }
-            });
-        } else {
-            console.log("ጨዋታው እየተካሄደ ነው፣ ቦቶች መግባት አይችሉም።");
+    function autoJoinBots() {
+    db.ref('bots_pool').once('value', (snapshot) => {
+        const bots = snapshot.val();
+        if (bots) {
+            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
+            db.ref('liveGame/selectedCards').update(bots);
         }
     });
 }
     function start() {
-    // 🛑 ይሄ በ Console ላይ የሚታየው መልእክት ኮዱ እየሰራ መሆኑን ያረጋግጥልናል
-    console.log("start() ፋንክሽን እየሰራ ነው..."); 
-    
-    // 1. ቦቶችን ማስገባት
-    autoJoinBots(); 
-    
-    gameActive = true;
-    
-    // 2. ኤለመንቶቹን በ ID ፍለጋ ማረጋገጥ
-    const selectionPage = document.getElementById('selection-page');
-    const gamePage = document.getElementById('game-page');
-    
-    if (selectionPage && gamePage) {
-        selectionPage.classList.add('hidden');
-        gamePage.classList.remove('hidden');
-        gamePage.style.display = 'flex';
-    } else {
-        // Console ላይ ይሄንን ካየህ ኤለመንቶች በ HTMLህ ላይ በስም ተሳስተዋል ማለት ነው
-        console.error("የጨዋታ ገጽ ወይም የምርጫ ገጽ ID አልተገኘም!");
-        return; 
-    }
+        autoJoinBots();
+        gameActive = true;
+        document.getElementById('selection-page').classList.add('hidden');
+        document.getElementById('game-page').classList.remove('hidden');
+        document.getElementById('game-page').style.display = 'flex';
         
-    const board = document.getElementById('main-board');
-    if (!board) return;
-    
-    board.innerHTML = "";
-    for(let r=0; r<15; r++) { 
-        for(let c=0; c<5; c++) { 
-            let n = (c * 15) + r + 1;
-            let colorClass = calledNumbers.has(n) ? 'called' : '';
-            board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+        const board = document.getElementById('main-board');
+        board.innerHTML = "";
+        for(let r=0; r<15; r++) { 
+            for(let c=0; c<5; c++) { 
+                let n = (c * 15) + r + 1;
+                let colorClass = calledNumbers.has(n) ? 'called' : '';
+                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+            }
         }
-    }
 
-    const area = document.getElementById('player-area');
-    if (area) {
+        const area = document.getElementById('player-area');
         area.innerHTML = "";
+        
         if(userCards.length > 0) {
             userCards.forEach(id => renderActiveCard(id, area));
         } else {
-            area.innerHTML = `<div class="no-card-warning">ጨዋታው ጀምሯል!</div>`;
+            area.innerHTML = `
+                <div class="no-card-warning">
+                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
+                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
+                    <p class="warning-text">
+                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
+                        አሸናፊ ለመሆን በሚቀጥለው ዙር
+                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
+                    </p>
+                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
+                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
+                    </div>
+                </div>
+            `;
         }
     }
-}
 
     function startCountdown(seconds) {
-    clearInterval(countdownInterval);
-    let counter = seconds;
-    const timerEl = document.getElementById('timer');
+        clearInterval(countdownInterval);
+        let counter = seconds;
+        const timerEl = document.getElementById('timer');
 
-    countdownInterval = setInterval(() => {
-        if (timerEl) timerEl.innerText = counter;
-        
-        if (counter <= 0) {
-            clearInterval(countdownInterval);
-            
-            // 🛑 የቦት ማስገቢያውን እና ጨዋታ ማስጀመሪያውን ለይተን እንጥራቸው
-            // 1. ቦቶችን አስገባ (በ Firebase ላይ status 'waiting' ቢሆንም ባይሆንም በግድ አስገባ)
-            db.ref('bots_pool').once('value', (s) => {
-                if (s.val()) db.ref('liveGame/selectedCards').update(s.val());
-            });
-
-            // 2. ጨዋታውን በእርግጠኝነት ጀምር
-            start(); 
-        }
-        counter--;
-    }, 1000);
-}
+        countdownInterval = setInterval(() => {
+            if (timerEl) {
+                timerEl.innerText = counter;
+                timerEl.style.background = counter <= 10 ? "#ff3e3e" : "var(--orange)";
+            }
+            if (counter <= 0) {
+                clearInterval(countdownInterval);
+            }
+            counter--;
+        }, 1000);
+    }
 
     function renderGrid() {
     const grid = document.getElementById('slots-grid');
     grid.innerHTML = "";
     
-        for(let i=1; i<=500; i++) {
+    for(let i=1; i<=500; i++) {
         let b = document.createElement('div');
         b.className = 'slot-btn'; 
         b.id = `cartela-${i}`;
@@ -713,55 +692,38 @@ function joinBotsManually() {
 
 
     function selectCard(i) {
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-    
-    // የቦቶች ቁጥጥር
-    if (userId === "guest_user") {
-        alert("እባክዎ በቴሌግራም በኩል ብቻ ይግቡ!");
-        return;
-    }
+        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
 
-    if (userCards.includes(i)) {
-        userCards = userCards.filter(x => x !== i);
-        delete cardData[i];
-        currentBalance += 10;
-        
-        db.ref('users/' + userId + '/balance').set(currentBalance);
-        db.ref('liveGame/selectedCards/c' + i).remove();
+        if (userCards.includes(i)) {
+            userCards = userCards.filter(x => x !== i);
+            delete cardData[i];
+            currentBalance += 10;
+            
+            db.ref('users/' + userId + '/balance').set(currentBalance);
+            db.ref('liveGame/selectedCards/c' + i).remove();
 
-    } else if (userCards.length < 3 && currentBalance >= 10) {
-        userCards.push(i);
-        const newNumbers = generateCard();
-        cardData[i] = newNumbers;
-        currentBalance -= 10;
+        } else if (userCards.length < 3 && currentBalance >= 10) {
+            userCards.push(i);
+            const newNumbers = generateCard();
+            cardData[i] = newNumbers;
+            currentBalance -= 10;
+            
+            db.ref('users/' + userId + '/balance').set(currentBalance);
+            
+            db.ref('liveGame/selectedCards/c' + i).set({
+                id: i,
+                playerName: tgUser,
+                numbers: newNumbers.flat().filter(n => n !== 'F')
+            });
+        } else if (currentBalance < 10) {
+            alert("በቂ ሂሳብ የሎትም!");
+            return;
+        }
         
-        db.ref('users/' + userId + '/balance').set(currentBalance);
-        
-        db.ref('liveGame/selectedCards/c' + i).set({
-            id: i,
-            playerId: userId,
-            playerName: tgUser,
-            numbers: newNumbers.flat().filter(n => n !== 'F')
-        });
-    } else if (currentBalance < 10) {
-        alert("በቂ ሂሳብ የሎትም!");
-        return;
+        save(); 
+        renderGrid(); 
+        updatePreview();
     }
-    
-    save(); 
-    renderGrid(); 
-    updatePreview();
-
-    // 🛑 አዲሱ መፍትሄ፦ ካርድ እንደመረጡ ወደ ጨዋታው ገጽ የሚወስደው ኮድ
-    if (userCards.length > 0) {
-        // አስፈላጊ ከሆነ ይሄን አግብር
-        // document.getElementById('selection-page').classList.add('hidden');
-        // document.getElementById('game-page').classList.remove('hidden');
-        // document.getElementById('game-page').style.display = 'flex';
-        
-        console.log("ካርድ ተመርጧል፣ ወደ ጨዋታው ገጽ ተሸጋግረናል።");
-    }
-}
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
 function aiMakeMove() {
