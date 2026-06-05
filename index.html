@@ -579,28 +579,35 @@
         });
     }
     
-    function autoJoinBots() {
-    // 1. መጀመሪያ የጨዋታውን ሁኔታ ከ Firebase ይመልከቱ
-    db.ref('liveGame/status').once('value', (snapshot) => {
+    // በ script.js ውስጥ
+function handleAddBots() {
+    // 1. Dashboard ላይ ያለውን የቦቶች ብዛት (Input) ያንብቡ
+    const botCountInput = document.getElementById('bot-count-input'); // የእርስዎን የInput ID ይጠቀሙ
+    const botCount = parseInt(botCountInput.value) || 5;
+
+    // 2. የጨዋታውን ሁኔታ ከ Firebase ይመልከቱ
+    firebase.database().ref('liveGame/status').once('value').then((snapshot) => {
         const status = snapshot.val();
         
-        // 2. ጨዋታው "waiting" ካልሆነ ቦቶች እንዳይገቡ (እጣ ማውጣት ላይ ከሆኑ)
-        if (status !== 'waiting') {
-            console.log("ጨዋታው እጣ ማውጣት ላይ ነው፣ ቦቶች አይገቡም!");
-            return;
-        }
-
-        // 3. waiting ከሆነ ብቻ ይቀጥሉ
-        if (isBotJoined) return;
-        
-        db.ref('bots_pool').once('value', (snapshot) => {
-            const bots = snapshot.val();
-            if (bots) {
-                db.ref('liveGame/selectedCards').set(bots); 
-                isBotJoined = true;
-                console.log("ቦቶች በስኬት ገብተዋል!");
+        // 3. ቦቶች ሊገቡ የሚችሉት 'waiting' ሁናቴ ላይ ሲሆኑ ብቻ ነው
+        if (status === 'waiting') {
+            console.log(`🤖 ${botCount} ቦቶችን ወደ ጨዋታው እያስገባሁ ነው...`);
+            
+            // የቦቶችን መረጃ ለማመንጨት
+            for (let i = 0; i < botCount; i++) {
+                const botData = {
+                    name: `AI Player ${i + 1}`,
+                    isBot: true,
+                    card: generateRandomBingoCard() // ይህን ፋንክሽን አስቀድመው መግለጽዎን ያረጋግጡ
+                };
+                
+                // ወደ Firebase 'selectedCards' ይግፉት (Push)
+                firebase.database().ref('liveGame/selectedCards').push(botData);
             }
-        });
+            alert("ቦቶች በስኬት ገብተዋል!");
+        } else {
+            alert("ይቅርታ! ቦቶች ሊገቡ የሚችሉት 'waiting' ሁናቴ ላይ ብቻ ነው።");
+        }
     });
 }
     // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
