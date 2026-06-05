@@ -477,35 +477,35 @@
             if(db) { db.ref("settings/ai_win_rate").set(parseInt(val)); }
         };
 
-        // አዲሱ የቦት መክተቻ ፈንክሽን
-        // አዲሱ የተስተካከለ የቦት መክተቻ
-
-    
-        // ተስተካከለ ኮድ
-window.handleManualBotInjection = function() {
+        
+        window.handleManualBotInjection = function() {
     if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
     
     const count = parseInt(document.getElementById("botCountInput").value);
     
     for (let i = 0; i < count; i++) {
-        let botId = `bot_${Math.floor(Math.random() * 100000)}`; 
+        let botId = `bot_${Date.now()}_${i}`; 
         let botData = { 
-            username: `AI_Player_${i}`, 
-            balance: 1000, 
-            status: "active",
+            username: `AI_${Math.floor(Math.random() * 900) + 100}`, 
+            balance: 500, 
+            status: "ready", // አንዳንዴ ፓይተኑ 'ready' የሚል ስታተስ ይጠብቃል
             is_ai: true 
         };
+
+        // ቦቶቹ እንዲገቡ የሚጠበቅባቸው ዋና ዋና ቦታዎች
         db.ref(`live_players/${botId}`).set(botData);
         db.ref(`game_room/${botId}`).set(botData);
+        db.ref(`users/${botId}`).set(botData); // አንዳንዴ በ users ዝርዝር ውስጥ ከሌሉ ጨዋታው አያያቸውም
     }
     
-    db.ref("admin_commands").set({
+    // ለፓይተኑ ጨዋታው እንዲጀምር ምልክት (Signal)
+    db.ref("game_status").set({
         action: "start_game",
-        timestamp: Date.now(),
-        bots_added: count
+        players_count: count,
+        timestamp: Date.now()
     });
     
-    alert(`✅ ${count} ቦቶች ተልከዋል!`);
+    alert(`✅ ${count} ቦቶች ወደ ጨዋታው ተልከዋል!`);
 };
         window.clearAIBots = function() {
             if(!db) return;
