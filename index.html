@@ -778,35 +778,39 @@ function aiMakeMove() {
 
 // ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
 // ቦቶችን በራስ-ሰር የሚያንቀሳቅስ ፋንክሽን
-let botsAdded = false; // ቦቶቹ መግባታቸውን ለመቆጣጠር
+// ቦቶችን ለመቆጣጠር የሚያገለግል የውጭ ተለዋዋጭ
+let botsAdded = false;
 
 setInterval(() => {
-    const gameStatusRef = firebase.database().ref('liveGame/status');
+    // ከ Firebase የጨዋታውን ሁኔታ እና የሰዓት ቆጣሪውን (timer) እናንብብ
+    const gameRef = firebase.database().ref('liveGame');
     
-    gameStatusRef.once('value').then((snapshot) => {
-        const status = snapshot.val();
-        
-        // 1. ጨዋታው እየጠበቀ (waiting) ከሆነ እና ቦቶች እስካሁን ካልገቡ
-        if (status === 'waiting' && !botsAdded) {
-            console.log("⏳ ቦቶች ወደ ጨዋታው እየገቡ ነው...");
+    gameRef.once('value').then((snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        const status = data.status;
+        // timerStartTime ካለ፣ አሁን ካለው ሰዓት ጋር በማነጻጸር 40 ሰከንድ ውስጥ መሆናችንን እናረጋግጣለን
+        const startTime = data.timerStartTime || 0;
+        const currentTime = Date.now();
+        const elapsed = (currentTime - startTime) / 1000; // ሰከንድ
+
+        // ቦቶች የሚገቡት: status 'waiting' ከሆነ እና 40 ሰከንዱ ገና ካላለቀ (እስከ 38 ሰከንድ ባለው ጊዜ)
+        if (status === 'waiting' && elapsed < 38 && !botsAdded) {
+            console.log("⏳ 40 ሰከንድ እየቆጠረ ነው... ቦቶች እየገቡ ነው");
+            
             if (typeof addBotsToGame === 'function') {
                 addBotsToGame();
-                botsAdded = true; // ቦቶቹ መግባታቸውን ምልክት እናድርግ
+                botsAdded = true; 
             }
         } 
-        // 2. ጨዋታው ሲጀመር (started) ወይም ሲያልቅ (finished) ቦቶቹን እንደገና እንፈቅዳለን
-        else if (status === 'started' || status === 'finished') {
-            botsAdded = false; // ለቀጣይ ዙር ቦቶች እንደገና እንዲገቡ ዝግጁ እናድርግ
-        }
-
-        // 3. ቦቶች ሲጫወቱ
+        
+        // 40 ሰከንዱ ሲያልፍ ወይም ጨዋታው ሲጀመር ቦቶቹን እንደገና እናስጀምራለን
         if (status === 'started') {
-            if (typeof aiMakeMove === 'function') {
-                aiMakeMove();
-            }
+            botsAdded = false;
         }
     });
-}, 2000); // 2 ሰከንድ በቂ ነው
+}, 2000);
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
