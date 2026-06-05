@@ -479,6 +479,9 @@
 
         // አዲሱ የቦት መክተቻ ፈንክሽን
         // አዲሱ የተስተካከለ የቦት መክተቻ
+
+    
+        // ተስተካከለ ኮድ
 window.handleManualBotInjection = function() {
     if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
     
@@ -492,27 +495,17 @@ window.handleManualBotInjection = function() {
             status: "active",
             is_ai: true 
         };
-
-        // ዋናው ነጥብ እዚህ ነው: የፓይተን ኮድህ የሚጠብቀው ቦታ ላይ ዳታውን ላክ
-        // ይህንን የፓይተን ኮድህ 'players' በሚል ፎልደር ውስጥ የሚያነብ ከሆነ በዚህ መልኩ አስቀምጠው
         db.ref(`live_players/${botId}`).set(botData);
         db.ref(`game_room/${botId}`).set(botData);
     }
     
-    // ለፓይተን ኮድ ምልክት መላኪያ (Signal)
     db.ref("admin_commands").set({
         action: "start_game",
         timestamp: Date.now(),
         bots_added: count
     });
     
-    alert(`✅ ${count} ቦቶች ተልከዋል! የፓይተን ኮዱን Log እይ።`);
-};
-    
-    // በተመሳሳይ ጊዜ ጨዋታውን እንዲጀምር 'start_game' የሚለውን ኮማንድ ላክ
-    sendAICommand('start_game'); 
-    
-    alert(`✅ ${count} ቦቶች ወደ ጨዋታው ገብተዋል!`);
+    alert(`✅ ${count} ቦቶች ተልከዋል!`);
 };
         window.clearAIBots = function() {
             if(!db) return;
