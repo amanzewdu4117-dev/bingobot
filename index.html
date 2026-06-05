@@ -778,29 +778,35 @@ function aiMakeMove() {
 
 // ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
 // ቦቶችን በራስ-ሰር የሚያንቀሳቅስ ፋንክሽን
+let botsAdded = false; // ቦቶቹ መግባታቸውን ለመቆጣጠር
+
 setInterval(() => {
-    // 1. የ Firebase reference በመጠቀም የጨዋታውን status እንፈትሽ
     const gameStatusRef = firebase.database().ref('liveGame/status');
     
     gameStatusRef.once('value').then((snapshot) => {
         const status = snapshot.val();
         
-        // 2. ጨዋታው "started" ከሆነ ብቻ ቦቶቹ እንዲንቀሳቀሱ እናድርግ
+        // 1. ጨዋታው እየጠበቀ (waiting) ከሆነ እና ቦቶች እስካሁን ካልገቡ
+        if (status === 'waiting' && !botsAdded) {
+            console.log("⏳ ቦቶች ወደ ጨዋታው እየገቡ ነው...");
+            if (typeof addBotsToGame === 'function') {
+                addBotsToGame();
+                botsAdded = true; // ቦቶቹ መግባታቸውን ምልክት እናድርግ
+            }
+        } 
+        // 2. ጨዋታው ሲጀመር (started) ወይም ሲያልቅ (finished) ቦቶቹን እንደገና እንፈቅዳለን
+        else if (status === 'started' || status === 'finished') {
+            botsAdded = false; // ለቀጣይ ዙር ቦቶች እንደገና እንዲገቡ ዝግጁ እናድርግ
+        }
+
+        // 3. ቦቶች ሲጫወቱ
         if (status === 'started') {
-            console.log("🤖 AI is making a move...");
-            // ቦቶቹ የሚንቀሳቀሱበት ፋንክሽን
             if (typeof aiMakeMove === 'function') {
                 aiMakeMove();
             }
-        } else if (status === 'waiting') {
-            // 3. ጨዋታው "waiting" ከሆነ፣ ቦቶቹን በራስ-ሰር እንዲገቡ (ክተት) ማድረግ ይቻላል
-            console.log("⏳ Game is waiting, adding bots...");
-            if (typeof addBotsToGame === 'function') {
-                addBotsToGame(); // ይህንን ፋንክሽን ከዚህ በፊት ባወራነው መሠረት define አድርገው
-            }
         }
     });
-}, 5000);
+}, 2000); // 2 ሰከንድ በቂ ነው
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
