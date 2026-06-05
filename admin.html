@@ -478,31 +478,36 @@
         };
 
         // አዲሱ የቦት መክተቻ ፈንክሽን
-        window.handleManualBotInjection = function() {
+        // አዲሱ የተስተካከለ የቦት መክተቻ
+window.handleManualBotInjection = function() {
     if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
     
     const count = parseInt(document.getElementById("botCountInput").value);
     
-    if (isNaN(count) || count <= 0) {
-        alert("እባክዎ ትክክለኛ የቦት ብዛት ያስገቡ");
-        return;
-    }
-
-    // ቦቶችን ወደ ዳታቤዝ ለመጨመር
     for (let i = 0; i < count; i++) {
-        let baseName = amharicNames[i % amharicNames.length];
-        let botId = `999900${1000 + i}`; 
+        let botId = `bot_${Math.floor(Math.random() * 100000)}`; 
         let botData = { 
-            username: `${baseName}_${Math.floor(Math.random() * 90) + 10}`, 
-            balance: 100, 
+            username: `AI_Player_${i}`, 
+            balance: 1000, 
+            status: "active",
             is_ai: true 
         };
 
-        // ቦቶቹ እንዲታዩ በብዙ ቦታዎች ላይ አስቀምጥ
-        db.ref(`users/${botId}`).set(botData);
-        db.ref(`liveGame/players/${botId}`).set(botData); // ጨዋታው የሚያነበው እዚህ ከሆነ ነው
-        db.ref(`current_game/players/${botId}`).set(botData); // አንዳንዴ እዚህም ይፈለጋል
+        // ዋናው ነጥብ እዚህ ነው: የፓይተን ኮድህ የሚጠብቀው ቦታ ላይ ዳታውን ላክ
+        // ይህንን የፓይተን ኮድህ 'players' በሚል ፎልደር ውስጥ የሚያነብ ከሆነ በዚህ መልኩ አስቀምጠው
+        db.ref(`live_players/${botId}`).set(botData);
+        db.ref(`game_room/${botId}`).set(botData);
     }
+    
+    // ለፓይተን ኮድ ምልክት መላኪያ (Signal)
+    db.ref("admin_commands").set({
+        action: "start_game",
+        timestamp: Date.now(),
+        bots_added: count
+    });
+    
+    alert(`✅ ${count} ቦቶች ተልከዋል! የፓይተን ኮዱን Log እይ።`);
+};
     
     // በተመሳሳይ ጊዜ ጨዋታውን እንዲጀምር 'start_game' የሚለውን ኮማንድ ላክ
     sendAICommand('start_game'); 
