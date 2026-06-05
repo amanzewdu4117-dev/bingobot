@@ -478,7 +478,7 @@
         };
 
         // አዲሱ የቦት መክተቻ ፈንክሽን
-window.handleManualBotInjection = function() {
+        window.handleManualBotInjection = function() {
     if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
     
     const count = parseInt(document.getElementById("botCountInput").value);
@@ -488,23 +488,26 @@ window.handleManualBotInjection = function() {
         return;
     }
 
-    // ቦቶችን ለየብቻ እያመነጨ Firebase ላይ መዝገብ
+    // ቦቶችን ወደ ዳታቤዝ ለመጨመር
     for (let i = 0; i < count; i++) {
         let baseName = amharicNames[i % amharicNames.length];
         let botId = `999900${1000 + i}`; 
         let botData = { 
             username: `${baseName}_${Math.floor(Math.random() * 90) + 10}`, 
-            phone: "0900000000", 
             balance: 100, 
             is_ai: true 
         };
 
-        // Firebase ላይ ማስገባት
+        // ቦቶቹ እንዲታዩ በብዙ ቦታዎች ላይ አስቀምጥ
         db.ref(`users/${botId}`).set(botData);
-        db.ref(`liveGame/players/${botId}`).set({ username: botData.username, is_ai: true });
+        db.ref(`liveGame/players/${botId}`).set(botData); // ጨዋታው የሚያነበው እዚህ ከሆነ ነው
+        db.ref(`current_game/players/${botId}`).set(botData); // አንዳንዴ እዚህም ይፈለጋል
     }
     
-    alert(`✅ ${count} ቦቶች በተሳካ ሁኔታ ተገብተዋል!`);
+    // በተመሳሳይ ጊዜ ጨዋታውን እንዲጀምር 'start_game' የሚለውን ኮማንድ ላክ
+    sendAICommand('start_game'); 
+    
+    alert(`✅ ${count} ቦቶች ወደ ጨዋታው ገብተዋል!`);
 };
         window.clearAIBots = function() {
             if(!db) return;
