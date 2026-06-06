@@ -842,7 +842,19 @@ setInterval(() => {
         p.innerHTML += h + `</div></div>`;
     });
 }
+    function setupPlayerListeners() {
+    // 1. የሰው ተጫዋቾች (Real players)
+    db.ref('liveGame/selectedCards').on('value', snap => {
+        const realPlayers = snap.val() || {};
+        renderAllPlayers(realPlayers); // ሁሉንም በአንድ ላይ ለመሳል
+    });
 
+    // 2. ቦቶች (AI players)
+    db.ref('live_players').on('value', snap => {
+        const aiPlayers = snap.val() || {};
+        renderAllPlayers(aiPlayers); // እዚህም ተመሳሳይ ተግባር ይጠራል
+    });
+}
     function renderActiveCard(id, container) {
         let d = cardData[id];
         if(!d) return;
