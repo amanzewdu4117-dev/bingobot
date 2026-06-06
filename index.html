@@ -517,29 +517,7 @@
                 if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
             }
         };
-        db.ref('live_players').on('value', snap => {
-    const aiPlayers = snap.val();
-    if (aiPlayers) {
-        // ቦቶችን ከ allSelected ጋር አዋህድ
-        // allSelected ዋናው የጨዋታ ካርድ ዝርዝር ነው
-        Object.keys(aiPlayers).forEach(key => {
-            allSelected[key] = aiPlayers[key];
-        });
-        
-        // የተጠቃሚዎችን ቁጥር እና የሽልማት ገንዳ (Prize Pool) እንደገና አስላ
-        const totalCards = Object.keys(allSelected).length;
-        document.getElementById('total-count').innerText = totalCards;
-        
-        // የሽልማት ገንዳ ስሌት
-        const cardPrice = 10;
-        const totalPool = totalCards * cardPrice;
-        const livePrizePool = totalPool - (totalPool * 0.15);
-        document.getElementById('live-prize').innerText = livePrizePool.toFixed(2);
-        
-        // ቦርዱን እንደገና ስለው
-        renderGrid();
-    }
-});
+
         updatePreview();
     }
 
@@ -864,28 +842,7 @@ setInterval(() => {
         p.innerHTML += h + `</div></div>`;
     });
 }
-    function setupPlayerListeners() {
-    // 1. የሰው ተጫዋቾች (Real players)
-    db.ref('liveGame/selectedCards').on('value', snap => {
-        const realPlayers = snap.val() || {};
-        renderAllPlayers(realPlayers); // ሁሉንም በአንድ ላይ ለመሳል
-    });
 
-    // 2. ቦቶች (AI players)
-    db.ref('live_players').on('value', snap => {
-        const aiPlayers = snap.val() || {};
-        renderAllPlayers(aiPlayers); // እዚህም ተመሳሳይ ተግባር ይጠራል
-    });
-}
-    db.ref('live_players').on('value', snap => {
-    const aiPlayers = snap.val();
-    if (aiPlayers) {
-        // የቦቶቹን መረጃ ወደ ዋናው የጨዋታ ቦርድ መረጃ (allSelected) ጨምር
-        Object.assign(allSelected, aiPlayers);
-        renderGrid(); // ቦርዱን እንደገና እንዲስል
-        document.getElementById('total-count').innerText = Object.keys(allSelected).length;
-    }
-});
     function renderActiveCard(id, container) {
         let d = cardData[id];
         if(!d) return;
