@@ -432,94 +432,93 @@
     }
 
     function init() {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
 
-        db.ref('users/' + userId + '/balance').on('value', snap => {
-            if (snap.exists()) {
-                currentBalance = parseFloat(snap.val());
-            } else {
-                currentBalance = 100.00;
-                db.ref('users/' + userId).set({
-                    name: tgUser,
-                    balance: currentBalance
+    // 1. የሂሳብ (Balance) Listener - እንዳለ ነው
+    db.ref('users/' + userId + '/balance').on('value', snap => {
+        if (snap.exists()) {
+            currentBalance = parseFloat(snap.val());
+        } else {
+            currentBalance = 100.00;
+            db.ref('users/' + userId).set({ name: tgUser, balance: currentBalance });
+        }
+        document.getElementById('balance').innerText = currentBalance.toFixed(2);
+        save();
+    });
+
+    // 2. የተዋሃደ Listener (ሰዎች + ቦቶች)
+    db.ref('liveGame').on('value', snap => {
+        const data = snap.val();
+        if(!data) return;
+
+        // የድሮውን ዳታ በሙሉ አጽዳ
+        allSelected = {}; 
+        calledNumbers.clear();
+        if(data.history) data.history.forEach(num => calledNumbers.add(num));
+
+        // ሰዎችን ጨምር
+        if(data.selectedCards) {
+            Object.assign(allSelected, data.selectedCards);
+        }
+
+        // ቦቶችን ከ live_players ጨምር
+        db.ref('live_players').once('value', aiSnap => {
+            const aiPlayers = aiSnap.val();
+            if (aiPlayers) {
+                Object.keys(aiPlayers).forEach(key => {
+                    const bot = aiPlayers[key];
+                    const cardKey = 'c' + bot.cardId;
+                    allSelected[cardKey] = { playerName: bot.playerName, is_ai: true };
                 });
             }
-            document.getElementById('balance').innerText = currentBalance.toFixed(2);
-            save();
-        });
 
-        db.ref('liveGame').on('value', snap => {
-            const data = snap.val();
-            if(!data) return;
-
-            calledNumbers.clear();
-            if(data.history) data.history.forEach(num => calledNumbers.add(num));
-
-            let currentTotalCards = 0;
-            if(data.selectedCards) {
-                allSelected = data.selectedCards;
-                currentTotalCards = Object.keys(allSelected).length;
-                document.getElementById('total-count').innerText = currentTotalCards;
-            } else {
-                allSelected = {};
-                document.getElementById('total-count').innerText = "0";
-            }
+            // ቁጥሩን እና ሽልማቱን በትክክል አስላ
+            const currentTotalCards = Object.keys(allSelected).length;
+            document.getElementById('total-count').innerText = currentTotalCards;
             
             const cardPrice = 10;
-            const totalPool = currentTotalCards * cardPrice;
-            const systemCut = totalPool * 0.15;
-            const livePrizePool = totalPool - systemCut;
-            
+            const livePrizePool = (currentTotalCards * cardPrice) * 0.85; // 15% system cut
             document.getElementById('live-prize').innerText = livePrizePool.toFixed(2);
             
             renderGrid();
+        });
 
-            if(data.status === "waiting" && data.timerStartTime) {
-    const now = Date.now();
-    const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-    const remaining = 40 - elapsed;
-    
-    // ቦቶቹ እንዲመርጡ የሚቀሰቅሰው መስመር እዚህ ይጨመራል
-    if (remaining > 0) {
-        startCountdown(remaining);
-        
-        // ቦቶቹ መምረጥ እንዲጀምሩ (አንዴ ብቻ እንዲነሳ)
-        if (!botSelectionStarted) { 
-            startBotAutoSelection(); 
-            botSelectionStarted = true;
+        // የጨዋታ ሁኔታ (Status/Timer)
+        if(data.status === "waiting" && data.timerStartTime) {
+            const remaining = 40 - Math.floor((Date.now() - data.timerStartTime) / 1000);
+            if (remaining > 0) {
+                startCountdown(remaining);
+                if (!botSelectionStarted) { startBotAutoSelection(); botSelectionStarted = true; }
+            } else {
+                document.getElementById('timer').innerText = "0";
+            }
+            if(gameActive) resetUI();
         }
-    } else {
-        document.getElementById('timer').innerText = "0";
-    }
-    
-    if(gameActive) resetUI();
+
+        if(data.status === "started") {
+            clearInterval(countdownInterval);
+            if(!gameActive) start();
+        }
+
+        if(data.winner && gameActive) winner(data.winner);
+    });
+
+    // 3. ሌሎች ተጨማሪ ተግባራት
+    db.ref('liveGame/currentNumber').on('value', snap => {
+        let n = snap.val();
+        if(n && gameActive) applyNumber(n);
+    });
+
+    document.getElementById('searchCard').oninput = function() {
+        let val = parseInt(this.value);
+        if(val >= 1 && val <= 500) {
+            let target = document.getElementById(`cartela-${val}`);
+            if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
+        }
+    };
+
+    updatePreview();
 }
-
-            if(data.status === "started") {
-                clearInterval(countdownInterval);
-                if(!gameActive) start();
-            }
-
-            if(data.winner && gameActive) {
-                winner(data.winner);
-            }
-        });
-
-        db.ref('liveGame/currentNumber').on('value', snap => {
-            let n = snap.val();
-            if(n && gameActive) applyNumber(n);
-        });
-
-        document.getElementById('searchCard').oninput = function() {
-            let val = parseInt(this.value);
-            if(val >= 1 && val <= 500) {
-                let target = document.getElementById(`cartela-${val}`);
-                if(target) target.scrollIntoView({behavior: "smooth", block: "center"});
-            }
-        };
-
-        updatePreview();
-    }
 
     function openWithdrawModal() {
         document.getElementById('modal-current-bal').innerText = currentBalance.toFixed(2);
