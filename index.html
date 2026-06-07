@@ -792,19 +792,44 @@ setInterval(() => {
 }, 5000); // በየ 5 ሰከንዱ ይፈትሻል
 
 // 2. አዲሱ የ Listener ኮድ (ይህ ነው ገጹን ያለ Refresh እንዲቀየር የሚያደርገው)
-firebase.database().ref('liveGame').on('value', (snapshot) => {
+ firebase.database().ref('liveGame').on('value', (snapshot) => {
     const gameData = snapshot.val();
     if (!gameData) return;
 
-    if (gameData.status === 'waiting') {
-        console.log("🔄 ጨዋታው ወደ Waiting ተቀይሯል፣ ገጹ እየጸዳ ነው...");
-        resetUI(); // አዲስ ዙር ሲጀመር ሁሉንም ነገር ያጸዳል
-        botsAdded = false; // አዲስ ዙር ስለሆነ ቦቶች እንደገና እንዲገቡ ይፈቅዳል
-    } else if (gameData.status === 'started') {
-        console.log("🚀 ጨዋታው ተጀምሯል!");
-        updateBoard(gameData); // ቁጥሮችን ያሳያል
+    // 1. ጨዋታው ሲያልቅ (አሸናፊ ሲታወቅ)
+    if (gameData.status === 'finished') {
+        // የድሮውን ባነር ካለ ማጥፋት (አንድ ጊዜ ብቻ እንዲታይ)
+        const oldBanner = document.getElementById('winner-banner');
+        if (!oldBanner) {
+            const winnerDisplay = document.createElement('div');
+            winnerDisplay.id = "winner-banner";
+            winnerDisplay.style.position = "fixed"; // ስክሪኑ መሃል እንዲቀመጥ
+            winnerDisplay.style.top = "20%";
+            winnerDisplay.style.left = "50%";
+            winnerDisplay.style.transform = "translateX(-50%)";
+            winnerDisplay.style.background = "gold";
+            winnerDisplay.style.padding = "20px";
+            winnerDisplay.style.zIndex = "1000";
+            winnerDisplay.innerHTML = `<h1>🏆 አሸናፊ: ${gameData.winnerName}</h1>`;
+            document.body.appendChild(winnerDisplay);
+        }
     }
-}); 
+    
+    // 2. ወደ ቀጣይ ዙር ሲገባ (Waiting)
+    else if (gameData.status === 'waiting') {
+        botsAdded = false; // ይሄ ቦቶች አዲስ ዙር ላይ እንደገና እንዲገቡ ያስችላል
+        const winnerBanner = document.getElementById('winner-banner');
+        if (winnerBanner) {
+            winnerBanner.remove();
+        }
+        resetUI(); 
+    }
+    
+    // 3. ጨዋታው ሲጀመር
+    else if (gameData.status === 'started') {
+        updateBoard(gameData);
+    }
+});
       
     function updatePreview() {
     const p = document.getElementById('selection-preview');
