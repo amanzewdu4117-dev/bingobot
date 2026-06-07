@@ -580,77 +580,64 @@
     }
     
     function autoJoinBots() {
-    // 1. መጀመሪያ የጨዋታውን ሁኔታ ከ Firebase ይመልከቱ
+    // በመጀመሪያ የጨዋታውን ሁኔታ ከFirebase ያረጋግጡ
     db.ref('liveGame/status').once('value', (snapshot) => {
         const status = snapshot.val();
         
-        // 2. ጨዋታው "waiting" ካልሆነ ቦቶች እንዳይገቡ (እጣ ማውጣት ላይ ከሆኑ)
-        if (status !== 'waiting') {
-            console.log("ጨዋታው እጣ ማውጣት ላይ ነው፣ ቦቶች አይገቡም!");
-            return;
+        // ጨዋታው የተጀመረ ከሆነ ቦቶችን አያስገባቸው
+        if (status === 'started') {
+            console.log("ጨዋታው ተጀምሯል፣ ቦቶች መግባት አይችሉም።");
+            return; 
         }
 
-        // 3. waiting ከሆነ ብቻ ይቀጥሉ
-        if (isBotJoined) return;
-        
+        // ጨዋታው ካልተጀመረ ብቻ ቦቶቹን አስገባቸው
         db.ref('bots_pool').once('value', (snapshot) => {
             const bots = snapshot.val();
             if (bots) {
-                db.ref('liveGame/selectedCards').set(bots); 
-                isBotJoined = true;
-                console.log("ቦቶች በስኬት ገብተዋል!");
+                db.ref('liveGame/selectedCards').update(bots);
             }
         });
     });
 }
-    // ከዚህ ፋንክሽን ውጭ ይሄንን variable አስቀምጠው
-let hasBotsJoined = false; 
-
-function start() {
-    // 1. ቦቶች አንዴ ብቻ እንዲገቡ ማድረግ
-    if (!hasBotsJoined) {
+    function start() {
         autoJoinBots();
-        hasBotsJoined = true;
-    }
-    
-    // 2. ጨዋታው ሲጀመር የድሮ ካርዶችን ከ Firebase ማጽዳት (አስፈላጊ ከሆነ)
-    // db.ref('liveGame/selectedCards').remove(); 
-    
-    gameActive = true;
-    
-    document.getElementById('selection-page').classList.add('hidden');
-    document.getElementById('game-page').classList.remove('hidden');
-    document.getElementById('game-page').style.display = 'flex';
-    
-    const board = document.getElementById('main-board');
-    board.innerHTML = "";
-    for(let r=0; r<15; r++) { 
-        for(let c=0; c<5; c++) { 
-            let n = (c * 15) + r + 1;
-            let colorClass = calledNumbers.has(n) ? 'called' : '';
-            board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+        gameActive = false;
+        document.getElementById('selection-page').classList.add('hidden');
+        document.getElementById('game-page').classList.remove('hidden');
+        document.getElementById('game-page').style.display = 'flex';
+        
+        const board = document.getElementById('main-board');
+        board.innerHTML = "";
+        for(let r=0; r<15; r++) { 
+            for(let c=0; c<5; c++) { 
+                let n = (c * 15) + r + 1;
+                let colorClass = calledNumbers.has(n) ? 'called' : '';
+                board.innerHTML += `<div class="num-cell ${colorClass}" id="n-${n}">${n}</div>`;
+            }
+        }
+
+        const area = document.getElementById('player-area');
+        area.innerHTML = "";
+        
+        if(userCards.length > 0) {
+            userCards.forEach(id => renderActiveCard(id, area));
+        } else {
+            area.innerHTML = `
+                <div class="no-card-warning">
+                    <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
+                    <div class="warning-title">ጨዋታው ጀምሯል!</div>
+                    <p class="warning-text">
+                        እርሶ ምንም ካርቴላ አልመረጡም።<br>
+                        አሸናፊ ለመሆን በሚቀጥለው ዙር
+                        <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
+                    </p>
+                    <div style="margin-top: 15px; font-size: 10px; color: #888;">
+                        እስከዛው የወጡ ቁጥሮችን በግራ በኩል መከታተል ይችላሉ
+                    </div>
+                </div>
+            `;
         }
     }
-
-    const area = document.getElementById('player-area');
-    area.innerHTML = "";
-    
-    if(userCards.length > 0) {
-        userCards.forEach(id => renderActiveCard(id, area));
-    } else {
-        area.innerHTML = `
-            <div class="no-card-warning">
-                <div style="font-size: 40px; margin-bottom: 10px;">🎮</div>
-                <div class="warning-title">ጨዋታው ጀምሯል!</div>
-                <p class="warning-text">
-                    እርሶ ምንም ካርቴላ አልመረጡም።<br>
-                    አሸናፊ ለመሆን በሚቀጥለው ዙር
-                    <span class="highlight-orange">ካርቴላዎን ይምረጡ!</span>
-                </p>
-            </div>
-        `;
-    }
-}
 
     function startCountdown(seconds) {
         clearInterval(countdownInterval);
@@ -673,7 +660,7 @@ function start() {
     const grid = document.getElementById('slots-grid');
     grid.innerHTML = "";
     
-    for(let i=1; i<=500; i++) {
+        for(let i=1; i<=500; i++) {
         let b = document.createElement('div');
         b.className = 'slot-btn'; 
         b.id = `cartela-${i}`;
@@ -716,38 +703,46 @@ function start() {
 
 
     function selectCard(i) {
-        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-
-        if (userCards.includes(i)) {
-            userCards = userCards.filter(x => x !== i);
-            delete cardData[i];
-            currentBalance += 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            db.ref('liveGame/selectedCards/c' + i).remove();
-
-        } else if (userCards.length < 3 && currentBalance >= 10) {
-            userCards.push(i);
-            const newNumbers = generateCard();
-            cardData[i] = newNumbers;
-            currentBalance -= 10;
-            
-            db.ref('users/' + userId + '/balance').set(currentBalance);
-            
-            db.ref('liveGame/selectedCards/c' + i).set({
-                id: i,
-                playerName: tgUser,
-                numbers: newNumbers.flat().filter(n => n !== 'F')
-            });
-        } else if (currentBalance < 10) {
-            alert("በቂ ሂሳብ የሎትም!");
-            return;
-        }
-        
-        save(); 
-        renderGrid(); 
-        updatePreview();
+    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
+    
+    // 🛑 ቦቶች እንዳይመዘገቡ ማረጋገጫ (User ID ካለ ብቻ እንዲመዘገብ ማድረግ)
+    if (userId === "guest_user") {
+        alert("እባክዎ በቴሌግራም በኩል ብቻ ይግቡ!");
+        return;
     }
+
+    if (userCards.includes(i)) {
+        userCards = userCards.filter(x => x !== i);
+        delete cardData[i];
+        currentBalance += 10;
+        
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        db.ref('liveGame/selectedCards/c' + i).remove();
+
+    } else if (userCards.length < 3 && currentBalance >= 10) {
+        userCards.push(i);
+        const newNumbers = generateCard();
+        cardData[i] = newNumbers;
+        currentBalance -= 10;
+        
+        db.ref('users/' + userId + '/balance').set(currentBalance);
+        
+        // 🛑 እዚህ ጋር playerName የሚለው ላይ ትክክለኛው የቴሌግራም User ID መመዝገቡን አረጋግጥ
+        db.ref('liveGame/selectedCards/c' + i).set({
+            id: i,
+            playerId: userId, // playerName ፈንታ playerId ተጠቀም
+            playerName: tgUser,
+            numbers: newNumbers.flat().filter(n => n !== 'F')
+        });
+    } else if (currentBalance < 10) {
+        alert("በቂ ሂሳብ የሎትም!");
+        return;
+    }
+    
+    save(); 
+    renderGrid(); 
+    updatePreview();
+}
     
     // በ script.js መጨረሻ ላይ ይህንን አስገባ
 function aiMakeMove() {
@@ -777,40 +772,12 @@ function aiMakeMove() {
 }
 
 // ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
-// ቦቶችን በራስ-ሰር የሚያንቀሳቅስ ፋንክሽን
-// ቦቶችን ለመቆጣጠር የሚያገለግል የውጭ ተለዋዋጭ
-let botsAdded = false;
-
 setInterval(() => {
-    // ከ Firebase የጨዋታውን ሁኔታ እና የሰዓት ቆጣሪውን (timer) እናንብብ
-    const gameRef = firebase.database().ref('liveGame');
-    
-    gameRef.once('value').then((snapshot) => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        const status = data.status;
-        // timerStartTime ካለ፣ አሁን ካለው ሰዓት ጋር በማነጻጸር 40 ሰከንድ ውስጥ መሆናችንን እናረጋግጣለን
-        const startTime = data.timerStartTime || 0;
-        const currentTime = Date.now();
-        const elapsed = (currentTime - startTime) / 1000; // ሰከንድ
-
-        // ቦቶች የሚገቡት: status 'waiting' ከሆነ እና 40 ሰከንዱ ገና ካላለቀ (እስከ 38 ሰከንድ ባለው ጊዜ)
-        if (status === 'waiting' && elapsed < 38 && !botsAdded) {
-            console.log("⏳ 40 ሰከንድ እየቆጠረ ነው... ቦቶች እየገቡ ነው");
-            
-            if (typeof addBotsToGame === 'function') {
-                addBotsToGame();
-                botsAdded = true; 
-            }
-        } 
-        
-        // 40 ሰከንዱ ሲያልፍ ወይም ጨዋታው ሲጀመር ቦቶቹን እንደገና እናስጀምራለን
-        if (status === 'started') {
-            botsAdded = false;
-        }
-    });
-}, 2000);
+    // ጨዋታው እየሰራ ከሆነ ብቻ
+    if(typeof gameActive !== 'undefined' && gameActive) {
+        aiMakeMove();
+    }
+}, 5000);
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
