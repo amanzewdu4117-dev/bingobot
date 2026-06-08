@@ -407,11 +407,6 @@
     let calledNumbers = new Set();
     let countdownInterval;
 
-    const ethiopianNames = [
-    "አማኑኤል", "ቤተልሔም", "ዳዊት", "ጽዮን", "ቴዎድሮስ", 
-    "ሰላም", "ኪሩቤል", "ማህደር", "ዮናታን", "ሶፊያ", 
-    "ኤፍሬም", "ሩት", "አቤል", "ህይወት", "ሙሉቀን"
-];
     function save() {
         localStorage.setItem('aman_cards', JSON.stringify(userCards));
         localStorage.setItem('aman_data', JSON.stringify(cardData));
@@ -475,25 +470,18 @@
             renderGrid();
 
             if(data.status === "waiting" && data.timerStartTime) {
-    const now = Date.now();
-    const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-    const remaining = 40 - elapsed;
-    
-    // ቦቶቹ እንዲመርጡ የሚቀሰቅሰው መስመር እዚህ ይጨመራል
-    if (remaining > 0) {
-        startCountdown(remaining);
-        
-        // ቦቶቹ መምረጥ እንዲጀምሩ (አንዴ ብቻ እንዲነሳ)
-        if (!botSelectionStarted) { 
-            startBotAutoSelection(); 
-            botSelectionStarted = true;
-        }
-    } else {
-        document.getElementById('timer').innerText = "0";
-    }
-    
-    if(gameActive) resetUI();
-}
+                const now = Date.now();
+                const elapsed = Math.floor((now - data.timerStartTime) / 1000);
+                const remaining = 40 - elapsed;
+                
+                if (remaining > 0) {
+                    startCountdown(remaining);
+                } else {
+                    document.getElementById('timer').innerText = "0";
+                }
+                
+                if(gameActive) resetUI();
+            }
 
             if(data.status === "started") {
                 clearInterval(countdownInterval);
@@ -578,18 +566,8 @@
             alert("ስህተት ተፈጥሯል፣ እባክዎ እንደገና ይሞክሩ!");
         });
     }
-    
-    function autoJoinBots() {
-    db.ref('bots_pool').once('value', (snapshot) => {
-        const bots = snapshot.val();
-        if (bots) {
-            // ቦቶቹን ወደ liveGame/selectedCards ይገልብጧቸዋል
-            db.ref('liveGame/selectedCards').update(bots);
-        }
-    });
-}
+
     function start() {
-        autoJoinBots();
         gameActive = true;
         document.getElementById('selection-page').classList.add('hidden');
         document.getElementById('game-page').classList.remove('hidden');
@@ -646,102 +624,87 @@
     }
 
     function renderGrid() {
-    const grid = document.getElementById('slots-grid');
-    grid.innerHTML = "";
-    
-    
+        const grid = document.getElementById('slots-grid');
+        grid.innerHTML = "";
         
-        // ራስህ የመረጥከው ካርቴላ (የአንተ ስም ይታያል)
-        if(userCards.includes(i)) {
-            b.classList.add('selected');
-            b.innerHTML = `
-                <div class="card-number">${i}</div>
-                <div class="player-name">${tgUser}</div>
-            `;
-        }
+        for(let i=1; i<=500; i++) {
+            let b = document.createElement('div');
+            b.className = 'slot-btn'; 
+            b.id = `cartela-${i}`;
+            
+            let cardKey = 'c' + i;
 
-        b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
-        grid.appendChild(b);
+            if(allSelected && allSelected[cardKey]) {
+                // 1. ሌላ ሰው የመረጠው ካርቴላ ከሆነ የያዘውን ሰው ትክክለኛ ስም ከFirebase ያነባል
+                const playerData = allSelected[cardKey];
+                const displayName = playerData.playerName || playerData.username || playerData.UserName || playerData.Name || "ተጫዋች";
+                
+                b.innerHTML = `
+                    <div class="card-number">${i}</div>
+                    <div class="player-name">${displayName}</div>
+                `;
+                
+                if(!userCards.includes(i)) {
+                    b.classList.add('occupied');
+                }
+            } else {
+                // 2. ካርቴላው ገና ያልተመረጠ (ባዶ) ከሆነ "ተጫዋች" ብሎ ያሳያል
+                // አዲሱ የተስተካከለ ኮድ
+b.innerHTML = `
+    <div class="card-number">${i}</div>
+    <div class="player-name"></div>
+`;
+            }
+            
+            // 3. ራሱ ተጫዋቹ (አንተ ወይም ማንኛውም የቦቱ ተጠቃሚ) የራሱን ካርቴላ ሲመርጥ
+            if(userCards.includes(i)) {
+                b.classList.add('selected');
+                b.innerHTML = `
+                    <div class="card-number">${i}</div>
+                    <div class="player-name">${tgUser}</div>
+                `;
+            }
+
+            b.onclick = () => { if(!gameActive && !b.classList.contains('occupied')) selectCard(i); };
+            grid.appendChild(b);
+        }
     }
-}
 
 
     function selectCard(i) {
-    const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
-    
-    // 🛑 ቦቶች እንዳይመዘገቡ ማረጋገጫ (User ID ካለ ብቻ እንዲመዘገብ ማድረግ)
-    if (userId === "guest_user") {
-        alert("እባክዎ በቴሌግራም በኩል ብቻ ይግቡ!");
-        return;
-    }
+        const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
 
-    if (userCards.includes(i)) {
-        userCards = userCards.filter(x => x !== i);
-        delete cardData[i];
-        currentBalance += 10;
-        
-        db.ref('users/' + userId + '/balance').set(currentBalance);
-        db.ref('liveGame/selectedCards/c' + i).remove();
+        if (userCards.includes(i)) {
+            userCards = userCards.filter(x => x !== i);
+            delete cardData[i];
+            currentBalance += 10;
+            
+            db.ref('users/' + userId + '/balance').set(currentBalance);
+            db.ref('liveGame/selectedCards/c' + i).remove();
 
-    } else if (userCards.length < 3 && currentBalance >= 10) {
-        userCards.push(i);
-        const newNumbers = generateCard();
-        cardData[i] = newNumbers;
-        currentBalance -= 10;
-        
-        db.ref('users/' + userId + '/balance').set(currentBalance);
-        
-        // 🛑 እዚህ ጋር playerName የሚለው ላይ ትክክለኛው የቴሌግራም User ID መመዝገቡን አረጋግጥ
-        db.ref('liveGame/selectedCards/c' + i).set({
-            id: i,
-            playerId: userId, // playerName ፈንታ playerId ተጠቀም
-            playerName: tgUser,
-            numbers: newNumbers.flat().filter(n => n !== 'F')
-        });
-    } else if (currentBalance < 10) {
-        alert("በቂ ሂሳብ የሎትም!");
-        return;
-    }
-    
-    save(); 
-    renderGrid(); 
-    updatePreview();
-}
-    
-    // በ script.js መጨረሻ ላይ ይህንን አስገባ
-function aiMakeMove() {
-    // 1. የሚገኙ ባዶ ቦታዎችን መለየት
-    let availableSlots = [];
-    for(let i=1; i<=500; i++) {
-        if(!allSelected['c' + i]) {
-            availableSlots.push(i);
+        } else if (userCards.length < 3 && currentBalance >= 10) {
+            userCards.push(i);
+            const newNumbers = generateCard();
+            cardData[i] = newNumbers;
+            currentBalance -= 10;
+            
+            db.ref('users/' + userId + '/balance').set(currentBalance);
+            
+            db.ref('liveGame/selectedCards/c' + i).set({
+                id: i,
+                playerName: tgUser,
+                numbers: newNumbers.flat().filter(n => n !== 'F')
+            });
+        } else if (currentBalance < 10) {
+            alert("በቂ ሂሳብ የሎትም!");
+            return;
         }
+        
+        save(); 
+        renderGrid(); 
+        updatePreview();
     }
 
-    if(availableSlots.length > 0) {
-        // 2. በዘፈቀደ አንድ ባዶ ቦታ መምረጥ
-        let randomSlot = availableSlots[Math.floor(Math.random() * availableSlots.length)];
-        
-        // 3. ሀገር በቀል ስም መምረጥ
-        const botName = ethiopianNames[Math.floor(Math.random() * ethiopianNames.length)];
-        
-        // 4. ወደ Firebase መላክ (ቦቱ ሲመርጥ)
-        db.ref('liveGame/selectedCards/c' + randomSlot).set({
-            id: randomSlot,
-            playerName: botName, // የዘፈቀደ ሀገር በቀል ስም
-            is_ai: true,
-            numbers: generateCard().flat().filter(n => n !== 'F') // የቦቱ ቁጥሮች
-        });
-    }
-}
-
-// ቦቶች በየ 5 ሰከንዶች በራስ-ሰር እንዲጫወቱ የሚያደርግ መቆጣጠሪያ
-setInterval(() => {
-    // ጨዋታው እየሰራ ከሆነ ብቻ
-    if(typeof gameActive !== 'undefined' && gameActive) {
-        aiMakeMove();
-    }
-}, 5000);
     function updatePreview() {
     const p = document.getElementById('selection-preview');
     p.innerHTML = userCards.length ? "" : '<div style="color:#444; width:100%; text-align:center; font-size:11px;">ካርቴላ ይምረጡ</div>';
@@ -847,22 +810,21 @@ setInterval(() => {
     }
 
     function resetUI() {
-    gameActive = false;
-    calledNumbers.clear();
-    // ቦቶችን አናስወግዳቸው (userCards እና cardData ብቻ ነው የሚጸዱት)
-    userCards = []; 
-    cardData = {};
-    localStorage.removeItem('aman_cards');
-    localStorage.removeItem('aman_data');
-    
-    document.getElementById('selection-page').classList.remove('hidden');
-    document.getElementById('game-page').classList.add('hidden');
-    document.getElementById('game-page').style.display = 'none';
-    document.getElementById('winner-overlay').style.display = 'none';
-    
-    renderGrid();
-    updatePreview();
-}
+        gameActive = false;
+        calledNumbers.clear();
+        userCards = [];
+        cardData = {};
+        localStorage.removeItem('aman_cards');
+        localStorage.removeItem('aman_data');
+        
+        document.getElementById('selection-page').classList.remove('hidden');
+        document.getElementById('game-page').classList.add('hidden');
+        document.getElementById('game-page').style.display = 'none';
+        document.getElementById('winner-overlay').style.display = 'none';
+        
+        renderGrid();
+        updatePreview();
+    }
 
     window.onload = init;
 </script>
