@@ -472,7 +472,7 @@
             if(data.status === "waiting" && data.timerStartTime) {
                 const now = Date.now();
                 const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-                const remaining = 40 - elapsed;
+                const remaining = 50 - elapsed;
                 
                 if (remaining > 0) {
                     startCountdown(remaining);
@@ -813,7 +813,7 @@ b.innerHTML = `
         setTimeout(() => { 
             overlay.style.display = 'none';
             resetUI(); 
-        }, 7000);
+        }, 5000);
     }
 
     // ... የቀድሞ ተግባራትህ እዚህ ናቸው ...
