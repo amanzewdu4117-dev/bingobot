@@ -299,10 +299,10 @@
 </head>
 <body>
 
-<div id="winner-overlay">
-    <div id="win-icon" style="font-size: 60px; margin-bottom: 15px;">🏆</div>
-    <h1 id="overlay-title" style="font-size:45px; margin: 10px 0; color: #00f2ff;">BINGO!</h1>
-    <div id="win-msg" style="color:#fff; padding: 0 20px; text-align: center;"></div>
+    <div id="winner-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; color: #FFD700; font-family: Arial, sans-serif;">
+    <h1 style="font-size: 50px;">🎉 እንኳን ደስ አላችሁ! 🎉</h1>
+    <h2 id="winner-name-display" style="font-size: 30px; color: white;"></h2>
+    <p>ጨዋታው በ5 ሰከንድ ውስጥ ይጀመራል...</p>
 </div>
 
     <div class="top-status-bar">
@@ -816,9 +816,11 @@ b.innerHTML = `
         }, 7000);
     }
 
+    // ... የቀድሞ ተግባራትህ እዚህ ናቸው ...
+
     function resetUI() {
         gameActive = false;
-        calledNumbers.clear();
+        calledNumbers.clear(); // ይህ የ Set አይነት ከሆነ ትክክል ነው
         userCards = [];
         cardData = {};
         localStorage.removeItem('aman_cards');
@@ -832,6 +834,31 @@ b.innerHTML = `
         renderGrid();
         updatePreview();
     }
+
+    // 🔥 እዚህ ጋር ነው ማስገባት ያለብህ
+    db.ref('liveGame').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const overlay = document.getElementById('winner-overlay');
+
+    // 1. ጨዋታው ሲያልቅ (Finished) -> አሸናፊውን አሳይ
+    if (data.status === 'finished') {
+        const winnerNameDisplay = document.getElementById('winner-name-display');
+        
+        // አሸናፊውን ከ Firebase ውሂብ አምጣ (winner_data ውስጥ ያለውን ስም)
+        // winner_data ካርታ ከሆነ, data.winner_data.name ሊሆን ይችላል
+        winnerNameDisplay.innerText = "አሸናፊው፦ " + (data.winner_data?.name || "የሰፈር ቦት 🤖");
+        
+        overlay.style.display = 'flex';
+    } 
+    // 2. ጨዋታው እንደገና ሲጀመር (Waiting) -> ስክሪኑን አጥፋው
+    else if (data.status === 'waiting') {
+        overlay.style.display = 'none';
+        // እንዲሁም አስፈላጊ ከሆነ resetUI() እዚህ ጋር መጠራት ይችላል
+        // resetUI(); 
+    }
+});
 
     window.onload = init;
 </script>
