@@ -472,7 +472,7 @@
             if(data.status === "waiting" && data.timerStartTime) {
                 const now = Date.now();
                 const elapsed = Math.floor((now - data.timerStartTime) / 1000);
-                const remaining = 50 - elapsed;
+                const remaining = 60 - elapsed;
                 
                 if (remaining > 0) {
                     startCountdown(remaining);
