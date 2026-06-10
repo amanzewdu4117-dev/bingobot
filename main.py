@@ -100,18 +100,18 @@ def save_phone(user_id, phone):
     # የመጀመሪያ ምዝገባ ከሆነ
     conn = sqlite3.connect('bingo_data.db')
     c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO users (user_id, balance, is_bot) VALUES (?, 20.0, 0)", (user_id,))
+    c.execute("INSERT OR IGNORE INTO users (user_id, balance, is_bot) VALUES (?, 40.0, 0)", (user_id,))
     conn.commit()
     conn.close()
     
     # በ Firebase ላይ ተጠቃሚው መመዝገቡን ምልክት ማድረግ (registered: True)
     user_ref.update({
         'phone': phone,
-        'balance': 20.0,
+        'balance': 40.0,
         'registered': True  # 👈 ይህ ምልክት እንደገና እንዳይመዘገብ ይረዳል
     })
     
-    bot.send_message(user_id, "🎉 እንኳን ደስ አለዎት! ለምዝገባዎ 20 ETB ቦነስ ተቀብለዋል።")
+    bot.send_message(user_id, "🎉 እንኳን ደስ አለዎት! ለምዝገባዎ 40 ETB ቦነስ ተቀብለዋል።")
 
 def get_main_menu(user_id):
     markup = InlineKeyboardMarkup()
@@ -123,38 +123,51 @@ def get_main_menu(user_id):
 
 # የኢትዮጵያዊ ስሞች ዝርዝር
 ethiopian_names = [
-    "አማኑኤል", "ቤተልሄም", "ዳዊት", "ጽዮን", "ዮሐንስ", "ሰላም", "ኪሩቤል", "ህይወት", 
-    "ቴዎድሮስ", "እሌኒ", "አቤል", "ትግስት", "ሳሙኤል", "ማርያም", "ዘለቀ", "መቅደስ",
-    "ገብሬ", "አበባ", "ሙሉቀን", "እመቤት", "ፍሬህይወት", "ዮናታን", "ሜላት", "ናትናኤል"
+    "abel", "cherki", "david", "haben", "kemal", "saka", "moti", "geleta", 
+    "tedi", "kiros", "yalew", "hagos", "sami", "esubalew", "habtamu", "buze",
+    "the gunners", "haland", "GGMU", "abubeker", "S", "yonatan", "elyas", "admasu", "Aman   ", "Abesha Lucky 🍀", "Habesha 🏆", 
+                    "Buna Time  ☕", "Teff King  👑", "Ethiopian Star 🌟",
+                    "Addis Winner 🏙️", "Zema","joci", "sami", "besufikad", "abu", "abechu","henok", "tesfa", "Zema endi", "kal kal","tare", "mesele", "dani germa", "natan xanvas", "gelana", "eyoba man", "nahom","beka", "sanjaw", "የቋራው", "belay", "t/haymanot", "berhanu ye meri", "osman","abedi", "nur", "abebaw", "kenenisa", "moti","ephrem", "teklay"
 ]
 
 def auto_bot_injector():
     while True:
-        game_ref = db.reference('liveGame')
-        game_data = game_ref.get()
+        try:
+            game_ref = db.reference('liveGame')
+            game_data = game_ref.get()
 
-        if game_data and game_data.get('status') == 'waiting':
-            current_cards = game_data.get('selectedCards', {})
-            
-            # ቦቶች ከ 40 መብለጥ የለባቸውም
-            if len(current_cards) < 40:
-                bot_id = f"c{random.randint(1, 500)}"
+            if game_data and game_data.get('status') == 'waiting':
+                current_cards = game_data.get('selectedCards', {})
                 
-                # የተባዛ ካርድ እንዳይኖር መፈተሽ
-                if bot_id not in current_cards:
-                    # ሀገር በቀል ስም መምረጥ
-                    chosen_name = random.choice(ethiopian_names)
+                # ቦቶች ከ 100 በታች ከሆኑ ብቻ እናስገባ
+                if len(current_cards) < 100:
+                    batch = {} # በአንዴ የምንልክበት ዲክሽነሪ
                     
-                    bot_data = {
-                        'playerName': chosen_name,
-                        'is_ai': True
-                    }
-                    db.reference(f'liveGame/selectedCards/{bot_id}').set(bot_data)
-                    print(f"🤖 ቦት {chosen_name} በካርድ {bot_id} ገብቷል!")
-        
-        time.sleep(2) # በየ 2 ሰከንዱ ቦት ይጨምራል
+                    # 2 ቦቶችን ለመምረጥ
+                    for _ in range(2): 
+                        bot_id = f"c{random.randint(1, 500)}"
+                        # የተባዛ እንዳይሆን እና ባች ውስጥ ያልተካተተ መሆኑን ማረጋገጥ
+                        if bot_id not in current_cards and bot_id not in batch:
+                            chosen_name = random.choice(ethiopian_names)
+                            batch[bot_id] = {
+                                'playerName': chosen_name,
+                                'is_ai': True
+                            }
+                    
+                    # ሁሉንም ቦቶች በአንድ ጊዜ (Batch) እንላክ
+                    if batch:
+                        db.reference('liveGame/selectedCards').update(batch)
+                        for b_id, data in batch.items():
+                            print(f"🤖 ቦት {data['playerName']} በካርድ {b_id} ገብቷል!")
+            
+            # ዳታቤዝ እንዳይጫን እረፍት
+            time.sleep(1) 
+            
+        except Exception as e:
+            print(f"Bot Injector Error: {e}")
+            time.sleep(5)
 
-# Thread ማስጀመሪያ
+# Thread ማስጀመሪያ (ትክክለኛውን የ () መዝጊያ ጨምረናል)
 threading.Thread(target=auto_bot_injector, daemon=True).start()
 
 def create_massive_bots(count=40):
@@ -167,7 +180,7 @@ def create_massive_bots(count=40):
             'playerName': f"AI_Player_{i}",
             'cardId': random_card_id, 
             'is_ai': True,
-            'numbers': [random.randint(1, 75) for _ in range(15)]
+            'numbers': [random.randint(1, 75) for _ in range(80)]
         }
         
         # ቦቶቹን ወደ Firebase እንልካለን
@@ -371,6 +384,8 @@ def reset_game():
     })
 
 def start_bingo_numbers():
+    import random # እዚህ ቦታ ላይ import ማድረጉ ይመረጣል
+    
     while True:
         try:
             print("🔄 NEW ROUND STARTING")
@@ -383,12 +398,12 @@ def start_bingo_numbers():
                 'currentNumber': None,
                 'history': [],
                 'selectedCards': {},
-                'winnerName': None,
+                'winner_data': None, # አዲስ ስም ለመቀበል ዝግጁ
                 'timerStartTime': int(time.time() * 1000)
             })
 
-            print("⏳ WAITING PLAYERS FOR 40 SECONDS...")
-            time.sleep(40)
+            print("⏳ WAITING PLAYERS FOR 60 SECONDS...")
+            time.sleep(60)
 
             selected_cards = db.reference('liveGame/selectedCards').get() or {}
             if not selected_cards:
@@ -404,99 +419,46 @@ def start_bingo_numbers():
             
             called_numbers = []
             winner_found = False
-            winner_info = "የሰፈር ቦት 🤖" # ነባሪ አሸናፊ
 
-            # 🎯 CALL NUMBERS LOOP (እስከ 25ኛው ጥሪ)
+            # 🎯 CALL NUMBERS LOOP
             for i, number in enumerate(shuffled_numbers[:25], start=1):
                 called_numbers.append(number)
                 db.reference('liveGame').update({'currentNumber': number, 'history': called_numbers})
                 print(f"🎯 Number #{i}: {number}")
                 
-                # 🤖 25ኛው ጥሪ ላይ ቦቱን በግድ አሸናፊ አድርግ
                 if i == 25:
                     winner_found = True
                     break 
-
-                time.sleep(1) # ቁጥር የመጥሪያ ፍጥነት
+                time.sleep(1)
 
             # 🚀 አሸናፊው ከተገኘ በኋላ የሚፈጸም
             if winner_found:
+                # ቦቶችን መምረጥ
+                bot_names = [
+                    "Aman   ", "Abesha Lucky 🍀", "Habesha 🏆", 
+                    "Buna Time  ☕", "Teff King  👑", "Ethiopian Star 🌟",
+                    "Addis Winner 🏙️", "Zema","joci","sami","besufikad","abu","abechu","henok","tesfa","Zema endi","kal kal","tare","mesele","dani germa","natan xanvas","gelana","eyoba man","nahom","beka","sanjaw","የቋራው","belay","t/haymanot","berhanu ye meri","osman","abedi","nur","abebaw","kenenisa","moti","ephrem","teklay"
+                ]
+                selected_winner = random.choice(bot_names)
+                
+                # ዳታቤዝ ማዘመን
                 db.reference('liveGame').update({
-                    'winnerName': winner_info,
+                    'winner_data': {
+                        'name': selected_winner 
+                    },
                     'status': 'finished'
                 })
                 
                 # 📢 ለቴሌግራም ማሳወቂያ
                 GROUP_CHAT_ID = "-1003968758379"
-                bot.send_message(GROUP_CHAT_ID, f"🏆 አሸናፊው፦ {winner_info} 🥳")
-                print(f"✅ ጨዋታው ተጠናቋል! አሸናፊው፦ {winner_info}")
-            
-            time.sleep(10) # ለአሸናፊው ማሳያ ጊዜ
-
-        except Exception as e:
-            print(f"Error in game engine loop: {e}")
-            time.sleep(5)def start_bingo_numbers():
-    while True:
-        try:
-            print("🔄 NEW ROUND STARTING")
-            db.reference('liveGame/selectedCards').set({})
-
-            # 🔄 RESET GAME
-            ref = db.reference('liveGame')
-            ref.set({
-                'status': 'waiting',
-                'currentNumber': None,
-                'history': [],
-                'selectedCards': {},
-                'winnerName': None,
-                'timerStartTime': int(time.time() * 1000)
-            })
-
-            print("⏳ WAITING PLAYERS FOR 40 SECONDS...")
-            time.sleep(40)
-
-            selected_cards = db.reference('liveGame/selectedCards').get() or {}
-            if not selected_cards:
-                print("🛑 No Players Joined.")
+                try:
+                    bot.send_message(chat_id=GROUP_CHAT_ID, text=f"🏆 አሸናፊው፦ {selected_winner} 🥳")
+                    print("✅ መልእክቱ ወደ ቴሌግራም ተልኳል!")
+                except Exception as e:
+                    print(f"❌ የቴሌግራም ስህተት ተፈጥሯል: {e}")
+                
+                # ለአሸናፊው ማሳያ ጊዜ
                 time.sleep(5)
-                continue
-
-            ref.update({'status': 'started'})
-            print(f"🚀 GAME STARTED | Players: {len(selected_cards)}")
-            
-            shuffled_numbers = list(range(1, 76))
-            random.shuffle(shuffled_numbers)
-            
-            called_numbers = []
-            winner_found = False
-            winner_info = "የሰፈር ቦት 🤖" # ነባሪ አሸናፊ
-
-            # 🎯 CALL NUMBERS LOOP (እስከ 25ኛው ጥሪ)
-            for i, number in enumerate(shuffled_numbers[:25], start=1):
-                called_numbers.append(number)
-                db.reference('liveGame').update({'currentNumber': number, 'history': called_numbers})
-                print(f"🎯 Number #{i}: {number}")
-                
-                # 🤖 25ኛው ጥሪ ላይ ቦቱን በግድ አሸናፊ አድርግ
-                if i == 25:
-                    winner_found = True
-                    break 
-
-                time.sleep(1) # ቁጥር የመጥሪያ ፍጥነት
-
-            # 🚀 አሸናፊው ከተገኘ በኋላ የሚፈጸም
-            if winner_found:
-                db.reference('liveGame').update({
-                    'winnerName': winner_info,
-                    'status': 'finished'
-                })
-                
-                # 📢 ለቴሌግራም ማሳወቂያ
-                GROUP_CHAT_ID = "-1003968758379"
-                bot.send_message(GROUP_CHAT_ID, f"🏆 አሸናፊው፦ {winner_info} 🥳")
-                print(f"✅ ጨዋታው ተጠናቋል! አሸናፊው፦ {winner_info}")
-            
-            time.sleep(10) # ለአሸናፊው ማሳያ ጊዜ
 
         except Exception as e:
             print(f"Error in game engine loop: {e}")
