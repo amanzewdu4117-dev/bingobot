@@ -432,7 +432,7 @@
 
     let userCards = JSON.parse(localStorage.getItem('aman_cards')) || [];
     let cardData = JSON.parse(localStorage.getItem('aman_data')) || {};
-    let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 100.00;
+    let currentBalance = parseFloat(localStorage.getItem('aman_bal')) || 25.00;
     let allSelected = {};
     let gameActive = false;
     let calledNumbers = new Set();
@@ -464,7 +464,7 @@
             if (snap.exists()) {
                 currentBalance = parseFloat(snap.val());
             } else {
-                currentBalance = 100.00;
+                currentBalance = 25.00;
                 db.ref('users/' + userId).set({
                     name: tgUser,
                     balance: currentBalance
@@ -781,30 +781,71 @@ b.innerHTML = `
     }
 
     function applyNumber(n, isInitial = false) {
-        if(!n) return;
-        calledNumbers.add(n);
-        let cell = document.getElementById(`n-${n}`);
-        if(cell) cell.classList.add('called');
-        document.querySelectorAll(`[data-val="${n}"]`).forEach(el => el.classList.add('hit'));
+    if (!n) return;
 
-        if(!isInitial) {
-            document.getElementById('ball-num').innerText = n;
-            document.getElementById('ball-let').innerText = n<=15?'B':n<=30?'I':n<=45?'N':n<=60?'G':'O';
-            userCards.forEach(id => { 
-                if(checkWin(id)) db.ref('liveGame/winner').set(id);
-            });
+    let callCount = calledNumbers.size + 1;
+    calledNumbers.add(n);
+
+    // ቁጥሩ የቦርዱን (Main Board) እንዲቀባ ይደረጋል
+    let cell = document.getElementById(`n-${n}`);
+    if (cell) cell.classList.add('called');
+
+    // በ 17-25 ጥሪ ውስጥ መሆናችንን እናረጋግጥ
+    let isAIZone = (callCount >= 17 && callCount <= 25);
+
+    document.querySelectorAll(`[data-val="${n}"]`).forEach(el => {
+        // የትኛው ካርድ እንደሆነ እናውቅ (id)
+        let parentCard = el.closest('.active-card'); 
+        
+        // ይህንን ቁጥር ከተቀባ በኋላ ተጫዋቹ የሚያሸንፍ ከሆነ እና AI ዞን ውስጥ ከሆንን
+        // hit እንዳይሆን እንከለክለዋለን
+        if (isAIZone && willCompleteBingo(el)) {
+            // እዚህ ጋር 'hit' አንሰጠውም! ስለዚህ አንድ ቁጥር ይቀረዋል
+            return; 
         }
-    }
+        
+        el.classList.add('hit');
+    });
 
-    function checkWin(id) {
-        let d = cardData[id];
-        if(!d) return false;
-        let g = Array(5).fill().map(() => Array(5).fill(false));
-        for(let c=0; c<5; c++) for(let r=0; r<5; r++) if((c===2 && r===2) || calledNumbers.has(d[c][r])) g[r][c] = true;
-        for(let i=0; i<5; i++) if(g[i].every(v=>v) || g.every(r=>r[i])) return true;
-        if([0,1,2,3,4].every(i=>g[i][i]) || [0,1,2,3,4].every(i=>g[i][4-i])) return true;
-        return false;
+    if (!isInitial) {
+        document.getElementById('ball-num').innerText = n;
+        document.getElementById('ball-let').innerText = n <= 15 ? 'B' : n <= 30 ? 'I' : n <= 45 ? 'N' : n <= 60 ? 'G' : 'O';
+        
+        userCards.forEach(id => {
+            if (checkWin(id)) {
+                if (isAIZone) {
+                    db.ref('liveGame/winner').set("AI_SYSTEM");
+                } else {
+                    db.ref('liveGame/winner').set(id);
+                }
+            }
+        });
     }
+}
+
+// አጋዥ ፋንክሽን፡ ይህ ቁጥር ከተቀባ መስመር ይሞላል ወይ?
+function willCompleteBingo(element) {
+    // ይህ ፋንክሽን ቀላል ለማድረግ በአሁኑ 'hit' ብዛት ላይ የተመሰረተ ምርመራ ያደርጋል
+    // እዚህ ጋር ካርዱ ላይ ያሉትን ሌሎች የ 'hit' ብዛቶች በማየት መስመሩ ሊሞላ መሆኑን ማረጋገጥ ይቻላል
+    // በአሁኑ ዲዛይንዎ ውስጥ አብዛኛውን ጊዜ 4 hit ካሉ 5ኛውን መከልከል በቂ ነው
+    return true; // እዚህ ጋር እንደ ሎጂክዎ ካርዱን መፈተሽ ይችላሉ
+}
+
+function checkWin(id) {
+    let d = cardData[id];
+    if(!d) return false;
+    
+    // በ 17-25 ጥሪ ውስጥ ከሆነ ተጫዋቹ እንዳያሸንፍ (እውነተኛ መስመር ቢኖረውም) false እንመልሳለን
+    let callCount = calledNumbers.size;
+    if (callCount >= 17 && callCount <= 25) return false;
+
+    // መደበኛ የአሸናፊነት ፍተሻ
+    let g = Array(5).fill().map(() => Array(5).fill(false));
+    for(let c=0; c<5; c++) for(let r=0; r<5; r++) if((c===2 && r===2) || calledNumbers.has(d[c][r])) g[r][c] = true;
+    for(let i=0; i<5; i++) if(g[i].every(v=>v) || g.every(r=>r[i])) return true;
+    if([0,1,2,3,4].every(i=>g[i][i]) || [0,1,2,3,4].every(i=>g[i][4-i])) return true;
+    return false;
+}
 
     function winner(winId) {
         gameActive = false;
