@@ -365,33 +365,44 @@ db.ref("deposit_requests").orderByChild("status").equalTo("pending").on("value",
                 }
             });
 
-            // 👥 3. የተጫዋቾች መቆጣጠሪያ (የተስተካከለ የቀጥታ መቆጣጠሪያ)
-            db.ref("users").on("value", (snapshot) => {
-                const usersTableBody = document.getElementById("users-table-body"); usersTableBody.innerHTML = "";
-                let totalUsers = 0, totalBalance = 0;
-                if (snapshot.exists()) {
-                    Object.keys(snapshot.val()).forEach(userId => {
-                        const user = snapshot.val()[userId];
-                        totalUsers++; totalBalance += Number(user.balance || 0);
-                        const currentBalance = user.balance !== undefined ? user.balance : 0;
-                        
-                        const tr = document.createElement("tr");
-                        tr.setAttribute("data-search-term", `${user.username || ''}`.toLowerCase());
-                        tr.innerHTML = `
-                            <td><strong>${user.username || 'ያልታወቀ'}</strong><br><small class='text-muted'>${userId}</small></td>
-                            <td><span class="badge ${user.is_ai ? 'bg-info' : 'bg-secondary'}">${user.phone || 'የለም'}</span></td>
-                            <td><strong class="text-success">${Number(currentBalance).toFixed(1)} ETB</strong></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${currentBalance})">✏️ ባላንስ ቀይር</button>
-                                <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄 Reset</button>
-                            </td>
-                        `;
-                        usersTableBody.appendChild(tr);
-                    });
-                    document.getElementById("stat-total-users").innerText = totalUsers;
-                    document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
-                }
-            });
+            // 👥 3. የተጫዋቾች መቆጣጠሪያ (የተስተካከለ)
+db.ref("users").on("value", (snapshot) => {
+    const usersTableBody = document.getElementById("users-table-body"); 
+    usersTableBody.innerHTML = "";
+    let totalUsers = 0, totalBalance = 0;
+    
+    if (snapshot.exists()) {
+        snapshot.forEach(userSnapshot => {
+            const userId = userSnapshot.key;
+            const user = userSnapshot.val();
+            
+            // መረጃዎችን ከዳታቤዝ መለየት
+            const name = user.username || user.name || 'ያልታወቀ';
+            const phone = user.phone || 'ስልክ የለም';
+            const balance = parseFloat(user.balance || 0);
+            
+            totalUsers++; 
+            totalBalance += balance;
+            
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-search-term", `${name}`.toLowerCase());
+            
+            tr.innerHTML = `
+                <td><strong>${name}</strong><br><small class='text-muted'>${userId}</small></td>
+                <td><span class="badge bg-secondary">${phone}</span></td>
+                <td><strong class="text-success">${balance.toFixed(1)} ETB</strong></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-primary py-0 px-2 me-1" onclick="editBalance('${userId}', ${balance})">✏️</button>
+                    <button class="btn btn-sm btn-warning py-0 px-2" onclick="resetPlayer('${userId}')">🔄</button>
+                </td>
+            `;
+            usersTableBody.appendChild(tr);
+        });
+        
+        document.getElementById("stat-total-users").innerText = totalUsers;
+        document.getElementById("stat-total-balance").innerText = totalBalance.toLocaleString();
+    }
+});
 
             // TID Cache
             db.ref("tid_cache").on("value", (snapshot) => {
