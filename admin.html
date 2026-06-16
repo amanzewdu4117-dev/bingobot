@@ -276,43 +276,48 @@
             window.toggleBotStatus = function(status) { if(db) db.ref("settings/bot_status").set(status); };
 
             // 📥 1. የዲፖዚት ጥያቄዎችን ከFirebase አንብቦ የሚያሳይ ክፍል
-            db.ref("deposit_requests").on("value", snapshot => {
-                const container = document.getElementById("deposit-requests-body");
-                if (!container) return;
-                container.innerHTML = "";
+            // 📥 1. የተስተካከለ የዲፖዚት ጥያቄ ማሳያ
+db.ref("deposit_requests").orderByChild("status").equalTo("pending").on("value", snapshot => {
+    const container = document.getElementById("deposit-requests-body");
+    if (!container) return;
+    container.innerHTML = "";
 
-                if (snapshot.exists()) {
-                    snapshot.forEach(childSnapshot => {
-                        const data = childSnapshot.val();
-                        const key = childSnapshot.key;
+    if (snapshot.exists()) {
+        snapshot.forEach(childSnapshot => {
+            const data = childSnapshot.val();
+            const key = childSnapshot.key;
+            const amount = parseFloat(data.amount || 0);
+            const userId = data.userId;
 
-                        const holderName = data.holder || "ያልታወቀ";
-                        const bankName = data.bank || "CBE";
-                        const accountNumber = data.account || "የለም";
-                        const amount = parseFloat(data.amount || 0);
-                        const status = data.status || "pending";
-                        const userId = data.userId || "guest";
+            // የባላንስ ስሌት ለመስራት የተጠቃሚውን መረጃ ከ "users" እንወስዳለን
+            db.ref("users/" + userId).once("value", userSnap => {
+                const user = userSnap.val();
+                const oldBalance = user ? parseFloat(user.balance || 0) : 0;
+                const newBalance = oldBalance + amount;
 
-                        if (status === "pending") {
-                            container.innerHTML += `
-                                <tr>
-                                    <td><strong>${holderName}</strong><br><small style="color:#888;">ID: ${userId}</small></td>
-                                    <td><span style="background:#21262d; padding:4px 8px; border-radius:5px; font-weight:bold; color:#ff9800;">${bankName}</span></td>
-                                    <td>${accountNumber}</td>
-                                    <td style="color:#00ff85; font-weight:bold;">${amount} ETB</td>
-                                    <td>
-                                        <button onclick="approveDeposit('${key}', '${userId}', ${amount})" style="background:#00a852; border:none; border-radius:5px; padding:5px 10px; color:#000; cursor:pointer; font-weight:bold;">✔️ ማጽደቂያ</button>
-                                        <button onclick="rejectDeposit('${key}')" style="background:#ff3e3e; border:none; border-radius:5px; padding:5px 10px; color:#fff; cursor:pointer; font-weight:bold; margin-left:5px;">❌ ውድቅ</button>
-                                    </td>
-                                </tr>
-                            `;
-                            checkSMSAndAutoApprove(key, userId, amount, holderName);
-                        }
-                    });
-                } else {
-                    container.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
-                }
+                container.innerHTML += `
+                    <tr>
+                        <td><strong>${data.holder || 'ተጫዋች'}</strong><br><small>ID: ${userId}</small></td>
+                        <td><span class="badge bg-warning text-dark">${data.bank || 'CBE'}</span></td>
+                        <td>${data.account || '-'}</td>
+                        <td>
+                            <div class="fw-bold text-success">${amount} ETB</div>
+                            <small class="text-muted">ባላንስ: ${oldBalance} → <b>${newBalance}</b></small>
+                        </td>
+                        <td class="text-center">
+                            <button onclick="approveDeposit('${key}', '${userId}', ${amount})" 
+                                    class="btn btn-sm btn-success">✔️</button>
+                            <button onclick="rejectDeposit('${key}')" 
+                                    class="btn btn-sm btn-danger">✖️</button>
+                        </td>
+                    </tr>
+                `;
             });
+        });
+    } else {
+        container.innerHTML = "<tr><td colspan='5' class='text-center text-muted'>የሚጠባበቅ የለም</td></tr>";
+    }
+});
 
             // 📥 2. ዊዝድሮዎች
             db.ref("withdraw_requests").on("value", (snapshot) => {
@@ -482,31 +487,7 @@
 
     
         // ተስተካከለ ኮድ
-window.handleManualBotInjection = function() {
-    if(!db) { alert("❌ Firebase አልተገናኘም!"); return; }
-    
-    const count = parseInt(document.getElementById("botCountInput").value);
-    
-    for (let i = 0; i < count; i++) {
-        let botId = `bot_${Math.floor(Math.random() * 100000)}`; 
-        let botData = { 
-            username: `AI_Player_${i}`, 
-            balance: 1000, 
-            status: "active",
-            is_ai: true 
-        };
-        db.ref(`live_players/${botId}`).set(botData);
-        db.ref(`game_room/${botId}`).set(botData);
-    }
-    
-    db.ref("admin_commands").set({
-        action: "start_game",
-        timestamp: Date.now(),
-        bots_added: count
-    });
-    
-    alert(`✅ ${count} ቦቶች ተልከዋል!`);
-};
+
         window.clearAIBots = function() {
             if(!db) return;
             for (let i = 0; i < 200; i++) {
