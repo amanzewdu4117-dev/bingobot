@@ -459,7 +459,7 @@
         }
         return card;
     }
-
+        let isFirstLoad = true; // 🎯 ተጫዋቹ ወጥቶ ሲገባ ድግግሞሽ እንዳይኖር መቆጣጠሪያ
     function init() {
         const userId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || "guest_user";
 
@@ -502,7 +502,14 @@
             document.getElementById('live-prize').innerText = livePrizePool.toFixed(2);
             
             renderGrid();
-
+            if (isFirstLoad && data.history) {
+                data.history.forEach(num => {
+                    if (typeof applyNumber === "function") {
+                        applyNumber(num, false); // የድሮዎቹን ቁጥሮች ያለ አኒሜሽን ያሳልፋል
+                    }
+                });
+                isFirstLoad = false; // የመጀመሪያው ዙር ጫና አለቀ
+            }
             if(data.status === "waiting" && data.timerStartTime) {
                 const now = Date.now();
                 const elapsed = Math.floor((now - data.timerStartTime) / 1000);
